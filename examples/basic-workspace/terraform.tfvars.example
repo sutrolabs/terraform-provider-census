@@ -1,0 +1,8 @@
+# Copy this file to terraform.tfvars and fill in your actual values
+
+# Your Census personal access token (required)
+# Get this from: Census Dashboard → Settings → Developer → Personal Access Tokens
+census_personal_token = "your-personal-access-token-here"
+
+# Census region - change to "eu" if you're using the EU instance
+census_region = "us"

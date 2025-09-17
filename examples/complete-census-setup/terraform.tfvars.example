@@ -1,0 +1,81 @@
+# ==============================================================================
+# CENSUS TERRAFORM PROVIDER - COMPLETE SETUP EXAMPLE
+# ==============================================================================
+# Copy this file to terraform.tfvars and fill in your actual values
+
+# ==============================================================================
+# AUTHENTICATION (Required)
+# ==============================================================================
+
+# Personal access token for all Census operations  
+# Get from: Census Dashboard → Settings → Developer → Personal Access Tokens
+census_personal_token = "your-personal-access-token-here"
+
+# Census region ("us" or "eu")
+census_region = "us"
+
+# ==============================================================================
+# CONNECTION CREDENTIALS
+# ==============================================================================
+# Provide credentials for the specific sources/destinations defined in main.tf
+
+# Postgres warehouse connection (used by both marketing and revops sources)
+postgres_warehouse_connection = {
+  hostname = "your-postgres-host.amazonaws.com"
+  port     = "5432"
+  user     = "census_user"
+  password = "your-postgres-password"
+  database = "analytics"
+}
+
+# Salesforce production connection (used by marketing_prod destination)
+# Required fields based on Census API validation:
+# Either JWT: username, client_id, domain, instance_url, jwt_signing_key
+# OR Username/Password: username, client_id, domain, password, security_token, client_secret, instance_url
+salesforce_prod_connection = {
+  username       = "your-salesforce-username@company.com"
+  password       = "your-salesforce-password"
+  security_token = "your-salesforce-security-token"
+  client_id      = "your-salesforce-client-id"
+  client_secret  = "your-salesforce-client-secret"
+  domain         = "login"  # "login" for production, "test" for sandbox
+  instance_url   = "https://your-company.salesforce.com"
+}
+
+# Salesforce staging connection (used by marketing_staging destination)
+salesforce_staging_connection = {
+  username       = "your-salesforce-staging-username@company.com.sandbox"
+  password       = "your-salesforce-staging-password"
+  security_token = "your-salesforce-staging-security-token"
+  client_id      = "your-salesforce-staging-client-id"
+  client_secret  = "your-salesforce-staging-client-secret"
+  domain         = "test"   # "test" for sandbox, "login" for production
+  instance_url   = "https://your-company--sandbox.sandbox.salesforce.com"
+}
+
+# ==============================================================================
+# FEATURE SETTINGS  
+# ==============================================================================
+
+# Auto-refresh metadata after creating/updating connections
+enable_auto_refresh = true
+
+# ==============================================================================
+# QUICK START GUIDE
+# ==============================================================================
+#
+# 1. Copy this file: cp terraform.tfvars.example terraform.tfvars
+# 2. Fill in your census_personal_token and connection details above
+# 3. Build the provider: cd ../.. && make build
+# 4. Test the configuration:
+#    terraform init
+#    terraform validate  
+#    terraform plan
+# 5. Apply to create resources:
+#    terraform apply
+# 6. Verify in Census dashboard that connections work
+#
+# Note: The specific workspaces, sources, and destinations are defined in main.tf
+# This file only contains configuration values (tokens, credentials, settings)
+#
+# ==============================================================================
