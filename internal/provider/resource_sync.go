@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -118,9 +119,10 @@ func resourceSync() *schema.Resource {
 				}, false),
 			},
 			"field_mappings": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Field mappings between source and destination.",
+				Set:         fieldMappingHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from": {
@@ -245,6 +247,41 @@ func resourceSync() *schema.Resource {
 	}
 }
 
+// fieldMappingHash creates a hash for a field mapping to use in a TypeSet
+// This ensures field mappings are compared by content, not order
+func fieldMappingHash(v interface{}) int {
+	m := v.(map[string]interface{})
+
+	// Create a unique string representation based on from+to fields
+	// These are the identifying fields - operation and constant are modifiers
+	from := ""
+	if val, ok := m["from"].(string); ok {
+		from = val
+	}
+
+	to := ""
+	if val, ok := m["to"].(string); ok {
+		to = val
+	}
+
+	operation := "direct" // default
+	if val, ok := m["operation"].(string); ok && val != "" {
+		operation = val
+	}
+
+	// Include constant in hash if it's a constant operation
+	hashStr := fmt.Sprintf("%s:%s:%s", from, to, operation)
+	if operation == "constant" {
+		if constant, ok := m["constant"]; ok && constant != nil {
+			hashStr = fmt.Sprintf("%s:%v", hashStr, constant)
+		}
+	}
+
+	h := fnv.New32a()
+	h.Write([]byte(hashStr))
+	return int(h.Sum32())
+}
+
 func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	apiClient := meta.(*client.Client)
 
@@ -265,7 +302,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	destinationAttributes := expandStringMap(d.Get("destination_attributes").(map[string]interface{}))
-	fieldMappings := expandFieldMappings(d.Get("field_mappings").([]interface{}))
+	fieldMappings := expandFieldMappings(d.Get("field_mappings").(*schema.Set).List())
 	
 	// Get operation from top-level field (per OpenAPI spec)
 	operation := d.Get("operation").(string)
@@ -626,11 +663,12 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	fieldMappingsInterface := d.Get("field_mappings")
-	fieldMappings, ok := fieldMappingsInterface.([]interface{})
+	fieldMappingsSet, ok := fieldMappingsInterface.(*schema.Set)
 	if !ok {
-		fmt.Printf("[DEBUG] field_mappings is not a []interface{}, type: %T, value: %+v\n", fieldMappingsInterface, fieldMappingsInterface)
-		return diag.Errorf("field_mappings is not a valid list: %v", fieldMappingsInterface)
+		fmt.Printf("[DEBUG] field_mappings is not a *schema.Set, type: %T, value: %+v\n", fieldMappingsInterface, fieldMappingsInterface)
+		return diag.Errorf("field_mappings is not a valid set: %v", fieldMappingsInterface)
 	}
+	fieldMappings := fieldMappingsSet.List()
 
 	syncKeyInterface := d.Get("sync_key")
 	syncKey, ok := syncKeyInterface.([]interface{})
