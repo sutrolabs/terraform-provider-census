@@ -23,6 +23,14 @@ func resourceDestination() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+			// Force diff detection for sensitive connection_config changes
+			if d.HasChange("connection_config") {
+				d.SetNewComputed("updated_at")
+			}
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:        schema.TypeString,
@@ -115,9 +123,8 @@ func resourceDestinationCreate(ctx context.Context, d *schema.ResourceData, meta
 	req := &client.CreateDestinationRequest{
 		Type: destinationType,
 		ServiceConnection: client.DestinationConnection{
-			Label:       name,
+			Name:        name, // Set name inside service_connection per API requirements
 			Type:        destinationType,
-			SyncEngine:  "basic", // Default sync engine
 			Credentials: connectionConfig,
 		},
 	}
@@ -213,37 +220,40 @@ func resourceDestinationUpdate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("invalid destination ID: %s", d.Id())
 	}
 
-	req := &client.UpdateDestinationRequest{}
-
-	if d.HasChange("name") {
-		req.Name = d.Get("name").(string)
+	// Always get workspace token for the update operation
+	workspaceId := d.Get("workspace_id").(string)
+	workspaceIdInt, err := strconv.Atoi(workspaceId)
+	if err != nil {
+		return diag.Errorf("invalid workspace ID: %s", workspaceId)
+	}
+	
+	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
+	req := &client.UpdateDestinationRequest{}
+
+	// Census API requires service_connection for all updates, so always include it
+	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+	destinationType := d.Get("type").(string)
+	
+	// If connection changed, validate the new credentials
 	if d.HasChange("connection_config") {
-		connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
-		
-		// Validate updated credentials if connection changed
-		workspaceId := d.Get("workspace_id").(string)
-		destinationType := d.Get("type").(string)
-		
-		workspaceIdInt, err := strconv.Atoi(workspaceId)
-		if err != nil {
-			return diag.Errorf("invalid workspace ID: %s", workspaceId)
-		}
-		
-		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		
 		if err := apiClient.ValidateDestinationCredentials(ctx, destinationType, connectionConfig, workspaceToken); err != nil {
 			return diag.Errorf("destination credential validation failed: %v", err)
 		}
-		
-		req.Connection = connectionConfig
+	}
+	
+	// Always build ServiceConnection structure since API requires it
+	// Note: Don't include Type field as it cannot be modified after creation
+	// Note: Don't include SyncEngine as destinations don't have sync engines (sources do)
+	req.ServiceConnection = &client.DestinationConnection{
+		Name:        d.Get("name").(string), // Set name inside service_connection per API requirements
+		Credentials: connectionConfig,
 	}
 
-	_, err = apiClient.UpdateDestination(ctx, id, req)
+	_, err = apiClient.UpdateDestinationWithToken(ctx, id, req, workspaceToken)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -280,7 +290,25 @@ func resourceDestinationDelete(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("invalid destination ID: %s", d.Id())
 	}
 
-	err = apiClient.DeleteDestination(ctx, id)
+	// Get workspace token dynamically if we have workspace_id
+	workspaceId := d.Get("workspace_id").(string)
+	if workspaceId != "" {
+		workspaceIdInt, err := strconv.Atoi(workspaceId)
+		if err != nil {
+			return diag.Errorf("invalid workspace ID: %s", workspaceId)
+		}
+		
+		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		
+		err = apiClient.DeleteDestinationWithToken(ctx, id, workspaceToken)
+	} else {
+		// In PAT-only architecture, workspace_id is required for delete operations
+		return diag.Errorf("workspace_id is required but missing from resource state - please reimport this resource")
+	}
+	
 	if err != nil {
 		// If destination is already deleted, don't return error
 		if IsNotFoundError(err) {

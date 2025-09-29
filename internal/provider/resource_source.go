@@ -23,6 +23,14 @@ func resourceSource() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+			// Force diff detection for sensitive connection_config changes
+			if d.HasChange("connection_config") {
+				d.SetNewComputed("updated_at")
+			}
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:        schema.TypeString,
@@ -117,7 +125,7 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 
 	req := &client.CreateSourceRequest{
 		Connection: client.SourceConnection{
-			Label:       name,
+			Name:        name, // Set name inside connection per API requirements
 			Type:        sourceType,
 			SyncEngine:  "basic", // Default sync engine
 			Credentials: connectionConfig,
@@ -221,77 +229,45 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.Errorf("invalid source ID: %s", d.Id())
 	}
 
-	req := &client.UpdateSourceRequest{}
-
-	if d.HasChange("name") {
-		req.Name = d.Get("name").(string)
+	// Get current values for structured update
+	name := d.Get("name").(string)
+	sourceType := d.Get("type").(string)
+	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+	workspaceId := d.Get("workspace_id").(string)
+	
+	workspaceIdInt, err := strconv.Atoi(workspaceId)
+	if err != nil {
+		return diag.Errorf("invalid workspace ID: %s", workspaceId)
+	}
+	
+	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
+	// Always build complete connection structure for updates
 	if d.HasChange("connection_config") {
-		connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
-		
-		// Validate updated credentials if connection changed
-		workspaceId := d.Get("workspace_id").(string)
-		sourceType := d.Get("type").(string)
-		
-		workspaceIdInt, err := strconv.Atoi(workspaceId)
-		if err != nil {
-			return diag.Errorf("invalid workspace ID: %s", workspaceId)
-		}
-		
-		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		
 		if err := apiClient.ValidateSourceCredentials(ctx, sourceType, connectionConfig, workspaceToken); err != nil {
 			return diag.Errorf("source credential validation failed: %v", err)
 		}
-		
-		req.Connection = connectionConfig
-		
-		// Use the workspace token for the update as well
-		_, err = apiClient.UpdateSourceWithToken(ctx, id, req, workspaceToken)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		// If no connection config change, still need workspace token for regular update
-		workspaceId := d.Get("workspace_id").(string)
-		if workspaceId != "" {
-			workspaceIdInt, err := strconv.Atoi(workspaceId)
-			if err != nil {
-				return diag.Errorf("invalid workspace ID: %s", workspaceId)
-			}
-			
-			workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			
-			_, err = apiClient.UpdateSourceWithToken(ctx, id, req, workspaceToken)
-		} else {
-			_, err = apiClient.UpdateSource(ctx, id, req)
-		}
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	}
+	
+	req := &client.UpdateSourceRequest{
+		Connection: client.SourceConnection{
+			Name:        name, // Set name in connection structure per API requirements
+			// Note: Type and SyncEngine cannot be modified after creation per Census API
+			Credentials: connectionConfig,
+		},
+	}
+
+	// Use the workspace token for the update
+	_, err = apiClient.UpdateSourceWithToken(ctx, id, req, workspaceToken)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	// Refresh tables if requested and connection changed
 	if d.HasChange("connection_config") && d.Get("auto_refresh_tables").(bool) {
-		// We need the workspace token for refresh, get it again
-		workspaceId := d.Get("workspace_id").(string)
-		workspaceIdInt, err := strconv.Atoi(workspaceId)
-		if err != nil {
-			return diag.Errorf("invalid workspace ID: %s", workspaceId)
-		}
-		
-		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		
 		if err := apiClient.RefreshSourceTablesWithToken(ctx, id, workspaceToken); err != nil {
 			// Log the error but don't fail the update
 			return diag.Errorf("source updated successfully but table refresh failed: %v", err)

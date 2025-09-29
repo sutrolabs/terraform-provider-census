@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     census = {
-      source = "your-org/census"
+      source  = "your-org/census"
       version = "~> 0.1.0"
     }
   }
@@ -9,9 +9,9 @@ terraform {
 
 # Provider configuration
 provider "census" {
-  personal_access_token = var.census_personal_token  # For workspace management
-  region               = var.census_region
-  
+  personal_access_token = var.census_personal_token # For workspace management
+  region                = var.census_region
+
   # Note: No single workspace_access_token - workspace-specific tokens are handled
   # per resource using the workspace API keys from the workspaces configuration
 }
@@ -55,43 +55,90 @@ resource "census_workspace" "revops_prod" {
 
 # Create sources explicitly tied to specific workspaces
 # Each source belongs to exactly one workspace
+
+# Postgres sources (original)
+resource "census_source" "marketing_prod_postgres" {
+  workspace_id = census_workspace.marketing_prod.id
+
+  name = "Marketing Production Postgres Warehouse"
+  type = "postgres"
+
+  connection_config   = var.postgres_warehouse_connection
+  auto_refresh_tables = var.enable_auto_refresh
+}
+
+resource "census_source" "revops_prod_postgres" {
+  workspace_id = census_workspace.revops_prod.id
+
+  name = "RevOps Production Postgres Warehouse"
+  type = "postgres"
+
+  connection_config   = var.postgres_warehouse_connection
+  auto_refresh_tables = var.enable_auto_refresh
+}
+
+# Add staging warehouse sources for the staging sync
+
+# Postgres staging source (original)
+resource "census_source" "marketing_staging_postgres" {
+  workspace_id = census_workspace.marketing_staging.id
+
+  name = "Marketing Staging Postgres Warehouse"
+  type = "postgres"
+
+  connection_config   = var.postgres_warehouse_connection
+  auto_refresh_tables = var.enable_auto_refresh
+}
+
+# Redshift staging source (working connection)
+resource "census_source" "marketing_staging_warehouse" {
+  workspace_id = census_workspace.marketing_staging.id
+
+  name = "Marketing Staging Redshift Warehouse"
+  type = "redshift"
+
+  connection_config   = var.redshift_warehouse_connection
+  auto_refresh_tables = var.enable_auto_refresh
+}
+
+# Redshift sources (working connection)
 resource "census_source" "marketing_prod_warehouse" {
   workspace_id = census_workspace.marketing_prod.id
-  
-  name = "Marketing Production Data Warehouse"
-  type = "postgres"
-  
-  connection_config   = var.postgres_warehouse_connection
+
+  name = "Marketing Production Redshift Warehouse"
+  type = "redshift"
+
+  connection_config   = var.redshift_warehouse_connection
   auto_refresh_tables = var.enable_auto_refresh
 }
 
 resource "census_source" "revops_prod_warehouse" {
   workspace_id = census_workspace.revops_prod.id
-  
-  name = "RevOps Production Data Warehouse"
-  type = "postgres"
-  
-  connection_config   = var.postgres_warehouse_connection
+
+  name = "RevOps Production Redshift Warehouse"
+  type = "redshift"
+
+  connection_config   = var.redshift_warehouse_connection
   auto_refresh_tables = var.enable_auto_refresh
 }
 
 # Create destinations explicitly tied to specific workspaces
 resource "census_destination" "marketing_prod_crm" {
   workspace_id = census_workspace.marketing_prod.id
-  
+
   name = "Marketing Production CRM"
   type = "salesforce"
-  
+
   connection_config    = var.salesforce_prod_connection
   auto_refresh_objects = var.enable_auto_refresh
 }
 
 resource "census_destination" "marketing_staging_crm" {
   workspace_id = census_workspace.marketing_staging.id
-  
+
   name = "Marketing Staging CRM"
   type = "salesforce"
-  
+
   connection_config    = var.salesforce_staging_connection
   auto_refresh_objects = var.enable_auto_refresh
 }
@@ -107,39 +154,346 @@ resource "census_destination" "marketing_staging_crm" {
 # }
 
 # ==============================================================================
-# PHASE 3: DATA SYNCS (🔄 Coming next!)
+# PHASE 3: DATA SYNCS (✅ Available!)
 # ==============================================================================
 
-# Sync configuration - will be added in next iteration
-# resource "census_sync" "user_sync" {
-#   name        = "User Data Sync"
-#   source_id   = census_source.warehouse.id
-#   destination_id = census_destination.crm.id
-#   
-#   # Sync configuration
-#   source_object      = "users_table"
-#   destination_object = "Contact"
-#   
-#   # Field mapping
-#   field_mappings = [
-#     {
-#       source_field      = "email"
-#       destination_field = "Email"
-#       is_primary_key   = true
-#     },
-#     {
-#       source_field      = "first_name" 
-#       destination_field = "FirstName"
-#     },
-#     {
-#       source_field      = "last_name"
-#       destination_field = "LastName"
+# Create syncs that connect sources to destinations within the same workspace
+# Each sync defines how data flows from a source to a destination
+
+resource "census_sync" "marketing_contact_sync" {
+  workspace_id = census_workspace.marketing_prod.id
+  label        = "REAL Marketing Contact Sync"
+
+  source_id      = census_source.marketing_prod_warehouse.id
+  destination_id = census_destination.marketing_prod_crm.id
+
+  # Source configuration - use a table from the warehouse
+  source_attributes {
+    connection_id = census_source.marketing_prod_warehouse.id
+    object {
+      type          = "table"
+      table_name    = "users"
+      table_schema  = "public"
+      table_catalog = "dev" # Use database name as catalog
+    }
+  }
+
+  # Destination configuration - specify Salesforce object
+  destination_attributes = {
+    connection_id = census_destination.marketing_prod_crm.id
+    object        = "Contact"
+  }
+
+  # Operation mode for the sync
+  operation = "upsert"
+
+  # Field mappings between source and destination
+  field_mappings {
+    from      = "email"
+    to        = "Email"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "first_name"
+    to        = "FirstName"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "last_name"
+    to        = "LastName"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "id"
+    to        = "Census_ID__c"
+    operation = "direct"
+  }
+
+  # Unique identifier for records
+  sync_key = ["email"]
+
+  # Scheduling - run daily at 6 AM UTC
+  schedule {
+    frequency = "daily"
+    hour      = 6
+    timezone  = "UTC"
+  }
+
+  # Start paused until ready to go live
+  paused = true
+}
+
+resource "census_sync" "marketing_contact_sync_2" {
+  workspace_id = census_workspace.marketing_prod.id
+  label        = "REAL Marketing Contact Sync 2"
+
+  source_id      = census_source.marketing_prod_warehouse.id
+  destination_id = census_destination.marketing_prod_crm.id
+
+  # Source configuration - use a table from the warehouse
+  source_attributes {
+    connection_id = census_source.marketing_prod_warehouse.id
+    object {
+      type          = "table"
+      table_name    = "users"
+      table_schema  = "public"
+      table_catalog = "dev" # Use database name as catalog
+    }
+  }
+
+  # Destination configuration - specify Salesforce object
+  destination_attributes = {
+    connection_id = census_destination.marketing_prod_crm.id
+    object        = "Contact"
+  }
+
+  # Operation mode for the sync
+  operation = "upsert"
+
+  # Field mappings between source and destination
+  field_mappings {
+    from      = "email"
+    to        = "Email"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "first_name"
+    to        = "FirstName"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "last_name"
+    to        = "LastName"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "id"
+    to        = "Census_ID__c"
+    operation = "direct"
+  }
+
+  # Unique identifier for records
+  sync_key = ["email"]
+
+  # Scheduling - run daily at 6 AM UTC
+  schedule {
+    frequency = "daily"
+    hour      = 6
+    timezone  = "UTC"
+  }
+
+  # Start paused until ready to go live
+  paused = true
+}
+
+resource "census_sync" "marketing_contact_sync_3" {
+  workspace_id = census_workspace.marketing_prod.id
+  label        = "Marketing Contact Sync 3"
+
+  source_id      = census_source.marketing_prod_warehouse.id
+  destination_id = census_destination.marketing_prod_crm.id
+
+  # Source configuration - use a table from the warehouse
+  source_attributes {
+    connection_id = census_source.marketing_prod_warehouse.id
+    object {
+      type          = "table"
+      table_name    = "users"
+      table_schema  = "public"
+      table_catalog = "dev" # Use database name as catalog
+    }
+  }
+
+  # Destination configuration - specify Salesforce object
+  destination_attributes = {
+    connection_id = census_destination.marketing_prod_crm.id
+    object        = "Contact"
+  }
+
+  # Operation mode for the sync
+  operation = "upsert"
+
+  # Field mappings between source and destination
+  field_mappings {
+    from      = "email"
+    to        = "Email"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "first_name"
+    to        = "FirstName"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "last_name"
+    to        = "LastName"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "id"
+    to        = "Census_ID__c"
+    operation = "direct"
+  }
+
+  # Unique identifier for records
+  sync_key = ["email"]
+
+  # Scheduling - run daily at 6 AM UTC
+  schedule {
+    frequency = "daily"
+    hour      = 6
+    timezone  = "UTC"
+  }
+
+  # Start paused until ready to go live
+  paused = true
+}
+
+# resource "census_sync" "marketing_staging_test_sync" {
+#   workspace_id = census_workspace.marketing_staging.id
+#   label        = "Marketing Staging Test Sync"
+
+#   source_id      = census_source.marketing_staging_warehouse.id
+#   destination_id = census_destination.marketing_staging_crm.id
+
+#   # Test sync with limited data  
+#   source_attributes {
+#     connection_id = census_source.marketing_staging_warehouse.id
+#     object {
+#       type          = "table"
+#       table_name    = "users"
+#       table_schema  = "public"
+#       table_catalog = "dev" # Use database name as catalog
 #     }
-#   ]
-#
-#   # Sync settings
-#   sync_mode = "update_or_create"
-#   schedule  = "0 */6 * * *"  # Every 6 hours
+#   }
+
+#   destination_attributes = {
+#     connection_id = census_destination.marketing_staging_crm.id
+#     object        = "Contact"
+#   }
+
+#   # Operation mode for the sync
+#   operation = "upsert"
+
+#   field_mappings {
+#     from      = "email"
+#     to        = "Email"
+#     operation = "direct"
+#   }
+
+#   field_mappings {
+#     from      = "first_name"
+#     to        = "FirstName"
+#     operation = "direct"
+#   }
+
+#   field_mappings {
+#     from      = "last_name"
+#     to        = "LastName"
+#     operation = "direct"
+#   }
+
+#   sync_key  = ["email"]
+
+#   # Manual sync for testing
+#   schedule {
+#     frequency = "manual"
+#   }
+
+#   paused = false # Ready for testing
+# }
+
+# # RevOps sync for account data
+# resource "census_sync" "revops_account_sync" {
+#   workspace_id = census_workspace.revops_prod.id
+#   label        = "RevOps Account Sync"
+
+#   source_id      = census_source.revops_prod_warehouse.id
+#   destination_id = census_destination.marketing_prod_crm.id # Cross-workspace sync example
+
+#   # Source configuration - account enrichment data
+#   source_attributes {
+#     connection_id = census_source.revops_prod_warehouse.id
+#     object {
+#       type          = "table"
+#       table_name    = "users"
+#       table_schema  = "public"
+#       table_catalog = "dev" # Use database name as catalog
+#     }
+#   }
+
+#   # Destination configuration
+#   destination_attributes = {
+#     connection_id = census_destination.marketing_prod_crm.id
+#     object        = "Account"
+#   }
+
+#   # Operation mode for the sync
+#   operation = "upsert"
+
+#   # Field mappings for account data
+#   field_mappings {
+#     from      = "company_domain"
+#     to        = "Website"
+#     operation = "direct"
+#   }
+
+#   field_mappings {
+#     from      = "company_name"
+#     to        = "Name"
+#     operation = "direct"
+#   }
+
+#   field_mappings {
+#     from      = "industry"
+#     to        = "Industry"
+#     operation = "direct"
+#   }
+
+#   field_mappings {
+#     from      = "employee_count"
+#     to        = "NumberOfEmployees"
+#     operation = "direct"
+#   }
+
+#   field_mappings {
+#     from      = "annual_revenue"
+#     to        = "AnnualRevenue"
+#     operation = "direct"
+#   }
+
+#   field_mappings {
+#     from      = "country"
+#     to        = "BillingCountry"
+#     operation = "direct"
+#   }
+
+#   sync_key  = ["company_domain"]
+
+#   # Run weekly on Sundays at 2 AM
+#   schedule {
+#     frequency   = "weekly"
+#     day_of_week = 0 # Sunday
+#     hour        = 2
+#     timezone    = "UTC"
+#   }
+
+#   paused = true # Start paused for review
+# }
+
+# Example of using data source to reference an existing sync
+# data "census_sync" "existing_sync" {
+#   id           = "123456"
+#   workspace_id = census_workspace.marketing_prod.id
 # }
 
 # ==============================================================================
@@ -204,7 +558,7 @@ output "sources_info" {
 }
 
 output "destinations_info" {
-  description = "Information about all created destinations"  
+  description = "Information about all created destinations"
   value = {
     marketing_prod_crm = {
       id           = census_destination.marketing_prod_crm.id
@@ -242,39 +596,39 @@ output "setup_summary" {
       marketing_prod_crm    = census_destination.marketing_prod_crm.id != ""
       marketing_staging_crm = census_destination.marketing_staging_crm.id != ""
     }
-    
-    total_workspaces   = 3  # marketing_prod + marketing_staging + revops_prod
-    total_sources      = 2  # marketing_prod_warehouse + revops_prod_warehouse
-    total_destinations = 2  # marketing_prod_crm + marketing_staging_crm
-    total_resources    = 7  # 3 workspaces + 2 sources + 2 destinations
-    
+
+    total_workspaces   = 3 # marketing_prod + marketing_staging + revops_prod
+    total_sources      = 2 # marketing_prod_warehouse + revops_prod_warehouse
+    total_destinations = 2 # marketing_prod_crm + marketing_staging_crm
+    total_resources    = 7 # 3 workspaces + 2 sources + 2 destinations
+
     workspace_structure = [
       "marketing_prod: ${census_workspace.marketing_prod.name} (ID: ${census_workspace.marketing_prod.id})",
       "marketing_staging: ${census_workspace.marketing_staging.name} (ID: ${census_workspace.marketing_staging.id})",
       "revops_prod: ${census_workspace.revops_prod.name} (ID: ${census_workspace.revops_prod.id})"
     ]
-    
+
     resource_relationships = [
       "✅ Each source/destination explicitly belongs to one workspace",
       "✅ No ambiguous global configurations",
       "✅ Clear workspace isolation and security boundaries",
       "✅ Proper Terraform resource relationships"
     ]
-    
+
     authentication_model = [
       "Personal Access Token (PAT): Used for workspace management operations",
       "Each workspace has its own API key stored in Terraform state",
       "Sources and destinations are scoped to specific workspaces",
       "Use data sources to reference existing workspaces/sources/destinations"
     ]
-    
+
     terraform_patterns = [
       "✅ Resources for managing Census objects with Terraform",
       "✅ Data sources for referencing existing Census objects",
       "✅ Explicit workspace_id parameters for clear relationships",
       "✅ Standard Terraform import patterns for existing resources"
     ]
-    
+
     next_steps = [
       "Verify all workspace connections in Census dashboard",
       "Use 'terraform import' to bring existing workspaces under Terraform management",

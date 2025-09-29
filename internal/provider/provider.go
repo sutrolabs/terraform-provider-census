@@ -49,11 +49,13 @@ func Provider() *schema.Provider {
 			"census_workspace":   resourceWorkspace(),
 			"census_source":      resourceSource(),
 			"census_destination": resourceDestination(),
+			"census_sync":        resourceSync(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"census_workspace":   dataSourceWorkspace(),
 			"census_source":      dataSourceSource(),
 			"census_destination": dataSourceDestination(),
+			"census_sync":        dataSourceSync(),
 		},
 		ConfigureContextFunc: configure,
 	}

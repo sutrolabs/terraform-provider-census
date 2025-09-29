@@ -24,21 +24,22 @@ type Destination struct {
 // CreateDestinationRequest represents the request to create a destination
 type CreateDestinationRequest struct {
 	Type              string                `json:"type"`
+	Name              string                `json:"name,omitempty"`
 	ServiceConnection DestinationConnection `json:"service_connection"`
 }
 
 // DestinationConnection represents the connection configuration for a destination
 type DestinationConnection struct {
-	Label       string                 `json:"label"`
-	Type        string                 `json:"type"`
+	Name        string                 `json:"name"`
+	Type        string                 `json:"type,omitempty"`
 	SyncEngine  string                 `json:"sync_engine,omitempty"`
 	Credentials map[string]interface{} `json:"credentials"`
 }
 
 // UpdateDestinationRequest represents the request to update a destination
 type UpdateDestinationRequest struct {
-	Name       string                 `json:"name,omitempty"`
-	Connection map[string]interface{} `json:"connection,omitempty"`
+	Name              string                   `json:"name,omitempty"`
+	ServiceConnection *DestinationConnection   `json:"service_connection,omitempty"`
 }
 
 // DestinationResponse represents a single destination response

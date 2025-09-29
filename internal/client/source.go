@@ -28,16 +28,15 @@ type CreateSourceRequest struct {
 
 // SourceConnection represents the connection configuration for a source
 type SourceConnection struct {
-	Label       string                 `json:"label"`
-	Type        string                 `json:"type"`
+	Name        string                 `json:"name"`
+	Type        string                 `json:"type,omitempty"`
 	SyncEngine  string                 `json:"sync_engine,omitempty"`
 	Credentials map[string]interface{} `json:"credentials"`
 }
 
 // UpdateSourceRequest represents the request to update a source
 type UpdateSourceRequest struct {
-	Name       string                 `json:"name,omitempty"`
-	Connection map[string]interface{} `json:"connection,omitempty"`
+	Connection SourceConnection `json:"connection,omitempty"`
 }
 
 // SourceResponse represents a single source response

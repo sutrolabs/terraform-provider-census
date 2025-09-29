@@ -53,3 +53,6 @@ go.sum
 
 # Logs
 *.log
+
+# Local API specifications (for development reference)
+census_api_*.yaml

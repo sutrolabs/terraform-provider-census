@@ -113,9 +113,19 @@ func resourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
+	// Check if workspace is nil (API returned successfully but with nil data)
+	if workspace == nil {
+		d.SetId("")
+		return nil
+	}
+
 	d.Set("name", workspace.Name)
 	d.Set("organization_id", workspace.OrganizationID)
-	d.Set("created_at", workspace.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
+	
+	// Set time field only if it's not a zero value
+	if !workspace.CreatedAt.IsZero() {
+		d.Set("created_at", workspace.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
+	}
 	
 	if err := d.Set("notification_emails", workspace.NotificationEmails); err != nil {
 		return diag.FromErr(err)

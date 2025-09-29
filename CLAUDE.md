@@ -16,6 +16,12 @@ This is a Terraform provider for Census (https://getcensus.com), which enables i
 - **Authentication**: Bearer token based with different token types
 - **API Endpoints**: Most endpoints require `/api/v1/` prefix (e.g., `/api/v1/connectors`, not `/connectors`)
 
+## Local API Reference
+- **Current API Spec**: `census_api_20250926_131957.yaml` - Downloaded on 2025-09-26 17:19:57 UTC
+- **CRITICAL**: ALWAYS refer to the local timestamped Census API YAML file for accurate API structure, required fields, and data types
+- **Update Process**: Pull fresh API spec from https://developers.getcensus.com/openapi/compiled/workspace_management.yaml weekly and save with timestamp
+- **Never assume API structure** - Always check the local YAML first before making changes
+
 ## Project Structure
 ```
 terraform-provider-census/
@@ -109,3 +115,47 @@ go install .
 - Workspace resource implements full CRUD lifecycle
 - Ready for extension with additional Census resources
 - Uses terraform-plugin-sdk/v2 for modern Terraform compatibility
+
+## Important Development Rules
+- **ALWAYS UPDATE TODO.md**: After completing any significant work, immediately update TODO.md to reflect current progress and mark completed items
+- **ALWAYS CONSULT OPENAPI SPECS**: Before making any API-related changes, ALWAYS read and carefully understand the OpenAPI specifications. Never make assumptions about API structure, required fields, or data types without first checking the official API documentation.
+- **Keep TODO.md Current**: TODO.md should be the authoritative source of what's done vs what's next
+- **Document Major Changes**: Add major architectural decisions and breakthroughs to TODO.md status sections
+
+## Debugging Common Issues
+
+### "Failed to load plugin schemas" / "Reattachment process not found"
+This error occurs when Terraform tries to connect to a provider process that has crashed, timed out, or been killed. Here's the systematic solution:
+
+**Root Cause**: Provider process crashes or exits, but Terraform still has the old PID in TF_REATTACH_PROVIDERS
+
+**Solution Steps**:
+1. **Kill all running provider processes**: `pkill -f "terraform-provider-census"`
+2. **Rebuild the provider**: `go build -o bin/terraform-provider-census` 
+3. **Start provider in debug mode**: `./terraform-provider-census -debug`
+4. **Copy the new TF_REATTACH_PROVIDERS output** (contains new PID and socket path)
+5. **Use the fresh TF_REATTACH_PROVIDERS** in your terraform command
+
+**Example**:
+```bash
+# Kill old processes
+pkill -f "terraform-provider-census"
+
+# Build fresh binary
+go build -o bin/terraform-provider-census
+cd examples/complete-census-setup
+cp ../../bin/terraform-provider-census ./terraform-provider-census-debug
+
+# Start in debug mode and capture output
+./terraform-provider-census-debug -debug
+# Copy the TF_REATTACH_PROVIDERS='...' line from output
+
+# Use in terraform command
+TF_REATTACH_PROVIDERS='{"registry.terraform.io/your-org/census":{"Protocol":"grpc","ProtocolVersion":5,"Pid":12345,"Test":true,"Addr":{"Network":"unix","String":"/tmp/plugin123"}}}' terraform plan
+```
+
+**Key Points**:
+- Always use a fresh build after code changes
+- Provider must be running in background when terraform connects
+- PID in TF_REATTACH_PROVIDERS must match actual running process
+- Use background processes (`./provider -debug &`) or separate terminals

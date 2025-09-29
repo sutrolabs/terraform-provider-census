@@ -29,6 +29,12 @@ variable "postgres_warehouse_connection" {
   sensitive   = true
 }
 
+variable "redshift_warehouse_connection" {
+  description = "Redshift data warehouse connection configuration"
+  type        = map(string)
+  sensitive   = true
+}
+
 variable "salesforce_prod_connection" {
   description = "Salesforce production environment connection configuration"
   type        = map(string)
