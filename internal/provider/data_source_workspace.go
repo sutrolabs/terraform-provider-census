@@ -61,6 +61,11 @@ func dataSourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
+	// Check if workspace is nil (API returned successfully but with nil data)
+	if workspace == nil {
+		return diag.Errorf("workspace not found: %d", id)
+	}
+
 	d.SetId(strconv.Itoa(workspace.ID))
 	d.Set("name", workspace.Name)
 	d.Set("organization_id", workspace.OrganizationID)

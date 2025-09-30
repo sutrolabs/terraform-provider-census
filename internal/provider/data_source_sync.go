@@ -186,6 +186,11 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.FromErr(err)
 	}
 
+	// Check if sync is nil (API returned successfully but with nil data)
+	if sync == nil {
+		return diag.Errorf("sync not found: %d", syncID)
+	}
+
 	d.SetId(strconv.Itoa(sync.ID))
 	d.Set("workspace_id", workspaceId)
 	d.Set("label", sync.Label)

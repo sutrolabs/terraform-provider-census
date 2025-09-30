@@ -201,6 +201,12 @@ Where 69962 is the workspace_id for marketing_prod workspace.`)
 		return diag.FromErr(err)
 	}
 
+	// Check if source is nil (API returned successfully but with nil data)
+	if source == nil {
+		d.SetId("")
+		return nil
+	}
+
 	// Only update workspace_id if API returned it, otherwise preserve what's in state
 	if source.WorkspaceID != "" {
 		d.Set("workspace_id", source.WorkspaceID)
