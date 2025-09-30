@@ -9,19 +9,19 @@ import (
 
 // Workspace represents a Census workspace
 type Workspace struct {
-	ID                  int                    `json:"id"`
-	Name                string                 `json:"name"`
-	OrganizationID      int                    `json:"organization_id"`
-	CreatedAt           time.Time              `json:"created_at"`
-	NotificationEmails  []string               `json:"notification_emails"`
-	APIKey              string                 `json:"api_key,omitempty"`
+	ID                 int       `json:"id"`
+	Name               string    `json:"name"`
+	OrganizationID     int       `json:"organization_id"`
+	CreatedAt          time.Time `json:"created_at"`
+	NotificationEmails []string  `json:"notification_emails"`
+	APIKey             string    `json:"api_key,omitempty"`
 }
 
 // CreateWorkspaceRequest represents the request to create a workspace
 type CreateWorkspaceRequest struct {
-	Name                     string   `json:"name"`
-	NotificationEmails       []string `json:"notification_emails,omitempty"`
-	ReturnWorkspaceAPIKey    bool     `json:"return_workspace_api_key,omitempty"`
+	Name                  string   `json:"name"`
+	NotificationEmails    []string `json:"notification_emails,omitempty"`
+	ReturnWorkspaceAPIKey bool     `json:"return_workspace_api_key,omitempty"`
 }
 
 // UpdateWorkspaceRequest represents the request to update a workspace

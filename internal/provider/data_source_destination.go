@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/your-org/terraform-provider-census/internal/client"
+	"github.com/sutrolabs/terraform-provider-census/internal/client"
 )
 
 func dataSourceDestination() *schema.Resource {
@@ -75,7 +75,7 @@ func dataSourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	// Get the destination using WithToken method for PAT-only authentication
-	// Note: Data sources will need to be provided with workspace_id in the future 
+	// Note: Data sources will need to be provided with workspace_id in the future
 	// or we can derive it from the destination itself
 	destination, err := apiClient.GetDestinationWithToken(ctx, id, "")
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/your-org/terraform-provider-census/internal/client"
+	"github.com/sutrolabs/terraform-provider-census/internal/client"
 )
 
 func resourceSync() *schema.Resource {
@@ -192,15 +192,15 @@ func resourceSync() *schema.Resource {
 							Description: "Run every N frequency units.",
 						},
 						"hour": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Description: "Hour to run (for daily/weekly schedules, 0-23).",
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Description:  "Hour to run (for daily/weekly schedules, 0-23).",
 							ValidateFunc: validation.IntBetween(0, 23),
 						},
 						"day_of_week": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Description: "Day of week to run (for weekly schedules, 0=Sunday).",
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Description:  "Day of week to run (for weekly schedules, 0=Sunday).",
 							ValidateFunc: validation.IntBetween(0, 6),
 						},
 						"timezone": {
@@ -286,13 +286,13 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	apiClient := meta.(*client.Client)
 
 	workspaceId := d.Get("workspace_id").(string)
-	
+
 	// Get the workspace API key dynamically using the personal access token
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
 	if err != nil {
 		return diag.Errorf("invalid workspace ID: %s", workspaceId)
 	}
-	
+
 	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 	if err != nil {
 		return diag.Errorf("failed to get workspace API key for workspace %d: %v", workspaceIdInt, err)
@@ -303,10 +303,10 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	destinationAttributes := expandStringMap(d.Get("destination_attributes").(map[string]interface{}))
 	fieldMappings := expandFieldMappings(d.Get("field_mappings").(*schema.Set).List())
-	
+
 	// Get operation from top-level field (per OpenAPI spec)
 	operation := d.Get("operation").(string)
-	
+
 	// Convert FieldMappings to MappingAttributes for API compliance
 	mappings := convertFieldMappingsToMappingAttributes(fieldMappings, expandStringList(d.Get("sync_key").([]interface{})))
 
@@ -336,17 +336,17 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		SourceAttributes:      expandSourceAttributes(d.Get("source_attributes").([]interface{})),
 		DestinationAttributes: destinationAttributes,
 		Mappings:              mappings,
-		
+
 		// Optional fields
-		Label:                 d.Get("label").(string),
-		
+		Label: d.Get("label").(string),
+
 		// Schedule fields - Census Management API expects flat fields, not nested object
-		ScheduleFrequency:     scheduleFrequency,
-		ScheduleDay:           scheduleDay,
-		ScheduleHour:          scheduleHour,
-		ScheduleMinute:        scheduleMinute,
-		
-		Paused:                d.Get("paused").(bool),
+		ScheduleFrequency: scheduleFrequency,
+		ScheduleDay:       scheduleDay,
+		ScheduleHour:      scheduleHour,
+		ScheduleMinute:    scheduleMinute,
+
+		Paused: d.Get("paused").(bool),
 	}
 
 	fmt.Printf("[DEBUG] Creating sync with request: %+v\n", req)
@@ -358,7 +358,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	fmt.Printf("[DEBUG] Sync created successfully with ID: %d\n", sync.ID)
 	d.SetId(strconv.Itoa(sync.ID))
 	fmt.Printf("[DEBUG] Resource ID set to: %s\n", d.Id())
-	
+
 	// Explicitly set workspace_id from our input since API doesn't return it
 	d.Set("workspace_id", workspaceId)
 
@@ -379,21 +379,21 @@ func resourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	// Get workspace token dynamically if we have workspace_id
 	workspaceId := d.Get("workspace_id").(string)
 	fmt.Printf("[DEBUG] Got workspace_id from state: %s\n", workspaceId)
-	
+
 	var sync *client.Sync
 	if workspaceId != "" {
 		workspaceIdInt, err := strconv.Atoi(workspaceId)
 		if err != nil {
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
-		
+
 		fmt.Printf("[DEBUG] Getting workspace token for workspace %d\n", workspaceIdInt)
 		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 		if err != nil {
 			fmt.Printf("[DEBUG] Failed to get workspace API key: %v\n", err)
 			return diag.FromErr(err)
 		}
-		
+
 		fmt.Printf("[DEBUG] Successfully got workspace token, calling GetSyncWithToken for sync %d\n", id)
 		sync, err = apiClient.GetSyncWithToken(ctx, id, workspaceToken)
 		fmt.Printf("[DEBUG] GetSyncWithToken completed - sync: %v, err: %v\n", sync != nil, err)
@@ -404,7 +404,7 @@ To fix this, add the missing workspace_id to terraform state:
   terraform state rm census_sync.example
   terraform import census_sync.example workspace_id:sync_id`)
 	}
-	
+
 	if err != nil {
 		fmt.Printf("[DEBUG] Error from GetSyncWithToken: %v\n", err)
 		// Check if sync was not found
@@ -429,16 +429,16 @@ To fix this, add the missing workspace_id to terraform state:
 	if sync.WorkspaceID != "" {
 		d.Set("workspace_id", sync.WorkspaceID)
 	}
-	
+
 	d.Set("label", sync.Label)
 	d.Set("status", sync.Status)
 	d.Set("paused", sync.Paused)
-	
+
 	// Set operation field from API response
 	if sync.Operation != "" {
 		d.Set("operation", sync.Operation)
 	}
-	
+
 	// Set time fields only if they are not zero values
 	if !sync.CreatedAt.IsZero() {
 		d.Set("created_at", sync.CreatedAt.Format("2006-01-02T15:04:05Z"))
@@ -446,7 +446,7 @@ To fix this, add the missing workspace_id to terraform state:
 	if !sync.UpdatedAt.IsZero() {
 		d.Set("updated_at", sync.UpdatedAt.Format("2006-01-02T15:04:05Z"))
 	}
-	
+
 	if sync.LastRunAt != nil {
 		d.Set("last_run_at", sync.LastRunAt.Format("2006-01-02T15:04:05Z"))
 	}
@@ -456,34 +456,34 @@ To fix this, add the missing workspace_id to terraform state:
 	if sync.LastRunID != nil {
 		d.Set("last_run_id", *sync.LastRunID)
 	}
-	
+
 	// Build schedule from API response flat fields
 	if sync.ScheduleFrequency != "" {
 		fmt.Printf("[DEBUG] Building schedule from API response fields\n")
-		
+
 		// Create a SyncSchedule from the flat API response fields
 		schedule := &client.SyncSchedule{
 			Frequency: sync.ScheduleFrequency,
 		}
-		
+
 		// Set hour if present
 		if sync.ScheduleHour != nil {
 			schedule.Hour = *sync.ScheduleHour
 		}
-		
+
 		// Set day of week if present (for weekly schedules)
 		if sync.ScheduleDay != nil {
 			schedule.DayOfWeek = *sync.ScheduleDay
 		}
-		
+
 		// Set interval if present (mapped from ScheduleMinute)
 		if sync.ScheduleMinute != nil {
 			schedule.Interval = *sync.ScheduleMinute
 		}
-		
+
 		// Set timezone (default to UTC if not specified)
 		schedule.Timezone = "UTC"
-		
+
 		if err := d.Set("schedule", flattenSyncSchedule(schedule)); err != nil {
 			fmt.Printf("[DEBUG] Failed to set schedule: %v\n", err)
 			return diag.Errorf("failed to set schedule: %v", err)
@@ -496,13 +496,13 @@ To fix this, add the missing workspace_id to terraform state:
 		fmt.Printf("[DEBUG] Failed to set source_attributes: %v\n", err)
 		return diag.Errorf("failed to set source_attributes: %v", err)
 	}
-	
+
 	fmt.Printf("[DEBUG] Setting destination_attributes\n")
 	if err := d.Set("destination_attributes", flattenStringMap(sync.DestinationAttributes)); err != nil {
 		fmt.Printf("[DEBUG] Failed to set destination_attributes: %v\n", err)
 		return diag.Errorf("failed to set destination_attributes: %v", err)
 	}
-	
+
 	// Convert API Mappings back to Terraform FieldMappings with defensive handling
 	fmt.Printf("[DEBUG] Converting field mappings - Mappings: %v, FieldMappings: %v\n", sync.Mappings != nil, sync.FieldMappings != nil)
 	var fieldMappings []client.FieldMapping
@@ -516,13 +516,13 @@ To fix this, add the missing workspace_id to terraform state:
 		fmt.Printf("[DEBUG] Using empty field mappings\n")
 		fieldMappings = []client.FieldMapping{} // Empty slice as fallback
 	}
-	
+
 	fmt.Printf("[DEBUG] Setting field_mappings\n")
 	if err := d.Set("field_mappings", flattenFieldMappings(fieldMappings)); err != nil {
 		fmt.Printf("[DEBUG] Failed to set field_mappings: %v\n", err)
 		return diag.Errorf("failed to set field_mappings: %v", err)
 	}
-	
+
 	// Handle sync_key with nil check
 	fmt.Printf("[DEBUG] Setting sync_key (nil: %v)\n", sync.SyncKey == nil)
 	if sync.SyncKey != nil {
@@ -531,7 +531,7 @@ To fix this, add the missing workspace_id to terraform state:
 			return diag.Errorf("failed to set sync_key: %v", err)
 		}
 	}
-	
+
 	// Schedule is already set above from flat API response fields
 
 	fmt.Printf("[DEBUG] resourceSyncRead completed successfully\n")
@@ -541,7 +541,7 @@ To fix this, add the missing workspace_id to terraform state:
 
 func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	fmt.Printf("[DEBUG] === Starting resourceSyncUpdate ===\n")
-	
+
 	apiClient := meta.(*client.Client)
 
 	id, err := strconv.Atoi(d.Id())
@@ -558,13 +558,13 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		fmt.Printf("[DEBUG] workspace_id is not a string, type: %T, value: %+v\n", workspaceIdInterface, workspaceIdInterface)
 		return diag.Errorf("workspace_id is not a valid string: %v", workspaceIdInterface)
 	}
-	
+
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
 	if err != nil {
 		fmt.Printf("[DEBUG] Error parsing workspace ID: %v\n", err)
 		return diag.Errorf("invalid workspace ID: %s", workspaceId)
 	}
-	
+
 	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 	if err != nil {
 		fmt.Printf("[DEBUG] Error getting workspace token: %v\n", err)
@@ -572,7 +572,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	fmt.Printf("[DEBUG] Building update request...\n")
-	
+
 	// Safe type assertion for schedule
 	scheduleInterface := d.Get("schedule")
 	scheduleList, ok := scheduleInterface.([]interface{})
@@ -581,7 +581,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.Errorf("schedule is not a valid list: %v", scheduleInterface)
 	}
 	fmt.Printf("[DEBUG] Schedule data from terraform: %+v\n", scheduleList)
-	
+
 	schedule := expandSyncSchedule(scheduleList)
 	fmt.Printf("[DEBUG] Expanded schedule: %+v\n", schedule)
 
@@ -595,7 +595,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	sourceAttrsInterface := d.Get("source_attributes")
 	var sourceAttrs map[string]interface{}
-	
+
 	// Handle both map and list formats
 	switch v := sourceAttrsInterface.(type) {
 	case map[string]interface{}:
@@ -641,7 +641,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	destAttrsInterface := d.Get("destination_attributes")
 	var destAttrs map[string]interface{}
-	
+
 	// Handle both map and list formats
 	switch v := destAttrsInterface.(type) {
 	case map[string]interface{}:
@@ -689,7 +689,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	var scheduleDay *int
 	var scheduleHour *int
 	var scheduleMinute *int
-	
+
 	if schedule != nil {
 		scheduleFrequency = schedule.Frequency
 		if schedule.Hour != 0 {
@@ -701,10 +701,10 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		if schedule.Interval != 0 {
 			scheduleMinute = &schedule.Interval
 		}
-		fmt.Printf("[DEBUG] Converted schedule to flat fields - frequency: %s, hour: %v, day: %v, minute: %v\n", 
+		fmt.Printf("[DEBUG] Converted schedule to flat fields - frequency: %s, hour: %v, day: %v, minute: %v\n",
 			scheduleFrequency, scheduleHour, scheduleDay, scheduleMinute)
 	}
-	
+
 	req := &client.UpdateSyncRequest{
 		Label:                 label,
 		SourceAttributes:      expandStringMap(sourceAttrs),
@@ -712,16 +712,16 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		FieldMappings:         expandFieldMappings(fieldMappings),
 		SyncKey:               expandStringList(syncKey),
 		Paused:                paused,
-		
+
 		// Flat schedule fields for Census Management API
-		ScheduleFrequency:     scheduleFrequency,
-		ScheduleDay:           scheduleDay,
-		ScheduleHour:          scheduleHour,
-		ScheduleMinute:        scheduleMinute,
+		ScheduleFrequency: scheduleFrequency,
+		ScheduleDay:       scheduleDay,
+		ScheduleHour:      scheduleHour,
+		ScheduleMinute:    scheduleMinute,
 	}
 
 	fmt.Printf("[DEBUG] Update request: %+v\n", req)
-	
+
 	fmt.Printf("[DEBUG] Calling UpdateSyncWithToken...\n")
 	_, err = apiClient.UpdateSyncWithToken(ctx, id, req, workspaceToken)
 	if err != nil {
@@ -748,7 +748,7 @@ func resourceSyncDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	if err != nil {
 		return diag.Errorf("invalid workspace ID: %s", workspaceId)
 	}
-	
+
 	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 	if err != nil {
 		return diag.FromErr(err)
@@ -774,30 +774,30 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d] is not a map[string]interface{}, type: %T, value: %+v\n", i, mapping, mapping)
 			continue // Skip invalid entries
 		}
-		
+
 		fieldMapping := client.FieldMapping{
 			Constant: m["constant"], // This is safe as interface{}
 		}
-		
+
 		// Safe type assertions for required string fields
 		if from, ok := m["from"].(string); ok {
 			fieldMapping.From = from
 		} else {
 			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['from'] is not a string, type: %T, value: %+v\n", i, m["from"], m["from"])
 		}
-		
+
 		if to, ok := m["to"].(string); ok {
-			fieldMapping.To = to  
+			fieldMapping.To = to
 		} else {
 			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['to'] is not a string, type: %T, value: %+v\n", i, m["to"], m["to"])
 		}
-		
+
 		if operation, ok := m["operation"].(string); ok {
 			fieldMapping.Operation = operation
 		} else {
 			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['operation'] is not a string, type: %T, value: %+v\n", i, m["operation"], m["operation"])
 		}
-		
+
 		result = append(result, fieldMapping)
 	}
 	return result
@@ -818,12 +818,12 @@ func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 
 func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 	fmt.Printf("[DEBUG] expandSyncSchedule called with: %+v\n", schedules)
-	
+
 	if len(schedules) == 0 || schedules[0] == nil {
 		fmt.Printf("[DEBUG] expandSyncSchedule returning nil (empty or nil schedule)\n")
 		return nil
 	}
-	
+
 	// Safe type assertion
 	sInterface := schedules[0]
 	s, ok := sInterface.(map[string]interface{})
@@ -832,7 +832,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 		return nil
 	}
 	fmt.Printf("[DEBUG] schedule map: %+v\n", s)
-	
+
 	// Safely extract values with defaults
 	frequency := ""
 	if freq, ok := s["frequency"]; ok && freq != nil {
@@ -842,7 +842,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 			fmt.Printf("[DEBUG] expandSyncSchedule: frequency is not a string, type: %T, value: %+v\n", freq, freq)
 		}
 	}
-	
+
 	interval := 1 // default
 	if intv, ok := s["interval"]; ok && intv != nil {
 		if intvInt, ok := intv.(int); ok {
@@ -851,7 +851,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 			fmt.Printf("[DEBUG] expandSyncSchedule: interval is not an int, type: %T, value: %+v\n", intv, intv)
 		}
 	}
-	
+
 	hour := 0 // default
 	if h, ok := s["hour"]; ok && h != nil {
 		if hourInt, ok := h.(int); ok {
@@ -860,7 +860,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 			fmt.Printf("[DEBUG] expandSyncSchedule: hour is not an int, type: %T, value: %+v\n", h, h)
 		}
 	}
-	
+
 	dayOfWeek := 0 // default
 	if dow, ok := s["day_of_week"]; ok && dow != nil {
 		if dowInt, ok := dow.(int); ok {
@@ -869,7 +869,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 			fmt.Printf("[DEBUG] expandSyncSchedule: day_of_week is not an int, type: %T, value: %+v\n", dow, dow)
 		}
 	}
-	
+
 	timezone := "UTC" // default
 	if tz, ok := s["timezone"]; ok && tz != nil {
 		if tzStr, ok := tz.(string); ok {
@@ -878,7 +878,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 			fmt.Printf("[DEBUG] expandSyncSchedule: timezone is not a string, type: %T, value: %+v\n", tz, tz)
 		}
 	}
-	
+
 	result := &client.SyncSchedule{
 		Frequency: frequency,
 		Interval:  interval,
@@ -886,7 +886,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 		DayOfWeek: dayOfWeek,
 		Timezone:  timezone,
 	}
-	
+
 	fmt.Printf("[DEBUG] expandSyncSchedule returning: %+v\n", result)
 	return result
 }
@@ -895,7 +895,7 @@ func flattenSyncSchedule(schedule *client.SyncSchedule) []interface{} {
 	if schedule == nil {
 		return []interface{}{}
 	}
-	
+
 	return []interface{}{
 		map[string]interface{}{
 			"frequency":   schedule.Frequency,
@@ -946,7 +946,7 @@ func flattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 	}
 
 	result := make(map[string]interface{})
-	
+
 	// Set connection_id as integer (schema expects TypeInt)
 	if connectionId, ok := attrs["connection_id"]; ok {
 		// Convert float64 to int if needed, otherwise use as-is
@@ -959,7 +959,7 @@ func flattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 			result["connection_id"] = connectionId
 		}
 	}
-	
+
 	// Handle object structure
 	if objectData, ok := attrs["object"]; ok {
 		objectMap, isMap := objectData.(map[string]interface{})
@@ -977,7 +977,7 @@ func flattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 			result["object"] = objectList
 		}
 	}
-	
+
 	return []map[string]interface{}{result}
 }
 
@@ -1000,7 +1000,7 @@ func convertToString(value interface{}) string {
 	if value == nil {
 		return ""
 	}
-	
+
 	switch v := value.(type) {
 	case string:
 		return v
@@ -1024,17 +1024,17 @@ func convertToString(value interface{}) string {
 // convertFieldMappingsToMappingAttributes converts Terraform FieldMapping to Census API MappingAttributes
 func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping, syncKeys []string) []client.MappingAttributes {
 	result := make([]client.MappingAttributes, len(fieldMappings))
-	
+
 	// Create a map of sync keys for quick lookup
 	syncKeyMap := make(map[string]bool)
 	for _, key := range syncKeys {
 		syncKeyMap[key] = true
 	}
-	
+
 	for i, fm := range fieldMappings {
 		// Determine if this field is a primary identifier (sync key)
 		isPrimaryIdentifier := syncKeyMap[fm.From]
-		
+
 		// Convert based on operation type
 		var mappingFrom client.MappingFrom
 		if fm.Operation == "constant" && fm.Constant != nil {
@@ -1054,14 +1054,14 @@ func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping
 				Data: fm.From,
 			}
 		}
-		
+
 		result[i] = client.MappingAttributes{
 			From:                mappingFrom,
 			To:                  fm.To,
 			IsPrimaryIdentifier: isPrimaryIdentifier,
 		}
 	}
-	
+
 	return result
 }
 
@@ -1070,14 +1070,14 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 	if mappings == nil {
 		return []client.FieldMapping{}
 	}
-	
+
 	result := make([]client.FieldMapping, len(mappings))
-	
+
 	for i, ma := range mappings {
 		var operation string
 		var constant interface{}
 		var from string
-		
+
 		// Convert based on mapping from type - add nil checks
 		if ma.From.Data == nil {
 			// Handle nil data gracefully
@@ -1098,7 +1098,7 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 				}
 			}
 		}
-		
+
 		result[i] = client.FieldMapping{
 			From:      from,
 			To:        ma.To,
@@ -1106,15 +1106,16 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 			Constant:  constant,
 		}
 	}
-	
+
 	return result
 }
+
 // expandSourceAttributes converts list-based source_attributes from Terraform to map format for API
 func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 	if len(sourceAttrs) == 0 {
 		return nil
 	}
-	
+
 	// Safe type assertion for source attributes
 	attrInterface := sourceAttrs[0]
 	attr, ok := attrInterface.(map[string]interface{})
@@ -1122,14 +1123,14 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 		fmt.Printf("[DEBUG] expandSourceAttributes: sourceAttrs[0] is not a map[string]interface{}, type: %T, value: %+v\n", attrInterface, attrInterface)
 		return nil
 	}
-	
+
 	result := make(map[string]interface{})
-	
+
 	// Copy basic attributes
 	if v, ok := attr["connection_id"]; ok && v != "" {
 		result["connection_id"] = v
 	}
-	
+
 	// Handle nested object - it can be either a list of maps (from Terraform state) or a direct map
 	if objData, ok := attr["object"]; ok {
 		switch v := objData.(type) {
@@ -1152,6 +1153,6 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 			fmt.Printf("[DEBUG] expandSourceAttributes: object is unexpected type: %T, value: %+v\n", objData, objData)
 		}
 	}
-	
+
 	return result
 }

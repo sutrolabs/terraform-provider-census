@@ -283,14 +283,14 @@ func (c *Client) GetSourceTableRefreshStatusWithToken(ctx context.Context, sourc
 
 // SourceTypeField represents a field configuration for a source type
 type SourceTypeField struct {
-	ID                   string      `json:"id"`
-	Rules                []string    `json:"rules"`
-	Label                string      `json:"label"`
-	Type                 string      `json:"type"`
-	Placeholder          interface{} `json:"placeholder"`
-	IsPasswordTypeField  bool        `json:"is_password_type_field"`
-	PossibleValues       []string    `json:"possible_values,omitempty"`
-	Show                 interface{} `json:"show"`
+	ID                    string      `json:"id"`
+	Rules                 []string    `json:"rules"`
+	Label                 string      `json:"label"`
+	Type                  string      `json:"type"`
+	Placeholder           interface{} `json:"placeholder"`
+	IsPasswordTypeField   bool        `json:"is_password_type_field"`
+	PossibleValues        []string    `json:"possible_values,omitempty"`
+	Show                  interface{} `json:"show"`
 	ConditionallyRequired interface{} `json:"conditionally_required"`
 }
 
@@ -301,13 +301,13 @@ type SourceTypeConfiguration struct {
 
 // SourceType represents a source type from the API
 type SourceType struct {
-	DocumentationSlug      string                   `json:"documentation_slug"`
-	Label                  string                   `json:"label"`
-	ServiceName            string                   `json:"service_name"`
-	SupportedSyncEngines   []string                 `json:"supported_sync_engines"`
-	CreatableViaAPI        bool                     `json:"creatable_via_api"`
-	EditableViaAPI         bool                     `json:"editable_via_api"`
-	ConfigurationFields    SourceTypeConfiguration  `json:"configuration_fields"`
+	DocumentationSlug    string                  `json:"documentation_slug"`
+	Label                string                  `json:"label"`
+	ServiceName          string                  `json:"service_name"`
+	SupportedSyncEngines []string                `json:"supported_sync_engines"`
+	CreatableViaAPI      bool                    `json:"creatable_via_api"`
+	EditableViaAPI       bool                    `json:"editable_via_api"`
+	ConfigurationFields  SourceTypeConfiguration `json:"configuration_fields"`
 }
 
 // SourceTypesResponse represents the response from /source_types
@@ -351,7 +351,6 @@ func (c *Client) ValidateSourceCredentials(ctx context.Context, sourceType strin
 		return fmt.Errorf("unknown source type: %s", sourceType)
 	}
 
-
 	// Validate required fields and set defaults for optional ones
 	for _, field := range targetSourceType.ConfigurationFields.Fields {
 		// Check if field has required rule
@@ -364,7 +363,7 @@ func (c *Client) ValidateSourceCredentials(ctx context.Context, sourceType strin
 				}
 			}
 		}
-		
+
 		// Check for conditional requirements based on 'show' field
 		if isRequired && field.Show != nil {
 			// Handle conditional requirements like: "show": {"if": "ssh_tunnel_enabled"} or "show": {"if": {"ssh_tunnel_enabled": true}}
@@ -419,7 +418,7 @@ func (c *Client) ValidateSourceCredentials(ctx context.Context, sourceType strin
 				}
 			}
 		}
-		
+
 		if isRequired {
 			if _, exists := credentials[field.ID]; !exists {
 				return fmt.Errorf("required field '%s' (%s) is missing", field.ID, field.Label)

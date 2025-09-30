@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/your-org/terraform-provider-census/internal/client"
+	"github.com/sutrolabs/terraform-provider-census/internal/client"
 )
 
 func resourceDestination() *schema.Resource {
@@ -109,7 +109,7 @@ func resourceDestinationCreate(ctx context.Context, d *schema.ResourceData, meta
 	if err != nil {
 		return diag.Errorf("invalid workspace ID: %s", workspaceId)
 	}
-	
+
 	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 	if err != nil {
 		return diag.FromErr(err)
@@ -136,7 +136,7 @@ func resourceDestinationCreate(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	d.SetId(strconv.Itoa(destination.ID))
-	
+
 	// Explicitly set workspace_id from our input since API doesn't return it
 	d.Set("workspace_id", workspaceId)
 
@@ -169,18 +169,18 @@ func resourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta i
 		if err != nil {
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
-		
+
 		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		
+
 		destination, err = apiClient.GetDestinationWithToken(ctx, id, workspaceToken)
 	} else {
 		// In PAT-only architecture, workspace_id is required for read operations
 		return diag.Errorf("workspace_id is required but missing from resource state - please reimport this resource")
 	}
-	
+
 	if err != nil {
 		// Check if destination was not found
 		if IsNotFoundError(err) {
@@ -226,7 +226,7 @@ func resourceDestinationUpdate(ctx context.Context, d *schema.ResourceData, meta
 	if err != nil {
 		return diag.Errorf("invalid workspace ID: %s", workspaceId)
 	}
-	
+
 	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 	if err != nil {
 		return diag.FromErr(err)
@@ -237,14 +237,14 @@ func resourceDestinationUpdate(ctx context.Context, d *schema.ResourceData, meta
 	// Census API requires service_connection for all updates, so always include it
 	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
 	destinationType := d.Get("type").(string)
-	
+
 	// If connection changed, validate the new credentials
 	if d.HasChange("connection_config") {
 		if err := apiClient.ValidateDestinationCredentials(ctx, destinationType, connectionConfig, workspaceToken); err != nil {
 			return diag.Errorf("destination credential validation failed: %v", err)
 		}
 	}
-	
+
 	// Always build ServiceConnection structure since API requires it
 	// Note: Don't include Type field as it cannot be modified after creation
 	// Note: Don't include SyncEngine as destinations don't have sync engines (sources do)
@@ -266,12 +266,12 @@ func resourceDestinationUpdate(ctx context.Context, d *schema.ResourceData, meta
 		if err != nil {
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
-		
+
 		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		
+
 		refreshReq := &client.RefreshObjectsRequest{}
 		if err := apiClient.RefreshDestinationObjectsWithToken(ctx, id, refreshReq, workspaceToken); err != nil {
 			// Log the error but don't fail the update
@@ -297,18 +297,18 @@ func resourceDestinationDelete(ctx context.Context, d *schema.ResourceData, meta
 		if err != nil {
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
-		
+
 		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		
+
 		err = apiClient.DeleteDestinationWithToken(ctx, id, workspaceToken)
 	} else {
 		// In PAT-only architecture, workspace_id is required for delete operations
 		return diag.Errorf("workspace_id is required but missing from resource state - please reimport this resource")
 	}
-	
+
 	if err != nil {
 		// If destination is already deleted, don't return error
 		if IsNotFoundError(err) {
@@ -319,4 +319,3 @@ func resourceDestinationDelete(ctx context.Context, d *schema.ResourceData, meta
 
 	return nil
 }
-

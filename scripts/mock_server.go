@@ -53,7 +53,7 @@ func handleWorkspaces(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(auth, "Bearer ") {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status": 401,
+			"status":  401,
 			"message": "Unauthorized",
 		})
 		return

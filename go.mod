@@ -1,4 +1,4 @@
-module github.com/your-org/terraform-provider-census
+module github.com/sutrolabs/terraform-provider-census
 
 go 1.21
 

@@ -56,3 +56,8 @@ go.sum
 
 # Local API specifications (for development reference)
 census_api_*.yaml
+
+# Claude AI context (for local development only)
+CLAUDE.md
+.claude/
+TODO.md

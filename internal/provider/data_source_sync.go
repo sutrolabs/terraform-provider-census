@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/your-org/terraform-provider-census/internal/client"
+	"github.com/sutrolabs/terraform-provider-census/internal/client"
 )
 
 func dataSourceSync() *schema.Resource {
@@ -175,12 +175,12 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	if err != nil {
 		return diag.Errorf("invalid workspace ID: %s", workspaceId)
 	}
-	
+
 	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	
+
 	sync, err := apiClient.GetSyncWithToken(ctx, syncID, workspaceToken)
 	if err != nil {
 		return diag.FromErr(err)
@@ -193,7 +193,7 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("paused", sync.Paused)
 	d.Set("created_at", sync.CreatedAt.Format("2006-01-02T15:04:05Z"))
 	d.Set("updated_at", sync.UpdatedAt.Format("2006-01-02T15:04:05Z"))
-	
+
 	if sync.LastRunAt != nil {
 		d.Set("last_run_at", sync.LastRunAt.Format("2006-01-02T15:04:05Z"))
 	}

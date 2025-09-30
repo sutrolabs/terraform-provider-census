@@ -171,14 +171,14 @@ func TestListOptions_ToParams(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.opts.ToParams()
-			
+
 			// Check that all expected keys are present with correct values
 			for key, expectedValue := range tt.expected {
 				if actualValue, exists := result[key]; !exists || actualValue != expectedValue {
 					t.Errorf("ToParams()[%s] = %v, want %v", key, actualValue, expectedValue)
 				}
 			}
-			
+
 			// Check that no unexpected keys are present
 			if len(result) != len(tt.expected) {
 				t.Errorf("ToParams() returned %d params, want %d", len(result), len(tt.expected))
@@ -194,15 +194,15 @@ func TestClient_makeRequest(t *testing.T) {
 		if r.Header.Get("Content-Type") != "application/json" {
 			t.Errorf("Expected Content-Type: application/json, got: %s", r.Header.Get("Content-Type"))
 		}
-		
+
 		if r.Header.Get("User-Agent") != "terraform-provider-census" {
 			t.Errorf("Expected User-Agent: terraform-provider-census, got: %s", r.Header.Get("User-Agent"))
 		}
-		
+
 		if r.Header.Get("Authorization") != "Bearer test-token" {
 			t.Errorf("Expected Authorization: Bearer test-token, got: %s", r.Header.Get("Authorization"))
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "success"}`))
 	}))

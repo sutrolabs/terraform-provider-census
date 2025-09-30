@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     census = {
-      source = "your-org/census"
+      source = "sutrolabs/census"
       version = "~> 0.1.0"
     }
   }

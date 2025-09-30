@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/your-org/terraform-provider-census/internal/client"
+	"github.com/sutrolabs/terraform-provider-census/internal/client"
 )
 
 func dataSourceWorkspace() *schema.Resource {
@@ -65,7 +65,7 @@ func dataSourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta i
 	d.Set("name", workspace.Name)
 	d.Set("organization_id", workspace.OrganizationID)
 	d.Set("created_at", workspace.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
-	
+
 	if err := d.Set("notification_emails", workspace.NotificationEmails); err != nil {
 		return diag.FromErr(err)
 	}

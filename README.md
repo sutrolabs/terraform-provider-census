@@ -5,9 +5,15 @@ A Terraform provider for managing [Census](https://getcensus.com) resources. Cen
 ## Features
 
 - **Multi-region support**: Works with both US and EU Census instances
-- **Dual authentication**: Supports both personal access tokens and workspace access tokens
-- **Workspace management**: Create, update, and delete Census workspaces
+- **PAT-only authentication**: Uses personal access tokens with dynamic workspace token retrieval
+- **Complete Census workflow**: Manage the full data sync pipeline
+  - Workspaces - Organize your Census resources
+  - Sources - Connect to data warehouses (Snowflake, BigQuery, Postgres, etc.)
+  - Datasets - Transform data with SQL
+  - Destinations - Connect to business tools (Salesforce, HubSpot, etc.)
+  - Syncs - Orchestrate data movement with field mappings and scheduling
 - **Import support**: Import existing Census resources into Terraform state
+- **State management**: Robust handling of resource dependencies and workspace scoping
 
 ## Installation
 
@@ -19,7 +25,7 @@ Add the provider to your Terraform configuration:
 terraform {
   required_providers {
     census = {
-      source = "your-org/census"
+      source = "sutrolabs/census"
       version = "~> 0.1.0"
     }
   }
@@ -28,7 +34,7 @@ terraform {
 
 ### Manual Installation
 
-1. Download the provider binary from the [releases page](https://github.com/your-org/terraform-provider-census/releases)
+1. Download the provider binary from the [releases page](https://github.com/sutrolabs/terraform-provider-census/releases)
 2. Place it in your Terraform plugins directory
 3. Run `terraform init`
 
@@ -105,7 +111,7 @@ The fastest way to test this provider is with the included examples:
 terraform {
   required_providers {
     census = {
-      source = "your-org/census"
+      source = "sutrolabs/census"
       version = "~> 0.1.0"
     }
   }
@@ -132,24 +138,27 @@ resource "census_workspace" "data_team" {
 
 ## Resources
 
-### Currently Available
+### Available Resources
 - [`census_workspace`](docs/resources/workspace.md) - Manage Census workspaces
+- [`census_source`](docs/resources/source.md) - Manage data source connections (Snowflake, BigQuery, Postgres, etc.)
+- [`census_destination`](docs/resources/destination.md) - Configure sync destinations (Salesforce, HubSpot, etc.)
+- [`census_dataset`](docs/resources/dataset.md) - Create SQL datasets for data transformation
+- [`census_sync`](docs/resources/sync.md) - Manage data syncs between sources and destinations
 
-### Planned Resources  
+### Future Resources
 See [TODO.md](TODO.md) for the complete development roadmap including:
-- `census_sync` - Manage data syncs
-- `census_destination` - Configure sync destinations  
-- `census_source` - Manage data sources
-- `census_dataset` - Data modeling and transformations
+- `census_sync_run` - Execute and monitor sync runs
+- `census_webhook` - Event notifications and webhooks
 - And more...
 
 ## Data Sources
 
-### Currently Available
+### Available Data Sources
 - [`census_workspace`](docs/data-sources/workspace.md) - Read Census workspace information
-
-### Planned Data Sources
-All planned resources will have corresponding data sources for read operations.
+- [`census_source`](docs/data-sources/source.md) - Read data source connection details
+- [`census_destination`](docs/data-sources/destination.md) - Read destination configuration
+- [`census_dataset`](docs/data-sources/dataset.md) - Read SQL dataset information
+- [`census_sync`](docs/data-sources/sync.md) - Read sync configuration and status
 
 ## Development
 
@@ -161,20 +170,50 @@ All planned resources will have corresponding data sources for read operations.
 ### Building from Source
 
 ```bash
-git clone https://github.com/your-org/terraform-provider-census
+git clone https://github.com/sutrolabs/terraform-provider-census
 cd terraform-provider-census
 go build .
 ```
 
 ### Testing
 
+The provider includes unit tests and integration tests:
+
 ```bash
 # Run unit tests
-go test ./...
+go test ./internal/provider -v
 
-# Run acceptance tests (requires Census API access)
-TF_ACC=1 go test ./... -v
+# Run client tests
+go test ./internal/client -v
+
+# Run all tests
+go test ./... -v
 ```
+
+#### Test Coverage
+
+Current test status:
+- ✅ Provider configuration tests
+- ✅ Workspace resource CRUD tests
+- ✅ Source resource tests (basic)
+- ✅ Destination resource tests (basic)
+- ⏳ Dataset resource tests (planned)
+- ⏳ Sync resource tests (planned)
+- ⏳ Integration tests with Census API (requires mock server)
+
+#### Running Integration Tests
+
+Integration tests require a running Census API (or mock server). To run integration tests:
+
+```bash
+# Start mock server (if available)
+go run scripts/mock_server.go &
+
+# Run integration tests
+go test ./internal/client -run Integration -v
+```
+
+**Note**: Integration tests currently fail without a properly configured mock Census API server. This is tracked in our roadmap for future enhancement.
 
 ### Local Development
 
@@ -188,7 +227,7 @@ TF_ACC=1 go test ./... -v
    # dev.tfrc
    provider_installation {
      dev_overrides {
-       "your-org/census" = "/path/to/terraform-provider-census"
+       "sutrolabs/census" = "/path/to/terraform-provider-census"
      }
      direct {}
    }
@@ -227,7 +266,7 @@ For development and debugging, the latest OpenAPI specifications are available a
 
 ## Support
 
-- [GitHub Issues](https://github.com/your-org/terraform-provider-census/issues)
+- [GitHub Issues](https://github.com/sutrolabs/terraform-provider-census/issues)
 - [Census Documentation](https://docs.getcensus.com/)
 
 ## License

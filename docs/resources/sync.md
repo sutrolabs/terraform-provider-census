@@ -1,0 +1,272 @@
+# census_sync Resource
+
+Manages a Census sync that moves data from a source (table, dataset, model, etc.) to a destination (Salesforce, HubSpot, etc.) with configurable field mappings and scheduling.
+
+## Example Usage
+
+### Basic Sync with Field Mappings
+
+```hcl
+resource "census_sync" "user_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Users to Salesforce"
+  source_id      = census_source.warehouse.id
+  destination_id = census_destination.salesforce.id
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "users"
+    }
+  })
+
+  destination_object = "Contact"
+
+  field_mappings = [
+    {
+      from      = "email"
+      to        = "Email"
+      operation = "direct"
+    },
+    {
+      from      = "first_name"
+      to        = "FirstName"
+      operation = "direct"
+    },
+    {
+      from      = "last_name"
+      to        = "LastName"
+      operation = "direct"
+    },
+  ]
+
+  operation = "upsert"
+
+  trigger = jsonencode({
+    schedule = {
+      frequency = "hourly"
+      hour      = 0
+      minute    = 0
+    }
+  })
+}
+```
+
+### Sync with Dataset Source
+
+```hcl
+resource "census_sync" "high_value_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "High Value Customers to HubSpot"
+  source_id      = census_dataset.high_value_customers.id
+  destination_id = census_destination.hubspot.id
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type = "dataset"
+      id   = census_dataset.high_value_customers.id
+    }
+  })
+
+  destination_object = "contacts"
+
+  field_mappings = [
+    {
+      from      = "email"
+      to        = "email"
+      operation = "direct"
+    },
+    {
+      from      = "lifetime_value"
+      to        = "lifetime_value"
+      operation = "direct"
+    },
+  ]
+
+  operation = "upsert"
+
+  trigger = jsonencode({
+    schedule = {
+      frequency = "daily"
+      hour      = 8
+      minute    = 0
+    }
+  })
+}
+```
+
+### Sync with Hash Operation
+
+```hcl
+resource "census_sync" "secure_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Hashed Email Sync"
+  source_id      = census_source.warehouse.id
+  destination_id = census_destination.segment.id
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "users"
+    }
+  })
+
+  destination_object = "user"
+
+  field_mappings = [
+    {
+      from      = "id"
+      to        = "userId"
+      operation = "direct"
+    },
+    {
+      from      = "email"
+      to        = "email_hash"
+      operation = "hash"
+    },
+  ]
+
+  operation = "upsert"
+}
+```
+
+### Sync with Constant Value
+
+```hcl
+resource "census_sync" "tagged_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Tagged Contact Sync"
+  source_id      = census_source.warehouse.id
+  destination_id = census_destination.salesforce.id
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "users"
+    }
+  })
+
+  destination_object = "Contact"
+
+  field_mappings = [
+    {
+      from      = "email"
+      to        = "Email"
+      operation = "direct"
+    },
+    {
+      to        = "LeadSource"
+      operation = "constant"
+      constant  = "Terraform Managed"
+    },
+  ]
+
+  operation = "upsert"
+}
+```
+
+### Mirror Sync (Replace All)
+
+```hcl
+resource "census_sync" "mirror_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Product Catalog Mirror"
+  source_id      = census_source.warehouse.id
+  destination_id = census_destination.salesforce.id
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "products"
+    }
+  })
+
+  destination_object = "Product2"
+
+  field_mappings = [
+    {
+      from      = "product_id"
+      to        = "ProductCode"
+      operation = "direct"
+    },
+    {
+      from      = "name"
+      to        = "Name"
+      operation = "direct"
+    },
+  ]
+
+  operation = "mirror"
+
+  trigger = jsonencode({
+    schedule = {
+      frequency = "daily"
+      hour      = 2
+      minute    = 0
+    }
+  })
+}
+```
+
+## Argument Reference
+
+* `workspace_id` - (Required, Forces new resource) The ID of the workspace this sync belongs to.
+* `name` - (Required) The name of the sync.
+* `source_id` - (Required) The ID of the source (can be a source connection, dataset, model, etc.).
+* `destination_id` - (Required) The ID of the destination connection.
+* `source_attributes` - (Required) JSON-encoded configuration for the source. Must include:
+  * `connection_id` - The source connection ID
+  * `object` - Object configuration with:
+    * `type` - Source type: `"table"`, `"dataset"`, `"model"`, `"topic"`, `"segment"`, or `"cohort"`
+    * For table sources: `table_name`, optionally `table_schema` and `table_catalog`
+    * For other sources: `id` of the dataset/model/etc.
+* `destination_object` - (Required) The destination object name (e.g., "Contact" for Salesforce, "contacts" for HubSpot).
+* `field_mappings` - (Optional) Set of field mappings between source and destination. Each mapping includes:
+  * `from` - Source field name (required for non-constant operations)
+  * `to` - Destination field name (required)
+  * `operation` - Mapping operation: `"direct"`, `"hash"`, or `"constant"`. Defaults to `"direct"`.
+  * `constant` - Constant value (required when operation is `"constant"`)
+* `operation` - (Optional) Sync mode: `"upsert"`, `"append"`, or `"mirror"`. Defaults to `"upsert"`.
+* `trigger` - (Optional) JSON-encoded trigger configuration for scheduling:
+  * `schedule.frequency` - `"hourly"`, `"daily"`, `"weekly"`, or `"manual"`
+  * `schedule.hour` - Hour of day (0-23) for daily/weekly syncs
+  * `schedule.minute` - Minute of hour (0-59)
+  * `schedule.day_of_week` - Day of week (0-6, Sunday=0) for weekly syncs
+
+## Attribute Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+* `id` - The ID of the sync.
+* `paused` - Whether the sync is currently paused.
+* `status` - The current status of the sync.
+
+## Import
+
+Syncs can be imported using the workspace ID and sync ID separated by a colon:
+
+```shell
+terraform import census_sync.user_sync "workspace_id:sync_id"
+```
+
+For example:
+
+```shell
+terraform import census_sync.user_sync "12345:67890"
+```
+
+## Notes
+
+* Field mappings use TypeSet to prevent drift from ordering changes returned by the API.
+* The `source_attributes` structure must be OpenAPI compliant with proper table source format.
+* Sync operations:
+  * `upsert` - Insert new records and update existing ones
+  * `append` - Only insert new records, never update
+  * `mirror` - Replace all destination records with source data
+* Manual syncs (frequency="manual") must be triggered externally.
+* Source types determine which fields are required in `source_attributes.object`.

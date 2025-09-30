@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/your-org/terraform-provider-census/internal/client"
+	"github.com/sutrolabs/terraform-provider-census/internal/client"
 )
 
 func resourceSource() *schema.Resource {
@@ -109,7 +109,7 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	if err != nil {
 		return diag.Errorf("invalid workspace ID: %s", workspaceId)
 	}
-	
+
 	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 	if err != nil {
 		return diag.Errorf("failed to get workspace API key for workspace %d: %v", workspaceIdInt, err)
@@ -131,7 +131,7 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 			Credentials: connectionConfig,
 		},
 	}
-	
+
 	// Use the dynamically retrieved workspace token
 	source, err := apiClient.CreateSourceWithToken(ctx, req, workspaceToken)
 	if err != nil {
@@ -139,7 +139,7 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	d.SetId(strconv.Itoa(source.ID))
-	
+
 	// Explicitly set workspace_id from our input since API doesn't return it
 	d.Set("workspace_id", workspaceId)
 
@@ -171,12 +171,12 @@ func resourceSourceRead(ctx context.Context, d *schema.ResourceData, meta interf
 		if err != nil {
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
-		
+
 		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		
+
 		source, err = apiClient.GetSourceWithToken(ctx, id, workspaceToken)
 	} else {
 		// workspace_id missing - this is a legacy resource that needs manual fixing
@@ -189,7 +189,7 @@ To fix this, add the missing workspace_id to terraform state:
 
 Where 69962 is the workspace_id for marketing_prod workspace.`)
 	}
-	
+
 	if err != nil {
 		// Check if source was not found
 		if IsNotFoundError(err) {
@@ -234,12 +234,12 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	sourceType := d.Get("type").(string)
 	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
 	workspaceId := d.Get("workspace_id").(string)
-	
+
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
 	if err != nil {
 		return diag.Errorf("invalid workspace ID: %s", workspaceId)
 	}
-	
+
 	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 	if err != nil {
 		return diag.FromErr(err)
@@ -251,10 +251,10 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 			return diag.Errorf("source credential validation failed: %v", err)
 		}
 	}
-	
+
 	req := &client.UpdateSourceRequest{
 		Connection: client.SourceConnection{
-			Name:        name, // Set name in connection structure per API requirements
+			Name: name, // Set name in connection structure per API requirements
 			// Note: Type and SyncEngine cannot be modified after creation per Census API
 			Credentials: connectionConfig,
 		},
@@ -292,18 +292,18 @@ func resourceSourceDelete(ctx context.Context, d *schema.ResourceData, meta inte
 		if err != nil {
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
-		
+
 		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		
+
 		err = apiClient.DeleteSourceWithToken(ctx, id, workspaceToken)
 	} else {
 		// In PAT-only architecture, workspace_id is required for delete operations
 		return diag.Errorf("workspace_id is required but missing from resource state - please reimport this resource")
 	}
-	
+
 	if err != nil {
 		// If source is already deleted, don't return error
 		if IsNotFoundError(err) {
@@ -314,5 +314,3 @@ func resourceSourceDelete(ctx context.Context, d *schema.ResourceData, meta inte
 
 	return nil
 }
-
-

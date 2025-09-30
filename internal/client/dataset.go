@@ -9,18 +9,18 @@ import (
 
 // Dataset represents a Census dataset (SQL-based data transformation)
 type Dataset struct {
-	ID                  int                    `json:"id"`
-	Name                string                 `json:"name"`
-	Type                string                 `json:"type"` // "sql"
-	Description         *string                `json:"description,omitempty"`
-	Query               string                 `json:"query,omitempty"`
-	SourceID            int                    `json:"source_id,omitempty"`
-	ResourceIdentifier  string                 `json:"resource_identifier,omitempty"`
-	CachedRecordCount   *int                   `json:"cached_record_count,omitempty"`
-	Columns             []DatasetColumn        `json:"columns,omitempty"`
-	CreatedAt           time.Time              `json:"created_at"`
-	UpdatedAt           time.Time              `json:"updated_at"`
-	WorkspaceID         string                 `json:"-"` // Not returned by API, set by client
+	ID                 int             `json:"id"`
+	Name               string          `json:"name"`
+	Type               string          `json:"type"` // "sql"
+	Description        *string         `json:"description,omitempty"`
+	Query              string          `json:"query,omitempty"`
+	SourceID           int             `json:"source_id,omitempty"`
+	ResourceIdentifier string          `json:"resource_identifier,omitempty"`
+	CachedRecordCount  *int            `json:"cached_record_count,omitempty"`
+	Columns            []DatasetColumn `json:"columns,omitempty"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
+	WorkspaceID        string          `json:"-"` // Not returned by API, set by client
 }
 
 // DatasetColumn represents a column in a dataset

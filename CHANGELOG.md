@@ -5,49 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - 2025-01-XX
+## [0.1.0] - 2025-09-29
 
 ### Added
 
 - Initial release of the Census Terraform provider
-- Support for Census API authentication (personal and workspace tokens)
+- Complete Census data pipeline management from sources to syncs
+- PAT-only authentication with dynamic workspace token retrieval
 - Multi-region support (US and EU)
-- Workspace resource (`census_workspace`) with full CRUD operations
-- Workspace data source (`census_workspace`) for reading workspace information
-- Basic testing framework with unit and acceptance tests
-- Comprehensive documentation and examples
-- Makefile for development tasks
+- Comprehensive resource and data source support
 
-### Features
+### Resources
 
-#### Resources
+#### Core Resources
 - **census_workspace**: Create, read, update, and delete Census workspaces
-  - Support for notification emails configuration
-  - Optional API key retrieval during creation
+  - Notification emails configuration
+  - API key retrieval on creation
   - Import support for existing workspaces
 
-#### Data Sources
-- **census_workspace**: Read Census workspace information by ID
+- **census_source**: Manage data source connections
+  - Support for all Census-supported databases (Snowflake, BigQuery, Postgres, Redshift, etc.)
+  - Connection credential management with validation
+  - Auto table refresh functionality
+  - OpenAPI schema validation
 
-#### Provider Configuration
-- Support for both personal access tokens and workspace access tokens
+- **census_destination**: Configure sync destinations
+  - Support for all Census-supported destinations (Salesforce, HubSpot, etc.)
+  - Dynamic connector type validation via Census API
+  - Connection testing and credential management
+  - Auto-refresh metadata after creation
+
+- **census_dataset**: SQL dataset management for data transformation
+  - Multi-line SQL query support with heredoc syntax
+  - Column schema discovery (computed fields)
+  - Source connection reference and validation
+  - Resource identifier generation
+
+- **census_sync**: Manage data syncs between sources and destinations
+  - Field mapping configuration (direct, hash, constant operations)
+  - Sync scheduling (hourly, daily, weekly, manual modes)
+  - Sync mode support (upsert, append, mirror)
+  - Support for all source types (table, dataset, model, topic, segment, cohort)
+  - OpenAPI-compliant source attributes
+
+#### Data Sources
+- All resources have corresponding data sources for read-only operations
+- **census_workspace**, **census_source**, **census_destination**, **census_dataset**, **census_sync**
+
+### Provider Configuration
+
+#### Authentication
+- PAT-only authentication model
+- Automatic workspace token retrieval for workspace-scoped operations
 - Region selection (US/EU) with automatic endpoint configuration
-- Environment variable support for authentication
+- Environment variable support: `CENSUS_PERSONAL_ACCESS_TOKEN`
 - Custom base URL configuration
 
-#### Developer Experience
-- Comprehensive test suite with unit and acceptance tests
-- Local development support with Makefile
-- Detailed documentation with examples
-- Error handling with proper Census API error types
-
-### Technical Details
+### Technical Highlights
 
 - Built with terraform-plugin-sdk/v2 for modern Terraform compatibility
 - Go 1.21+ support
-- Structured logging and error handling
-- Automatic pagination support for list operations
-- HTTP client with proper timeout and retry handling
+- Dynamic API schema validation against Census OpenAPI specifications
+- Robust state management with workspace_id persistence
+- Comprehensive error handling with helpful messages
+- Pagination support for list operations
+- TypeSet-based field mappings to prevent order-based drift
+- Import support for all resources
 
 ---
 
@@ -55,10 +78,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned Features
 
-- **Sync resources**: Manage Census data syncs
-- **Destination resources**: Configure data destinations
-- **Source resources**: Manage data sources
-- **Dataset resources**: Handle dataset configurations
-- **Advanced operations**: Sync runs, webhooks, bulk operations
-- **Enhanced testing**: Integration tests with mock Census API
-- **Performance improvements**: Connection pooling and caching
+- **Sync run operations**: Execute and monitor sync runs
+- **Webhook management**: Event notifications and integrations
+- **Advanced testing**: Comprehensive integration and acceptance tests
+- **Performance improvements**: Request batching, caching strategies
+- **Enhanced documentation**: Video tutorials, migration guides
+- **Terraform Registry publication**: Official registry listing

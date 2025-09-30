@@ -38,8 +38,8 @@ type DestinationConnection struct {
 
 // UpdateDestinationRequest represents the request to update a destination
 type UpdateDestinationRequest struct {
-	Name              string                   `json:"name,omitempty"`
-	ServiceConnection *DestinationConnection   `json:"service_connection,omitempty"`
+	Name              string                 `json:"name,omitempty"`
+	ServiceConnection *DestinationConnection `json:"service_connection,omitempty"`
 }
 
 // DestinationResponse represents a single destination response
@@ -57,12 +57,12 @@ type DestinationListResponse struct {
 
 // DestinationObject represents an object within a destination (table, object, etc.)
 type DestinationObject struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	FullName    string                 `json:"full_name,omitempty"`
-	Fields      []DestinationField     `json:"fields,omitempty"`
-	Attributes  map[string]interface{} `json:"attributes,omitempty"`
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`
+	FullName   string                 `json:"full_name,omitempty"`
+	Fields     []DestinationField     `json:"fields,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
 // DestinationField represents a field within a destination object
@@ -259,12 +259,12 @@ func (c *Client) RefreshDestinationObjects(ctx context.Context, destinationID in
 // RefreshDestinationObjectsWithToken starts a refresh of destination objects using a specific workspace token
 func (c *Client) RefreshDestinationObjectsWithToken(ctx context.Context, destinationID int, req *RefreshObjectsRequest, workspaceToken string) error {
 	path := fmt.Sprintf("/destinations/%d/refresh_objects", destinationID)
-	
+
 	var body interface{}
 	if req != nil {
 		body = req
 	}
-	
+
 	resp, err := c.makeRequestWithToken(ctx, http.MethodPost, path, body, TokenTypeWorkspace, workspaceToken)
 	if err != nil {
 		return fmt.Errorf("failed to make refresh objects request: %w", err)
@@ -321,14 +321,14 @@ func (c *Client) CreateDestinationConnectLinkWithToken(ctx context.Context, dest
 
 // ConnectorField represents a field configuration for a connector type
 type ConnectorField struct {
-	ID                   string      `json:"id"`
-	Rules                interface{} `json:"rules"`
-	Label                string      `json:"label"`
-	Type                 string      `json:"type"`
-	Placeholder          interface{} `json:"placeholder"`
-	IsPasswordTypeField  bool        `json:"is_password_type_field"`
-	PossibleValues       []string    `json:"possible_values,omitempty"`
-	Show                 interface{} `json:"show"`
+	ID                    string      `json:"id"`
+	Rules                 interface{} `json:"rules"`
+	Label                 string      `json:"label"`
+	Type                  string      `json:"type"`
+	Placeholder           interface{} `json:"placeholder"`
+	IsPasswordTypeField   bool        `json:"is_password_type_field"`
+	PossibleValues        []string    `json:"possible_values,omitempty"`
+	Show                  interface{} `json:"show"`
 	ConditionallyRequired interface{} `json:"conditionally_required"`
 }
 
@@ -339,11 +339,11 @@ type ConnectorConfiguration struct {
 
 // Connector represents a connector type from the API
 type Connector struct {
-	DocumentationSlug   string                  `json:"documentation_slug"`
-	Label              string                  `json:"label"`
-	ServiceName        string                  `json:"service_name"`
-	SupportsTest       bool                    `json:"supports_test"`
-	CreatableViaAPI    bool                    `json:"creatable_via_api"`
+	DocumentationSlug   string                 `json:"documentation_slug"`
+	Label               string                 `json:"label"`
+	ServiceName         string                 `json:"service_name"`
+	SupportsTest        bool                   `json:"supports_test"`
+	CreatableViaAPI     bool                   `json:"creatable_via_api"`
 	ConfigurationFields ConnectorConfiguration `json:"configuration_fields"`
 }
 
@@ -381,7 +381,6 @@ func (c *Client) ValidateDestinationCredentials(ctx context.Context, destination
 		return fmt.Errorf("failed to get connectors for validation: %w", err)
 	}
 
-
 	// Find the connector type
 	var targetConnector *Connector
 	for _, connector := range connectors {
@@ -418,7 +417,7 @@ func (c *Client) ValidateDestinationCredentials(ctx context.Context, destination
 				}
 			}
 		}
-		
+
 		if isRequired {
 			if _, exists := credentials[field.ID]; !exists {
 				return fmt.Errorf("required field '%s' (%s) is missing", field.ID, field.Label)

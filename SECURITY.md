@@ -131,6 +131,6 @@ If you accidentally commit credentials:
 
 If you find a security vulnerability:
 - **DO NOT** create a public GitHub issue
-- Email security concerns to: [security@your-org.com]
+- Email security concerns to: [security@sutrolabs.com]
 - Include detailed reproduction steps
 - Allow reasonable time for response before public disclosure

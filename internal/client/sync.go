@@ -12,38 +12,38 @@ import (
 
 // Sync represents a Census data sync
 type Sync struct {
-	ID          int                    `json:"id"`
-	WorkspaceID string                 `json:"workspace_id,omitempty"`
-	Label       string                 `json:"label"`
-	Status      string                 `json:"status,omitempty"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
-	
+	ID          int       `json:"id"`
+	WorkspaceID string    `json:"workspace_id,omitempty"`
+	Label       string    `json:"label"`
+	Status      string    `json:"status,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+
 	// Source and destination configuration
 	SourceAttributes      map[string]interface{} `json:"source_attributes,omitempty"`
 	DestinationAttributes map[string]interface{} `json:"destination_attributes,omitempty"`
-	
+
 	// Field mappings and configuration (API returns mappings, not field_mappings)
 	Mappings      []MappingAttributes `json:"mappings,omitempty"`
 	FieldMappings []FieldMapping      `json:"field_mappings,omitempty"` // Keep for backward compatibility
 	SyncKey       []string            `json:"sync_key,omitempty"`
 	Operation     string              `json:"operation,omitempty"` // mirror, upsert, append, etc.
-	
+
 	// Scheduling configuration from API response
 	ScheduleFrequency string `json:"schedule_frequency,omitempty"`
 	ScheduleDay       *int   `json:"schedule_day,omitempty"`
 	ScheduleHour      *int   `json:"schedule_hour,omitempty"`
 	ScheduleMinute    *int   `json:"schedule_minute,omitempty"`
 	CronExpression    string `json:"cron_expression,omitempty"`
-	
+
 	// For terraform config - keep existing schedule structure
-	Schedule   *SyncSchedule `json:"schedule,omitempty"`
-	Paused     bool          `json:"paused,omitempty"`
-	
+	Schedule *SyncSchedule `json:"schedule,omitempty"`
+	Paused   bool          `json:"paused,omitempty"`
+
 	// Run information
-	LastRunAt   *time.Time `json:"last_run_at,omitempty"`
-	NextRunAt   *time.Time `json:"next_run_at,omitempty"`
-	LastRunID   *int       `json:"last_run_id,omitempty"`
+	LastRunAt *time.Time `json:"last_run_at,omitempty"`
+	NextRunAt *time.Time `json:"next_run_at,omitempty"`
+	LastRunID *int       `json:"last_run_id,omitempty"`
 }
 
 // FieldMapping represents a field mapping between source and destination (for Terraform config)
@@ -56,11 +56,11 @@ type FieldMapping struct {
 
 // MappingAttributes represents Census API mapping format (OpenAPI compliant)
 type MappingAttributes struct {
-	From                  MappingFrom `json:"from"`
-	To                    string      `json:"to"`
-	IsPrimaryIdentifier   bool        `json:"is_primary_identifier"`
-	LookupObject         string      `json:"lookup_object,omitempty"`
-	LookupField          string      `json:"lookup_field,omitempty"`
+	From                MappingFrom `json:"from"`
+	To                  string      `json:"to"`
+	IsPrimaryIdentifier bool        `json:"is_primary_identifier"`
+	LookupObject        string      `json:"lookup_object,omitempty"`
+	LookupField         string      `json:"lookup_field,omitempty"`
 }
 
 // MappingFrom represents the source of a mapping (column or constant)
@@ -71,9 +71,9 @@ type MappingFrom struct {
 
 // SyncSchedule represents sync scheduling configuration
 type SyncSchedule struct {
-	Frequency string `json:"frequency"`           // hourly, daily, weekly, etc.
-	Interval  int    `json:"interval,omitempty"`  // every N frequency units
-	Hour      int    `json:"hour,omitempty"`      // for daily/weekly
+	Frequency string `json:"frequency"`             // hourly, daily, weekly, etc.
+	Interval  int    `json:"interval,omitempty"`    // every N frequency units
+	Hour      int    `json:"hour,omitempty"`        // for daily/weekly
 	DayOfWeek int    `json:"day_of_week,omitempty"` // for weekly (0=Sunday)
 	Timezone  string `json:"timezone,omitempty"`
 }
@@ -81,23 +81,23 @@ type SyncSchedule struct {
 // CreateSyncRequest represents the request to create a sync (OpenAPI compliant)
 type CreateSyncRequest struct {
 	// Required fields per BaseSyncAttributes
-	Operation             string                 `json:"operation"`             // Required: How records are synced
-	SourceAttributes      map[string]interface{} `json:"source_attributes"`     // Required: Source configuration 
+	Operation             string                 `json:"operation"`              // Required: How records are synced
+	SourceAttributes      map[string]interface{} `json:"source_attributes"`      // Required: Source configuration
 	DestinationAttributes map[string]interface{} `json:"destination_attributes"` // Required: Destination configuration
-	Mappings              []MappingAttributes    `json:"mappings"`              // Required: Field mappings
-	
+	Mappings              []MappingAttributes    `json:"mappings"`               // Required: Field mappings
+
 	// Optional fields
-	Label                 string                 `json:"label,omitempty"`
-	AlertAttributes       []interface{}          `json:"alert_attributes,omitempty"`
-	
+	Label           string        `json:"label,omitempty"`
+	AlertAttributes []interface{} `json:"alert_attributes,omitempty"`
+
 	// Schedule fields - Census Management API expects these as flat fields, not nested object
-	ScheduleFrequency     string                 `json:"schedule_frequency,omitempty"`
-	ScheduleDay           *int                   `json:"schedule_day,omitempty"`
-	ScheduleHour          *int                   `json:"schedule_hour,omitempty"`
-	ScheduleMinute        *int                   `json:"schedule_minute,omitempty"`
-	CronExpression        string                 `json:"cron_expression,omitempty"`
-	
-	Paused                bool                   `json:"paused,omitempty"`
+	ScheduleFrequency string `json:"schedule_frequency,omitempty"`
+	ScheduleDay       *int   `json:"schedule_day,omitempty"`
+	ScheduleHour      *int   `json:"schedule_hour,omitempty"`
+	ScheduleMinute    *int   `json:"schedule_minute,omitempty"`
+	CronExpression    string `json:"cron_expression,omitempty"`
+
+	Paused bool `json:"paused,omitempty"`
 }
 
 // UpdateSyncRequest represents the request to update a sync
@@ -108,15 +108,15 @@ type UpdateSyncRequest struct {
 	FieldMappings         []FieldMapping         `json:"field_mappings,omitempty"`
 	SyncKey               []string               `json:"sync_key,omitempty"`
 	SyncMode              string                 `json:"sync_mode,omitempty"`
-	
+
 	// Schedule fields - Census Management API expects these as flat fields, not nested object
-	ScheduleFrequency     string                 `json:"schedule_frequency,omitempty"`
-	ScheduleDay           *int                   `json:"schedule_day,omitempty"`
-	ScheduleHour          *int                   `json:"schedule_hour,omitempty"`
-	ScheduleMinute        *int                   `json:"schedule_minute,omitempty"`
-	CronExpression        string                 `json:"cron_expression,omitempty"`
-	
-	Paused                bool                   `json:"paused,omitempty"`
+	ScheduleFrequency string `json:"schedule_frequency,omitempty"`
+	ScheduleDay       *int   `json:"schedule_day,omitempty"`
+	ScheduleHour      *int   `json:"schedule_hour,omitempty"`
+	ScheduleMinute    *int   `json:"schedule_minute,omitempty"`
+	CronExpression    string `json:"cron_expression,omitempty"`
+
+	Paused bool `json:"paused,omitempty"`
 }
 
 // SyncResponse represents a single sync response
@@ -142,16 +142,16 @@ type SyncListResponse struct {
 
 // SyncRun represents a sync execution
 type SyncRun struct {
-	ID         int       `json:"id"`
-	SyncID     int       `json:"sync_id"`
-	Status     string    `json:"status"`
-	CreatedAt  time.Time `json:"created_at"`
-	StartedAt  *time.Time `json:"started_at,omitempty"`
-	CompletedAt *time.Time `json:"completed_at,omitempty"`
-	RecordsProcessed int   `json:"records_processed,omitempty"`
-	RecordsSucceeded int   `json:"records_succeeded,omitempty"`
-	RecordsFailed    int   `json:"records_failed,omitempty"`
-	ErrorMessage     string `json:"error_message,omitempty"`
+	ID               int        `json:"id"`
+	SyncID           int        `json:"sync_id"`
+	Status           string     `json:"status"`
+	CreatedAt        time.Time  `json:"created_at"`
+	StartedAt        *time.Time `json:"started_at,omitempty"`
+	CompletedAt      *time.Time `json:"completed_at,omitempty"`
+	RecordsProcessed int        `json:"records_processed,omitempty"`
+	RecordsSucceeded int        `json:"records_succeeded,omitempty"`
+	RecordsFailed    int        `json:"records_failed,omitempty"`
+	ErrorMessage     string     `json:"error_message,omitempty"`
 }
 
 // TriggerSyncRequest represents a request to trigger a sync
@@ -182,7 +182,7 @@ func (c *Client) CreateSync(ctx context.Context, req *CreateSyncRequest) (*Sync,
 func (c *Client) CreateSyncWithToken(ctx context.Context, req *CreateSyncRequest, workspaceToken string) (*Sync, error) {
 	// Log the request being sent
 	fmt.Printf("[DEBUG] Create sync request: %+v\n", req)
-	
+
 	resp, err := c.makeRequestWithToken(ctx, http.MethodPost, "/syncs", req, TokenTypeWorkspace, workspaceToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make create sync request: %w", err)
@@ -193,15 +193,15 @@ func (c *Client) CreateSyncWithToken(ctx context.Context, req *CreateSyncRequest
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	
+
 	fmt.Printf("[DEBUG] Create sync raw response: %s\n", string(bodyBytes))
-	
+
 	// Write request and response to debug file
 	debugFile := "/tmp/census_sync_debug.log"
 	debugContent := fmt.Sprintf("=== CREATE SYNC DEBUG ===\n\nREQUEST:\n%+v\n\nRAW RESPONSE:\n%s\n\n", req, string(bodyBytes))
 	os.WriteFile(debugFile, []byte(debugContent), 0644)
 	fmt.Printf("[DEBUG] Debug info written to %s\n", debugFile)
-	
+
 	// Reset the response body so handleResponse can read it
 	resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
@@ -211,12 +211,12 @@ func (c *Client) CreateSyncWithToken(ctx context.Context, req *CreateSyncRequest
 	}
 
 	fmt.Printf("[DEBUG] Parsed create sync response: %+v\n", result)
-	
+
 	// Create a minimal Sync object from the response
 	sync := &Sync{
 		ID: result.Data.SyncID,
 	}
-	
+
 	fmt.Printf("[DEBUG] Created sync object with ID: %d\n", sync.ID)
 	return sync, nil
 }
@@ -317,12 +317,12 @@ func (c *Client) TriggerSync(ctx context.Context, syncID int, req *TriggerSyncRe
 // TriggerSyncWithToken triggers a sync execution using a specific workspace token
 func (c *Client) TriggerSyncWithToken(ctx context.Context, syncID int, req *TriggerSyncRequest, workspaceToken string) (int, error) {
 	path := fmt.Sprintf("/syncs/%d/trigger", syncID)
-	
+
 	var body interface{}
 	if req != nil {
 		body = req
 	}
-	
+
 	resp, err := c.makeRequestWithToken(ctx, http.MethodPost, path, body, TokenTypeWorkspace, workspaceToken)
 	if err != nil {
 		return 0, fmt.Errorf("failed to make trigger sync request: %w", err)

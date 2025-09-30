@@ -320,7 +320,7 @@ After successful deployment, you'll see outputs with:
 
 ## Support
 
-- **Provider Issues**: [GitHub Issues](https://github.com/your-org/terraform-provider-census/issues)
+- **Provider Issues**: [GitHub Issues](https://github.com/sutrolabs/terraform-provider-census/issues)
 - **Census Documentation**: [Census Docs](https://docs.getcensus.com/)
 - **Terraform Documentation**: [Terraform Docs](https://www.terraform.io/docs/)
 
