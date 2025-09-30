@@ -148,9 +148,67 @@ resource "census_destination" "marketing_staging_crm" {
 # data "census_source" "existing_sales_warehouse" {
 #   id = "98765"  # ID of existing source in existing workspace
 # }
-# 
+#
 # data "census_destination" "existing_finance_system" {
 #   id = "54321"  # ID of existing destination in existing workspace
+# }
+
+# ==============================================================================
+# PHASE 2.5: SQL DATASETS (✅ Available!)
+# ==============================================================================
+
+# Create SQL datasets for data transformation and modeling
+# Datasets allow you to define custom SQL queries against your sources
+
+resource "census_dataset" "active_users" {
+  workspace_id = census_workspace.marketing_prod.id
+  name         = "Active Users"
+  type         = "sql"
+  description  = "Filtered dataset of active users for marketing campaigns"
+
+  source_id = census_source.marketing_prod_warehouse.id
+
+  query = <<-SQL
+    SELECT
+      id,
+      email,
+      first_name,
+      last_name,
+      created_at,
+      last_login_at
+    FROM users
+    WHERE active = true
+      AND last_login_at > CURRENT_DATE - INTERVAL '30 days'
+  SQL
+}
+
+resource "census_dataset" "high_value_customers" {
+  workspace_id = census_workspace.marketing_prod.id
+  name         = "High Value Customers"
+  type         = "sql"
+  description  = "Customers with lifetime value > $1000"
+
+  source_id = census_source.marketing_prod_warehouse.id
+
+  query = <<-SQL
+    SELECT
+      u.id,
+      u.email,
+      u.first_name,
+      u.last_name,
+      SUM(o.amount) as lifetime_value,
+      COUNT(o.id) as order_count
+    FROM users u
+    JOIN orders o ON u.id = o.user_id
+    GROUP BY u.id, u.email, u.first_name, u.last_name
+    HAVING SUM(o.amount) > 1000
+  SQL
+}
+
+# Example: Use data source to reference an existing dataset
+# data "census_dataset" "existing_dataset" {
+#   id           = "123"
+#   workspace_id = census_workspace.marketing_prod.id
 # }
 
 # ==============================================================================

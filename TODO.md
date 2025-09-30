@@ -31,6 +31,17 @@ This document tracks all planned features, improvements, and tasks for the Censu
 
 ## Recently Completed Major Features
 
+### ✅ census_dataset Resource (FULLY IMPLEMENTED - 2025-09-29)
+- ✅ Complete SQL dataset support for data transformation
+- ✅ Full API client with CRUD operations
+- ✅ Resource and data source implementations
+- ✅ Multi-line SQL query support with heredoc syntax
+- ✅ Dynamic workspace token authentication
+- ✅ Computed fields: columns, cached_record_count, resource_identifier
+- ✅ Working examples with real-world use cases
+- ✅ Tested and verified with terraform apply
+- ✅ Zero drift detection after creation
+
 ### ✅ census_destination Resource (FULLY IMPLEMENTED)
 - ✅ Complete destination API client (`internal/client/destination.go`)
 - ✅ Full destination resource implementation with CRUD operations
@@ -86,16 +97,23 @@ This document tracks all planned features, improvements, and tasks for the Censu
   - ✅ Complete working example configurations
   - ✅ OpenAPI specification compliance for all operations
 
-### 📋 Phase 4: Data & Execution Management (Medium Priority)
+### ✅ Phase 4: SQL Datasets (COMPLETE!)
 
-#### ⏳ Dataset Resources
-- [ ] **census_dataset Resource** - Data modeling and transformation
-  - [ ] Add dataset API client methods (`internal/client/dataset.go`)
-  - [ ] Create dataset resource implementation  
-  - [ ] SQL model definitions
-  - [ ] Column mapping and transformations
-  - [ ] Dataset validation and preview
-  - [ ] Dependency management between datasets
+#### ✅ Dataset Resources (FULLY IMPLEMENTED)
+- ✅ **census_dataset Resource** - Data modeling and transformation
+  - ✅ Complete dataset API client methods (`internal/client/dataset.go`)
+  - ✅ Full dataset resource implementation (`internal/provider/resource_dataset.go`)
+  - ✅ Complete dataset data source (`internal/provider/data_source_dataset.go`)
+  - ✅ SQL query definitions with multi-line heredoc support
+  - ✅ Column schema discovery (cached_record_count, columns)
+  - ✅ Source connection reference and validation
+  - ✅ Resource identifier generation
+  - ✅ OpenAPI specification compliance
+  - ✅ Working examples with active users and high-value customer datasets
+  - ✅ Full CRUD lifecycle with workspace token authentication
+  - ✅ Import support for existing datasets
+
+### 📋 Phase 5: Execution Management (Medium Priority)
 
 #### ⏳ Sync Run Operations
 - [ ] **census_sync_run Resource** - Execute and monitor syncs
@@ -200,16 +218,16 @@ This document tracks all planned features, improvements, and tasks for the Censu
 ## Implementation Priority
 
 ### **Next Immediate Tasks** (Recommended Order)
-1. **Integration Testing** - Real API tests with complete Census workflow
-2. **census_dataset Resource** - Advanced data modeling and SQL query support
-3. **Documentation Updates** - Reflect new sync capabilities and OpenAPI compliance
-4. **Terraform Registry Preparation** - Ready for public release with full workflow
-5. **Performance Testing** - Test sync creation and execution at scale
+1. **Integration Testing** - Real API tests with complete Census workflow (Workspaces → Sources → Datasets → Destinations → Syncs)
+2. **Documentation Updates** - Reflect new dataset and sync capabilities, OpenAPI compliance
+3. **Terraform Registry Preparation** - Ready for public release with full workflow
+4. **Performance Testing** - Test dataset, sync creation and execution at scale
+5. **Sync Run Operations** - Execute and monitor sync runs via Terraform
 
 ### **Resource Dependencies**
-- Syncs depend on: Workspaces, Sources, Destinations
+- Syncs depend on: Workspaces, Sources (or Datasets), Destinations
+- Datasets depend on: Workspaces, Sources
 - Sync Runs depend on: Syncs
-- Datasets depend on: Sources
 - Webhooks depend on: Workspaces
 
 ## Technical Debt & Improvements
@@ -259,12 +277,10 @@ This document tracks all planned features, improvements, and tasks for the Censu
 - **Each major feature** should include: implementation, testing, documentation, and examples
 - **Breaking changes** should follow semantic versioning and provide migration paths
 
-Last updated: 2025-01-17
+Last updated: 2025-09-29
 
 ## Major Milestones Achieved
-- **2025-01-16**: Completed source and destination resources with full API validation
-- **2025-01-17**: Implemented PAT-only authentication architecture
-- **2025-01-17**: Fixed state management and workspace_id persistence
-- **2025-01-17**: Added comprehensive connector validation via Census API
-- **2025-01-17**: Completed census_sync resource with OpenAPI-compliant table sources - Full Census workflow now available!
-- **2025-01-17**: Fixed table source structure to use proper table_name/table_schema/table_catalog per OpenAPI spec
+- **2025-09-17**: Initial commit - Foundation and workspace management
+- **2025-09-29**: Completed census_sync resource with full sync operations support
+- **2025-09-29**: Fixed field_mappings drift issue by converting from TypeList to TypeSet
+- **2025-09-29**: Implemented census_dataset resource for SQL-based data transformation
