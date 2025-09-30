@@ -1,6 +1,19 @@
 # Terraform Provider for Census
 
+> **For Sutro Labs Engineers**: See [INTERNAL_INSTALLATION.md](INTERNAL_INSTALLATION.md) for installation instructions.
+
 A Terraform provider for managing [Census](https://getcensus.com) resources. Census enables you to sync data from your warehouse to all your operational tools, and this provider allows you to manage Census infrastructure as code.
+
+## Internal Use (Sutro Labs)
+
+This provider is currently in internal use at Sutro Labs. Engineers should follow the [Internal Installation Guide](INTERNAL_INSTALLATION.md) to get started.
+
+**Quick Start for Sutro Labs Engineers:**
+
+1. Download the binary for your platform from the [releases page](https://github.com/sutrolabs/terraform-provider-census/releases)
+2. Follow the [installation guide](INTERNAL_INSTALLATION.md)
+3. Check out the [complete example](examples/complete-census-setup/) to see all features
+4. Get help in #eng-data-platform Slack channel
 
 ## Features
 
