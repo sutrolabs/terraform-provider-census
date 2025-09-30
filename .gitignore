@@ -44,9 +44,6 @@ bin/
 dist/
 terraform-provider-census*
 
-# Go modules
-go.sum
-
 # Temporary files
 *.tmp
 *.temp
