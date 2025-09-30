@@ -1,266 +1,117 @@
 # Terraform Provider for Census
 
-> **For Sutro Labs Engineers**: See [INTERNAL_INSTALLATION.md](INTERNAL_INSTALLATION.md) for installation instructions.
-
 A Terraform provider for managing [Census](https://getcensus.com) resources. Census enables you to sync data from your warehouse to all your operational tools, and this provider allows you to manage Census infrastructure as code.
-
-## Internal Use (Sutro Labs)
-
-This provider is currently in internal use at Sutro Labs. Engineers should follow the [Internal Installation Guide](INTERNAL_INSTALLATION.md) to get started.
-
-**Quick Start for Sutro Labs Engineers:**
-
-1. Download the binary for your platform from the [releases page](https://github.com/sutrolabs/terraform-provider-census/releases)
-2. Follow the [installation guide](INTERNAL_INSTALLATION.md)
-3. Check out the [complete example](examples/complete-census-setup/) to see all features
-4. Get help in #eng-data-platform Slack channel
 
 ## Features
 
 - **Multi-region support**: Works with both US and EU Census instances
+- **Complete Census workflow**: Manage workspaces, sources, datasets, destinations, and syncs
 - **PAT-only authentication**: Uses personal access tokens with dynamic workspace token retrieval
-- **Complete Census workflow**: Manage the full data sync pipeline
-  - Workspaces - Organize your Census resources
-  - Sources - Connect to data warehouses (Snowflake, BigQuery, Postgres, etc.)
-  - Datasets - Transform data with SQL
-  - Destinations - Connect to business tools (Salesforce, HubSpot, etc.)
-  - Syncs - Orchestrate data movement with field mappings and scheduling
 - **Import support**: Import existing Census resources into Terraform state
-- **State management**: Robust handling of resource dependencies and workspace scoping
+- **Staging environment support**: Configure custom base URLs for testing
 
 ## Installation
 
-### Terraform 0.13+
-
-Add the provider to your Terraform configuration:
-
 ```hcl
 terraform {
   required_providers {
     census = {
-      source = "sutrolabs/census"
-      version = "~> 0.1.0"
-    }
-  }
-}
-```
-
-### Manual Installation
-
-1. Download the provider binary from the [releases page](https://github.com/sutrolabs/terraform-provider-census/releases)
-2. Place it in your Terraform plugins directory
-3. Run `terraform init`
-
-## Authentication
-
-The Census provider uses a Personal Access Token (PAT) for all operations:
-
-```hcl
-provider "census" {
-  personal_access_token = "your-personal-access-token"
-  region               = "us" # or "eu"
-}
-```
-
-### Environment Variables
-
-You can also set the authentication token using environment variables:
-
-```bash
-export CENSUS_PERSONAL_ACCESS_TOKEN="your-personal-token"
-```
-
-### How Authentication Works
-
-- **Personal Access Token**: Used for all operations including workspace management and workspace-scoped operations
-- **Dynamic Workspace Tokens**: The provider automatically retrieves workspace-specific API keys as needed using your PAT
-- **Team Collaboration**: Only the PAT needs to be shared - workspace tokens are fetched dynamically
-
-## Configuration
-
-| Argument | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `personal_access_token` | Personal access token for Census APIs | - | Yes |
-| `region` | Census region (`us` or `eu`) | `us` | No |
-| `base_url` | Custom base URL for Census API | Determined by region | No |
-
-## Quick Testing with Your Census Account
-
-The fastest way to test this provider is with the included examples:
-
-1. **Build and install the provider**:
-   ```bash
-   make install-local
-   ```
-
-2. **Test with the complete example**:
-   ```bash
-   cd examples/complete-census-setup/
-   cp terraform.tfvars.example terraform.tfvars
-   # Edit terraform.tfvars with your Census credentials
-   terraform init
-   terraform plan
-   terraform apply  # Creates real Census resources
-   ```
-
-### Available Examples
-
-| Example | Purpose | What it Demonstrates |
-|---------|---------|----------------------|
-| `complete-census-setup/` | Full Census workflow | All 5 resources: workspaces, sources, destinations, datasets, syncs |
-| `basic-workspace/` | Simple workspace setup | Single workspace creation and management |
-
-## Usage Examples
-
-### Complete Example
-
-```hcl
-terraform {
-  required_providers {
-    census = {
-      source = "sutrolabs/census"
-      version = "~> 0.1.0"
+      source  = "sutrolabs/census"
+      version = "~> 0.1.1"
     }
   }
 }
 
 provider "census" {
   personal_access_token = var.census_personal_token
-  region               = "us"
+  region                = "us"  # or "eu"
 }
+```
 
-variable "census_personal_token" {
-  description = "Census personal access token"
-  type        = string
-  sensitive   = true
-}
+## Usage
 
+```hcl
 resource "census_workspace" "data_team" {
   name = "Data Team Workspace"
-  notification_emails = [
-    "data-alerts@company.com"
-  ]
+  notification_emails = ["data-alerts@company.com"]
+}
+
+resource "census_source" "warehouse" {
+  workspace_id = census_workspace.data_team.id
+  name         = "Production Warehouse"
+  type         = "snowflake"
+
+  connection_config = {
+    account   = "xy12345.us-east-1"
+    database  = "ANALYTICS"
+    warehouse = "COMPUTE_WH"
+    role      = "CENSUS_ROLE"
+    username  = "census_user"
+    password  = var.snowflake_password
+  }
+}
+
+resource "census_sync" "users_to_crm" {
+  workspace_id = census_workspace.data_team.id
+  label        = "Users to CRM"
+
+  source_id      = census_source.warehouse.id
+  destination_id = census_destination.crm.id
+
+  source_attributes {
+    connection_id = census_source.warehouse.id
+    object {
+      type         = "table"
+      table_name   = "users"
+      table_schema = "public"
+    }
+  }
+
+  destination_attributes = {
+    connection_id = census_destination.crm.id
+    object        = "Contact"
+  }
+
+  operation = "upsert"
+  sync_key  = ["email"]
+
+  field_mappings {
+    from      = "email"
+    to        = "Email"
+    operation = "direct"
+  }
+
+  schedule {
+    frequency = "daily"
+    hour      = 8
+    timezone  = "UTC"
+  }
 }
 ```
 
 ## Resources
 
-### Available Resources
-- [`census_workspace`](docs/resources/workspace.md) - Manage Census workspaces
-- [`census_source`](docs/resources/source.md) - Manage data source connections (Snowflake, BigQuery, Postgres, etc.)
-- [`census_destination`](docs/resources/destination.md) - Configure sync destinations (Salesforce, HubSpot, etc.)
-- [`census_dataset`](docs/resources/dataset.md) - Create SQL datasets for data transformation
-- [`census_sync`](docs/resources/sync.md) - Manage data syncs between sources and destinations
+- `census_workspace` - Manage Census workspaces
+- `census_source` - Data warehouse connections (Snowflake, BigQuery, Postgres, etc.)
+- `census_destination` - Business tool integrations (Salesforce, HubSpot, etc.)
+- `census_dataset` - SQL datasets for data transformation
+- `census_sync` - Data syncs between sources and destinations
 
 ## Data Sources
 
-### Available Data Sources
-- [`census_workspace`](docs/data-sources/workspace.md) - Read Census workspace information
-- [`census_source`](docs/data-sources/source.md) - Read data source connection details
-- [`census_destination`](docs/data-sources/destination.md) - Read destination configuration
-- [`census_dataset`](docs/data-sources/dataset.md) - Read SQL dataset information
-- [`census_sync`](docs/data-sources/sync.md) - Read sync configuration and status
+All resources have corresponding data sources for read-only operations. See [documentation](docs/) for details.
 
-## Development
+## Documentation
 
-### Requirements
-
-- Go 1.21+
-- Terraform 0.13+
-
-### Building from Source
-
-```bash
-git clone https://github.com/sutrolabs/terraform-provider-census
-cd terraform-provider-census
-go build .
-```
-
-### Testing
-
-The provider includes unit tests and integration tests:
-
-```bash
-# Run unit tests
-go test ./internal/provider -v
-
-# Run client tests
-go test ./internal/client -v
-
-# Run all tests
-go test ./... -v
-```
-
-#### Test Coverage
-
-Current test status:
-- ✅ Provider configuration tests
-- ✅ Workspace resource CRUD tests
-- ✅ Source resource tests
-- ✅ Destination resource tests
-- ✅ Dataset resource tests
-- ✅ Sync resource tests
-
-#### Running Tests
-
-```bash
-# Run all unit tests (skips integration tests)
-make test
-
-# Or with coverage
-go test ./... -short -cover
-```
-
-**Note**: Integration tests requiring a Census API server are skipped in CI using the `-short` flag.
-
-### Local Development
-
-1. Build the provider:
-   ```bash
-   go build -o terraform-provider-census
-   ```
-
-2. Create a local Terraform configuration file:
-   ```bash
-   # dev.tfrc
-   provider_installation {
-     dev_overrides {
-       "sutrolabs/census" = "/path/to/terraform-provider-census"
-     }
-     direct {}
-   }
-   ```
-
-3. Set the Terraform CLI config:
-   ```bash
-   export TF_CLI_CONFIG_FILE=/path/to/dev.tfrc
-   ```
-
-4. Test with Terraform:
-   ```bash
-   terraform init
-   terraform plan
-   ```
+- [Resource Documentation](docs/resources/) - Detailed documentation for each resource
+- [Data Source Documentation](docs/data-sources/) - Read-only data source documentation
+- [Examples](examples/) - Complete working examples
+- [CHANGELOG](CHANGELOG.md) - Version history and changes
+- [Census API Documentation](https://developers.getcensus.com/api-reference/introduction/overview)
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes and add tests
-4. Run tests: `go test ./...`
-5. Commit your changes: `git commit -am 'Add feature'`
-6. Push to the branch: `git push origin feature-name`
-7. Submit a pull request
-
-## API Reference
-
-This provider is built against the Census API. For detailed API documentation, visit:
-- [Census API Documentation](https://developers.getcensus.com/api-reference/introduction/overview)
-
-### Live OpenAPI Specifications
-For development and debugging, the latest OpenAPI specifications are available at:
-- [Organization Management API](https://developers.getcensus.com/openapi/compiled/organization_management.yaml) - Workspace management, user management
-- [Workspace Management API](https://developers.getcensus.com/openapi/compiled/workspace_management.yaml) - Sources, destinations, syncs, and other workspace-scoped operations
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Support
 
@@ -269,11 +120,7 @@ For development and debugging, the latest OpenAPI specifications are available a
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for details about changes in each version.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ---
 
