@@ -25,19 +25,22 @@ This directory contains practical examples that you can use to test the Census T
 ## Examples Available
 
 ### 1. Basic Workspace Management (`basic-workspace/`)
-Tests workspace creation, reading, updating, and deletion.
+Simple workspace creation and management.
 - **Requires**: Personal Access Token
 - **Tests**: Core workspace CRUD operations
+- **Complexity**: Beginner
 
-### 2. Multi-Workspace Setup (`multi-workspace/`)
-Creates multiple workspaces with different configurations.
-- **Requires**: Personal Access Token  
-- **Tests**: Workspace creation with various settings
+### 2. Staging Environment (`staging-example/`)
+Complete data pipeline using Census staging environment.
+- **Requires**: Personal Access Token, staging credentials
+- **Tests**: Source, destination, and sync with staging URL
+- **Complexity**: Intermediate
 
-### 3. Data Source Usage (`data-sources/`)
-Demonstrates reading existing workspace information.
-- **Requires**: Personal Access Token
-- **Tests**: Data source functionality
+### 3. Complete Census Setup (`complete-census-setup/`)
+Full-featured example with all 5 resource types.
+- **Requires**: Personal Access Token, source/destination credentials
+- **Tests**: Workspaces, sources, destinations, datasets, syncs
+- **Complexity**: Advanced
 
 ## Quick Start
 
@@ -92,11 +95,11 @@ Demonstrates reading existing workspace information.
 
 ## What Each Example Tests
 
-| Example | Tests | Required Token |
-|---------|-------|----------------|
-| `basic-workspace/` | Workspace CRUD, terraform state management | Personal |
-| `multi-workspace/` | Multiple workspace creation, different configs | Personal |
-| `data-sources/` | Reading existing workspace data | Personal |
+| Example | What It Demonstrates | Complexity |
+|---------|---------------------|------------|
+| `basic-workspace/` | Single workspace management | Beginner |
+| `staging-example/` | Staging environment with source → destination → sync | Intermediate |
+| `complete-census-setup/` | Full Census workflow with all 5 resources | Advanced |
 
 ## Troubleshooting
 

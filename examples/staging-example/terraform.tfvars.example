@@ -1,0 +1,54 @@
+# Census Authentication
+census_personal_token = "your-census-personal-token-here"
+census_base_url       = "https://app.staging.getcensus.com/api/v1"
+
+# Workspace Configuration
+workspace_name      = "Staging Test Workspace"
+notification_emails = ["your-email@company.com"]
+
+# Source Configuration (Postgres Example)
+source_label = "Staging Data Warehouse"
+source_type  = "postgres"
+source_credentials = {
+  host     = "staging-db.company.com"
+  port     = "5432"
+  username = "census_staging"
+  password = "your-db-password"
+  database = "staging_analytics"
+}
+source_table = "users"
+
+# Destination Configuration (Salesforce Sandbox Example)
+destination_label = "Staging CRM Sandbox"
+destination_type  = "salesforce"
+destination_credentials = {
+  username       = "your-sf-user@company.com.sandbox"
+  password       = "your-sf-password"
+  security_token = "your-sf-security-token"
+  sandbox        = "true"
+}
+destination_object = "Contact"
+
+# Sync Configuration
+sync_label = "Users to Contacts Sync (Staging)"
+field_mappings = [
+  {
+    from      = "email"
+    to        = "Email"
+    operation = "direct"
+  },
+  {
+    from      = "first_name"
+    to        = "FirstName"
+    operation = "direct"
+  },
+  {
+    from      = "last_name"
+    to        = "LastName"
+    operation = "direct"
+  }
+]
+sync_frequency = "day"
+sync_hour      = 9
+sync_minute    = 0
+sync_paused    = true # Start paused for testing

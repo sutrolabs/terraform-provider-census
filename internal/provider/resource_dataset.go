@@ -2,7 +2,9 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -20,7 +22,7 @@ func resourceDataset() *schema.Resource {
 		DeleteContext: resourceDatasetDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceDatasetImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -319,4 +321,30 @@ func resourceDatasetDelete(ctx context.Context, d *schema.ResourceData, meta int
 
 	d.SetId("")
 	return nil
+}
+
+func resourceDatasetImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// Support composite format: workspace_id:dataset_id
+	parts := strings.Split(d.Id(), ":")
+
+	if len(parts) == 2 {
+		// Format: workspace_id:dataset_id
+		workspaceId := parts[0]
+		datasetId := parts[1]
+
+		d.SetId(datasetId)
+		d.Set("workspace_id", workspaceId)
+
+		return []*schema.ResourceData{d}, nil
+	} else if len(parts) == 1 {
+		// Legacy format - provide helpful error
+		return nil, fmt.Errorf(`import requires workspace_id. Use format: workspace_id:dataset_id
+
+Example:
+  terraform import census_dataset.all_users 69962:789
+
+Where 69962 is the workspace_id and 789 is the dataset_id.`)
+	}
+
+	return nil, fmt.Errorf("invalid import format. Use: workspace_id:dataset_id")
 }

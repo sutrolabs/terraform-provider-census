@@ -2,7 +2,9 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -20,7 +22,7 @@ func resourceDestination() *schema.Resource {
 		DeleteContext: resourceDestinationDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceDestinationImport,
 		},
 
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
@@ -318,4 +320,30 @@ func resourceDestinationDelete(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	return nil
+}
+
+func resourceDestinationImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// Support composite format: workspace_id:destination_id
+	parts := strings.Split(d.Id(), ":")
+
+	if len(parts) == 2 {
+		// Format: workspace_id:destination_id
+		workspaceId := parts[0]
+		destinationId := parts[1]
+
+		d.SetId(destinationId)
+		d.Set("workspace_id", workspaceId)
+
+		return []*schema.ResourceData{d}, nil
+	} else if len(parts) == 1 {
+		// Legacy format - provide helpful error
+		return nil, fmt.Errorf(`import requires workspace_id. Use format: workspace_id:destination_id
+
+Example:
+  terraform import census_destination.salesforce_crm 69962:456
+
+Where 69962 is the workspace_id and 456 is the destination_id.`)
+	}
+
+	return nil, fmt.Errorf("invalid import format. Use: workspace_id:destination_id")
 }

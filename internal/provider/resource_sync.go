@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -23,7 +24,7 @@ func resourceSync() *schema.Resource {
 		DeleteContext: resourceSyncDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceSyncImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -964,15 +965,45 @@ func flattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 	if objectData, ok := attrs["object"]; ok {
 		objectMap, isMap := objectData.(map[string]interface{})
 		if isMap {
-			// Convert values to strings, but exclude computed API fields that aren't in terraform config
 			convertedObject := make(map[string]interface{})
-			for k, v := range objectMap {
-				// Skip the "id" field - it's computed by Census API and not part of terraform config
-				if k == "id" {
-					continue
-				}
-				convertedObject[k] = convertToString(v)
+
+			// Get the object type from API response
+			objectType := ""
+			if t, ok := objectMap["type"]; ok {
+				objectType = convertToString(t)
 			}
+
+			// Handle type translation: Census API returns "business_object_source" for datasets
+			if objectType == "business_object_source" {
+				// Translate business_object_source -> dataset for Terraform
+				convertedObject["type"] = "dataset"
+
+				// For datasets, use dataset_id instead of id
+				if datasetId, ok := objectMap["dataset_id"]; ok {
+					convertedObject["id"] = convertToString(datasetId)
+				}
+			} else if objectType == "table" {
+				// For table sources, include table identifiers but NOT id
+				convertedObject["type"] = "table"
+				if v, ok := objectMap["table_name"]; ok {
+					convertedObject["table_name"] = convertToString(v)
+				}
+				if v, ok := objectMap["table_schema"]; ok {
+					convertedObject["table_schema"] = convertToString(v)
+				}
+				if v, ok := objectMap["table_catalog"]; ok {
+					convertedObject["table_catalog"] = convertToString(v)
+				}
+			} else {
+				// For other types, copy type and id if present
+				if objectType != "" {
+					convertedObject["type"] = objectType
+				}
+				if id, ok := objectMap["id"]; ok {
+					convertedObject["id"] = convertToString(id)
+				}
+			}
+
 			objectList := []map[string]interface{}{convertedObject}
 			result["object"] = objectList
 		}
@@ -1155,4 +1186,30 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 	}
 
 	return result
+}
+
+func resourceSyncImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// Support composite format: workspace_id:sync_id
+	parts := strings.Split(d.Id(), ":")
+
+	if len(parts) == 2 {
+		// Format: workspace_id:sync_id
+		workspaceId := parts[0]
+		syncId := parts[1]
+
+		d.SetId(syncId)
+		d.Set("workspace_id", workspaceId)
+
+		return []*schema.ResourceData{d}, nil
+	} else if len(parts) == 1 {
+		// Legacy format - provide helpful error
+		return nil, fmt.Errorf(`import requires workspace_id. Use format: workspace_id:sync_id
+
+Example:
+  terraform import census_sync.contact_sync 69962:123
+
+Where 69962 is the workspace_id and 123 is the sync_id.`)
+	}
+
+	return nil, fmt.Errorf("invalid import format. Use: workspace_id:sync_id")
 }

@@ -2,7 +2,9 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -20,7 +22,7 @@ func resourceSource() *schema.Resource {
 		DeleteContext: resourceSourceDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceSourceImport,
 		},
 
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
@@ -313,4 +315,30 @@ func resourceSourceDelete(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	return nil
+}
+
+func resourceSourceImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	// Support composite format: workspace_id:source_id
+	parts := strings.Split(d.Id(), ":")
+
+	if len(parts) == 2 {
+		// Format: workspace_id:source_id
+		workspaceId := parts[0]
+		sourceId := parts[1]
+
+		d.SetId(sourceId)
+		d.Set("workspace_id", workspaceId)
+
+		return []*schema.ResourceData{d}, nil
+	} else if len(parts) == 1 {
+		// Legacy format - provide helpful error
+		return nil, fmt.Errorf(`import requires workspace_id. Use format: workspace_id:source_id
+
+Example:
+  terraform import census_source.snowflake_basic 69962:828
+
+Where 69962 is the workspace_id and 828 is the source_id.`)
+	}
+
+	return nil, fmt.Errorf("invalid import format. Use: workspace_id:source_id")
 }

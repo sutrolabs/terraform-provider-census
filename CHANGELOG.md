@@ -74,6 +74,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] - 2025-09-30
+
+### Fixed
+
+- **Import format**: All workspace-scoped resources now require composite import format `workspace_id:resource_id`
+  - Updated resources: census_source, census_destination, census_dataset, census_sync
+  - Provides helpful error messages when legacy format is used
+  - Example: `terraform import census_source.example 69962:828`
+
+- **Dataset source sync**: Fixed API translation for dataset-based syncs
+  - Correctly handles Census API returning `business_object_source` type
+  - Translates to `dataset` type in Terraform state
+  - Uses `dataset_id` field instead of `id` for proper state tracking
+  - Eliminates perpetual drift on dataset source syncs
+
+- **Source attributes filtering**: Prevents API extra fields from causing errors
+  - Changed from blocklist to allowlist approach in `flattenSourceAttributes`
+  - Only includes schema-defined fields to avoid "Invalid address to set" errors
+  - Properly handles type-specific fields (table identifiers, dataset IDs)
+
+### Added
+
+- **Staging environment example**: New `examples/staging-example/` directory
+  - Demonstrates custom `base_url` configuration for staging environments
+  - Complete pipeline example with all resource types
+  - Comprehensive documentation for staging vs production usage
+
+### Changed
+
+- **Documentation cleanup**: Removed outdated file references
+  - Updated README.md to reflect current examples and make targets
+  - Updated TESTING.md to remove references to deleted scripts
+  - Removed obsolete test-with-census.sh script
+  - Removed scripts/ directory (check-security.sh, test_manual.sh, mock_server.go)
+  - Cleaned up .DS_Store and other development artifacts
+
+- **Complete example enhancement**: Added dataset source sync demonstration
+  - New `census_dataset.all_users` with SQL query
+  - New `census_sync.dataset_contact_sync` using dataset as source
+  - Shows proper usage of source_attributes with dataset type
+
+---
+
 ## Unreleased
 
 ### Planned Features

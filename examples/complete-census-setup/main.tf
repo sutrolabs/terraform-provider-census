@@ -205,6 +205,19 @@ resource "census_dataset" "high_value_customers" {
   SQL
 }
 
+resource "census_dataset" "all_users" {
+  workspace_id = census_workspace.marketing_prod.id
+  name         = "All Users"
+  type         = "sql"
+  description  = "Simple dataset with all user data for syncing"
+
+  source_id = census_source.marketing_prod_warehouse.id
+
+  query = <<-SQL
+    SELECT * FROM users
+  SQL
+}
+
 # Example: Use data source to reference an existing dataset
 # data "census_dataset" "existing_dataset" {
 #   id           = "123"
@@ -413,6 +426,67 @@ resource "census_sync" "marketing_contact_sync_3" {
   }
 
   # Start paused until ready to go live
+  paused = true
+}
+
+# Sync using a dataset as the source
+resource "census_sync" "dataset_contact_sync" {
+  workspace_id = census_workspace.marketing_prod.id
+  label        = "Dataset to Contacts Sync"
+
+  source_id      = census_source.marketing_prod_warehouse.id
+  destination_id = census_destination.marketing_prod_crm.id
+
+  # Source configuration - use a dataset instead of table
+  source_attributes {
+    connection_id = census_source.marketing_prod_warehouse.id
+    object {
+      type = "dataset"
+      id   = census_dataset.all_users.id
+    }
+  }
+
+  # Destination configuration - Salesforce Contacts
+  destination_attributes = {
+    connection_id = census_destination.marketing_prod_crm.id
+    object        = "Contact"
+  }
+
+  operation = "upsert"
+
+  # Field mappings using dataset columns
+
+  field_mappings {
+    from      = "user_id"
+    to        = "Census_ID__c"
+    operation = "direct"
+  }
+  field_mappings {
+    from      = "email"
+    to        = "Email"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "first_name"
+    to        = "FirstName"
+    operation = "direct"
+  }
+
+  field_mappings {
+    from      = "last_name"
+    to        = "LastName"
+    operation = "direct"
+  }
+
+  sync_key = ["email"]
+
+  schedule {
+    frequency = "daily"
+    hour      = 8
+    timezone  = "UTC"
+  }
+
   paused = true
 }
 
