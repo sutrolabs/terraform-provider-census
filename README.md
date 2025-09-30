@@ -90,19 +90,14 @@ The fastest way to test this provider is with the included examples:
 
 1. **Build and install the provider**:
    ```bash
-   make dev
+   make install-local
    ```
 
-2. **Run the testing script**:
+2. **Test with the complete example**:
    ```bash
-   ./test-with-census.sh
-   ```
-
-3. **Or test manually with an example**:
-   ```bash
-   cd examples/basic-workspace/
+   cd examples/complete-census-setup/
    cp terraform.tfvars.example terraform.tfvars
-   # Edit terraform.tfvars with your Census token
+   # Edit terraform.tfvars with your Census credentials
    terraform init
    terraform plan
    terraform apply  # Creates real Census resources
@@ -110,11 +105,10 @@ The fastest way to test this provider is with the included examples:
 
 ### Available Examples
 
-| Example | Purpose | What it Tests |
-|---------|---------|---------------|
-| `basic-workspace/` | Single workspace CRUD | Core functionality, data sources, state management |
-| `multi-workspace/` | Multiple workspaces | Complex scenarios, different configurations |
-| `data-sources/` | Read existing workspaces | Data source functionality, existing resource discovery |
+| Example | Purpose | What it Demonstrates |
+|---------|---------|----------------------|
+| `complete-census-setup/` | Full Census workflow | All 5 resources: workspaces, sources, destinations, datasets, syncs |
+| `basic-workspace/` | Simple workspace setup | Single workspace creation and management |
 
 ## Usage Examples
 
@@ -202,22 +196,22 @@ go test ./... -v
 Current test status:
 - ✅ Provider configuration tests
 - ✅ Workspace resource CRUD tests
-- ✅ Source resource tests (basic)
-- ✅ Destination resource tests (basic)
+- ✅ Source resource tests
+- ✅ Destination resource tests
+- ✅ Dataset resource tests
+- ✅ Sync resource tests
 
-#### Running Integration Tests
-
-Integration tests require a running Census API (or mock server):
+#### Running Tests
 
 ```bash
-# Start mock server
-go run scripts/mock_server.go &
+# Run all unit tests (skips integration tests)
+make test
 
-# Run integration tests
-go test ./internal/client -run Integration -v
+# Or with coverage
+go test ./... -short -cover
 ```
 
-**Note**: Integration tests require a properly configured mock Census API server.
+**Note**: Integration tests requiring a Census API server are skipped in CI using the `-short` flag.
 
 ### Local Development
 

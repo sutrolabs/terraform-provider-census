@@ -24,16 +24,16 @@ go test ./internal/provider -v
 - Provider schema validation
 - HTTP request creation and headers
 
-### 2. Integration Tests 🧪 (With Mock Server)
+### 2. Integration Tests 🧪 (Requires Census API)
 
-Tests the full client flow against a mock Census API.
+Tests the full client flow against the real Census API. These tests are skipped by default in CI.
 
-#### Start Mock Server
 ```bash
-# Terminal 1: Start mock server
-go run scripts/mock_server.go
+# Integration tests are skipped with -short flag
+go test ./... -short -v
 
-# Terminal 2: Run integration tests
+# To run integration tests (requires Census API access)
+export CENSUS_PERSONAL_ACCESS_TOKEN="your-token"
 go test ./internal/client -v -run TestWorkspaceIntegration
 ```
 
@@ -143,10 +143,14 @@ make test-integration
 make test-acc
 ```
 
-### Manual Testing
+### Manual Testing with Examples
 ```bash
-# Run manual testing script
-./scripts/test_manual.sh
+# Use the complete example to test all resources
+cd examples/complete-census-setup/
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your credentials
+terraform init
+terraform plan
 ```
 
 ### Specific Test Scenarios
@@ -160,24 +164,17 @@ go test ./internal/provider -run TestProvider -v
 # Test client functionality
 go test ./internal/client -v
 
-# Test with mock server (run mock_server.go first)
+# Test integration (requires Census API token)
+export CENSUS_PERSONAL_ACCESS_TOKEN="your-token"
 go test ./internal/client -run TestWorkspaceIntegration -v
 ```
 
 ## Test Data & Fixtures
 
-### Mock Server Data
-The mock server (`scripts/mock_server.go`) provides:
-- In-memory workspace storage
-- Realistic API responses
-- Proper HTTP status codes
-- Authentication simulation
-
 ### Test Configurations
-Example test configurations in `examples/workspace/`:
-- Basic workspace creation
-- Workspace with notification emails
-- Workspace with API key return
+Example test configurations in `examples/`:
+- `complete-census-setup/` - Full workflow with all 5 resources
+- `basic-workspace/` - Simple workspace creation and management
 
 ## Coverage Analysis
 
@@ -192,25 +189,26 @@ go test ./... -cover
 
 ## CI/CD Testing
 
-The provider includes testing configurations for:
-- Unit tests (no external dependencies)
-- Integration tests (with mock server)
-- Acceptance tests (with real API - requires secrets)
+The provider includes GitHub Actions workflows for:
+- **Unit tests** (no external dependencies) - runs on every push
+- **Code quality** (go vet, go fmt) - runs on every push
+- **Integration tests** - skipped in CI using `-short` flag
+- **Acceptance tests** - requires Census API credentials (not run in CI)
 
-## What's NOT Testable Yet
+## What's NOT Tested Yet
 
-1. **Additional Resources**: Syncs, Destinations, Sources (not implemented)
-2. **Advanced Operations**: Sync runs, webhooks (not implemented)
-3. **Import Functionality**: Requires real resources to import
-4. **Error Edge Cases**: Some API-specific error scenarios
+1. **Advanced Operations**: Sync runs, webhooks (not yet implemented)
+2. **Import Functionality**: Requires real Census resources to test imports
+3. **Error Edge Cases**: Some API-specific error scenarios
+4. **Multi-region Testing**: EU region testing with real API
 
 ## Adding New Tests
 
 ### For New Resources
 1. Add unit tests in `internal/provider/*_test.go`
-2. Add client tests in `internal/client/*_test.go`  
-3. Add mock server endpoints in `scripts/mock_server.go`
-4. Add acceptance tests with `TF_ACC` flag
+2. Add client tests in `internal/client/*_test.go`
+3. Add acceptance tests with `TF_ACC` flag
+4. Update example configurations in `examples/`
 
 ### For New Features
 1. Start with unit tests for business logic
