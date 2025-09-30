@@ -181,18 +181,10 @@ resource "census_sync" "contacts" {
 - Field mappings
 - Daily scheduling
 
-## 📝 Known Limitations
+## 📝 Notes
 
-- Integration tests require mock Census API server (planned)
-- Some advanced sync features may need additional testing
-- Documentation covers core use cases (advanced scenarios coming)
-
-## 🔜 Future Roadmap
-
-- Sync run operations (execute and monitor syncs)
-- Webhook management
-- Enhanced testing suite
-- Public Terraform Registry publication
+- Integration tests require mock Census API server
+- Documentation covers core use cases
 
 ## 🐛 Bug Reports
 

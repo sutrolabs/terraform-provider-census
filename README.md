@@ -158,12 +158,6 @@ resource "census_workspace" "data_team" {
 - [`census_dataset`](docs/resources/dataset.md) - Create SQL datasets for data transformation
 - [`census_sync`](docs/resources/sync.md) - Manage data syncs between sources and destinations
 
-### Future Resources
-See [TODO.md](TODO.md) for the complete development roadmap including:
-- `census_sync_run` - Execute and monitor sync runs
-- `census_webhook` - Event notifications and webhooks
-- And more...
-
 ## Data Sources
 
 ### Available Data Sources
@@ -210,23 +204,20 @@ Current test status:
 - ✅ Workspace resource CRUD tests
 - ✅ Source resource tests (basic)
 - ✅ Destination resource tests (basic)
-- ⏳ Dataset resource tests (planned)
-- ⏳ Sync resource tests (planned)
-- ⏳ Integration tests with Census API (requires mock server)
 
 #### Running Integration Tests
 
-Integration tests require a running Census API (or mock server). To run integration tests:
+Integration tests require a running Census API (or mock server):
 
 ```bash
-# Start mock server (if available)
+# Start mock server
 go run scripts/mock_server.go &
 
 # Run integration tests
 go test ./internal/client -run Integration -v
 ```
 
-**Note**: Integration tests currently fail without a properly configured mock Census API server. This is tracked in our roadmap for future enhancement.
+**Note**: Integration tests require a properly configured mock Census API server.
 
 ### Local Development
 

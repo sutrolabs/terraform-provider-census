@@ -314,7 +314,7 @@ After successful deployment, you'll see outputs with:
 ## Next Steps
 
 1. **Verify Connections**: Check Census dashboard to ensure all sources and destinations are working
-2. **Configure Syncs**: Set up data syncs between your sources and destinations (coming in future provider updates)
+2. **Configure Syncs**: Set up data syncs between your sources and destinations
 3. **Monitor**: Set up monitoring and alerting for your data pipelines
 4. **Scale**: Add more workspaces, sources, and destinations as needed
 

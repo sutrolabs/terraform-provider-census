@@ -6,11 +6,11 @@ This directory contains all documentation for the Census Terraform Provider.
 
 ### **Root Level Documentation**
 - [`../README.md`](../README.md) - Main project overview, installation, and quick start
-- [`../TODO.md`](../TODO.md) - Development roadmap and task tracking
 - [`../TESTING.md`](../TESTING.md) - Testing guide and strategies
 - [`../SECURITY.md`](../SECURITY.md) - Security guidelines and best practices
-- [`../CLAUDE.md`](../CLAUDE.md) - Development session context for Claude
 - [`../CHANGELOG.md`](../CHANGELOG.md) - Version history and changes
+- [`../CONTRIBUTING.md`](../CONTRIBUTING.md) - Contribution guidelines
+- [`../INTERNAL_INSTALLATION.md`](../INTERNAL_INSTALLATION.md) - Internal installation guide for Sutro Labs
 
 ### **Resource Documentation** (`docs/resources/`)
 Technical documentation for each Terraform resource:
@@ -34,11 +34,10 @@ Usage examples and tutorials:
 | File | Update When | Purpose |
 |------|-------------|---------|
 | `README.md` | Major features, installation changes | Project overview and getting started |
-| `TODO.md` | New tasks, completed tasks | Development tracking |
 | `TESTING.md` | New test types, testing procedures | Testing methodology |
 | `SECURITY.md` | Security practices, credential handling | Security guidelines |
-| `CLAUDE.md` | Architecture changes, development notes | Development context |
 | `CHANGELOG.md` | Releases, breaking changes | Version history |
+| `CONTRIBUTING.md` | Contribution process changes | How to contribute |
 | `docs/resources/*.md` | New resources, schema changes | Resource reference |
 | `docs/data-sources/*.md` | New data sources, schema changes | Data source reference |
 | `examples/*/README.md` | Example changes, new use cases | Usage tutorials |
@@ -55,8 +54,7 @@ Usage examples and tutorials:
 
 When adding new features:
 
-1. **Update TODO.md** - Mark tasks as completed
-2. **Add resource documentation** - Create `docs/resources/new-resource.md`
-3. **Create examples** - Add working example in `examples/`
-4. **Update main README** - Add to resource list
-5. **Update CHANGELOG** - Document changes for next release
+1. **Add resource documentation** - Create `docs/resources/new-resource.md`
+2. **Create examples** - Add working example in `examples/`
+3. **Update main README** - Add to resource list
+4. **Update CHANGELOG** - Document changes for next release
