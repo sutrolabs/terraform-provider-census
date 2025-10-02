@@ -257,9 +257,10 @@ resource "census_sync" "marketing_contact_sync" {
 
   # Field mappings between source and destination
   field_mapping {
-    from      = "email"
-    to        = "Email"
-    operation = "direct"
+    from                  = "email"
+    to                    = "Email"
+    operation             = "direct"
+    is_primary_identifier = true
   }
 
   field_mapping {
@@ -279,9 +280,6 @@ resource "census_sync" "marketing_contact_sync" {
     to        = "Census_ID__c"
     operation = "direct"
   }
-
-  # Unique identifier for records
-  sync_key = ["email"]
 
   # Scheduling - run daily at 6 AM UTC
   schedule {
@@ -320,9 +318,10 @@ resource "census_sync" "marketing_contact_sync_2" {
 
   # Field mappings between source and destination
   field_mapping {
-    from      = "email"
-    to        = "Email"
-    operation = "direct"
+    from                  = "email"
+    to                    = "Email"
+    operation             = "direct"
+    is_primary_identifier = true
   }
 
   field_mapping {
@@ -342,9 +341,6 @@ resource "census_sync" "marketing_contact_sync_2" {
     to        = "Census_ID__c"
     operation = "direct"
   }
-
-  # Unique identifier for records
-  sync_key = ["email"]
 
   # Scheduling - run daily at 6 AM UTC
   schedule {
@@ -383,9 +379,10 @@ resource "census_sync" "marketing_contact_sync_3" {
 
   # Field mappings between source and destination
   field_mapping {
-    from      = "email"
-    to        = "Email"
-    operation = "direct"
+    from                  = "email"
+    to                    = "Email"
+    operation             = "direct"
+    is_primary_identifier = true
   }
 
   field_mapping {
@@ -405,9 +402,6 @@ resource "census_sync" "marketing_contact_sync_3" {
     to        = "Census_ID__c"
     operation = "direct"
   }
-
-  # Unique identifier for records
-  sync_key = ["email"]
 
   # Scheduling - run daily at 6 AM UTC
   schedule {
@@ -450,9 +444,10 @@ resource "census_sync" "dataset_contact_sync" {
     operation = "direct"
   }
   field_mapping {
-    from      = "email"
-    to        = "Email"
-    operation = "direct"
+    from                  = "email"
+    to                    = "Email"
+    operation             = "direct"
+    is_primary_identifier = true
   }
 
   field_mapping {
@@ -473,7 +468,6 @@ resource "census_sync" "dataset_contact_sync" {
     to        = "AssistantName"
   }
 
-  sync_key = ["email"]
 
   schedule {
     frequency = "hourly"
@@ -506,9 +500,10 @@ resource "census_sync" "dataset_contact_sync" {
 #   operation = "upsert"
 
 #   field_mapping {
-#     from      = "email"
-#     to        = "Email"
-#     operation = "direct"
+#     from                  = "email"
+#     to                    = "Email"
+#     operation             = "direct"
+#     is_primary_identifier = true
 #   }
 
 #   field_mapping {
@@ -523,7 +518,6 @@ resource "census_sync" "dataset_contact_sync" {
 #     operation = "direct"
 #   }
 
-#   sync_key  = ["email"]
 
 #   # Manual sync for testing
 #   schedule {
@@ -561,9 +555,10 @@ resource "census_sync" "dataset_contact_sync" {
 
 #   # Field mappings for account data
 #   field_mapping {
-#     from      = "company_domain"
-#     to        = "Website"
-#     operation = "direct"
+#     from                  = "company_domain"
+#     to                    = "Website"
+#     operation             = "direct"
+#     is_primary_identifier = true
 #   }
 
 #   field_mapping {
@@ -596,7 +591,6 @@ resource "census_sync" "dataset_contact_sync" {
 #     operation = "direct"
 #   }
 
-#   sync_key  = ["company_domain"]
 
 #   # Run weekly on Sundays at 2 AM
 #   schedule {

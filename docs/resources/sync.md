@@ -23,9 +23,10 @@ resource "census_sync" "user_sync" {
 
   field_mapping = [
     {
-      from      = "email"
-      to        = "Email"
-      operation = "direct"
+      from                  = "email"
+      to                    = "Email"
+      operation             = "direct"
+      is_primary_identifier = true
     },
     {
       from      = "first_name"
@@ -70,6 +71,7 @@ resource "census_sync" "high_value_sync" {
       from      = "email"
       to        = "email"
       operation = "direct"
+      is_primary_identifier = true
     },
     {
       from      = "lifetime_value"
@@ -107,9 +109,10 @@ resource "census_sync" "secure_sync" {
 
   field_mapping = [
     {
-      from      = "id"
-      to        = "userId"
-      operation = "direct"
+      from                  = "id"
+      to                    = "userId"
+      operation             = "direct"
+      is_primary_identifier = true
     },
     {
       from      = "email"
@@ -144,6 +147,7 @@ resource "census_sync" "tagged_sync" {
       from      = "email"
       to        = "Email"
       operation = "direct"
+      is_primary_identifier = true
     },
     {
       to        = "LeadSource"
@@ -175,9 +179,10 @@ resource "census_sync" "mirror_sync" {
 
   field_mapping = [
     {
-      from      = "product_id"
-      to        = "ProductCode"
-      operation = "direct"
+      from                  = "product_id"
+      to                    = "ProductCode"
+      operation             = "direct"
+      is_primary_identifier = true
     },
     {
       from      = "name"
@@ -212,6 +217,7 @@ resource "census_sync" "mirror_sync" {
   * `to` - Destination field name (required)
   * `operation` - Mapping operation: `"direct"`, `"hash"`, or `"constant"`. Defaults to `"direct"`.
   * `constant` - Constant value (required when operation is `"constant"`)
+  * `is_primary_identifier` - (Optional) Boolean indicating if this field is the primary identifier for matching records. Exactly one field_mapping must have this set to `true`. Defaults to `false`.
 * `operation` - (Optional) Sync mode: `"upsert"`, `"append"`, or `"mirror"`. Defaults to `"upsert"`.
 * `schedule` - (Optional) Scheduling configuration block:
   * `frequency` - (Required) `"hourly"`, `"daily"`, `"weekly"`, or `"manual"`

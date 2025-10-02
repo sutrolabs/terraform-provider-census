@@ -153,14 +153,14 @@ func resourceSync() *schema.Resource {
 							Optional:    true,
 							Description: "Constant value when operation is 'constant'.",
 						},
+						"is_primary_identifier": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Whether this field is the primary identifier (sync key) for matching records. Exactly one field_mapping must have this set to true.",
+						},
 					},
 				},
-			},
-			"sync_key": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "Fields that uniquely identify records for syncing.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"sync_mode": {
 				Type:        schema.TypeString,
@@ -192,6 +192,7 @@ func resourceSync() *schema.Resource {
 						"minute": {
 							Type:         schema.TypeInt,
 							Optional:     true,
+							Default:      0,
 							Description:  "Minute to run (0-59).",
 							ValidateFunc: validation.IntBetween(0, 59),
 						},
@@ -308,11 +309,16 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	destinationAttributes := expandDestinationAttributes(d.Get("destination_attributes").([]interface{}))
 	fieldMappings := expandFieldMappings(d.Get("field_mapping").(*schema.Set).List())
 
+	// Validate exactly one primary identifier
+	if err := validatePrimaryIdentifier(fieldMappings); err != nil {
+		return diag.FromErr(err)
+	}
+
 	// Get operation from top-level field (per OpenAPI spec)
 	operation := d.Get("operation").(string)
 
 	// Convert FieldMappings to MappingAttributes for API compliance
-	mappings := convertFieldMappingsToMappingAttributes(fieldMappings, expandStringList(d.Get("sync_key").([]interface{})))
+	mappings := convertFieldMappingsToMappingAttributes(fieldMappings)
 
 	// Convert schedule object to flat schedule fields for Census Management API
 	schedule := expandSyncSchedule(d.Get("schedule").([]interface{}))
@@ -802,6 +808,10 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['operation'] is not a string, type: %T, value: %+v\n", i, m["operation"], m["operation"])
 		}
 
+		if isPrimary, ok := m["is_primary_identifier"].(bool); ok {
+			fieldMapping.IsPrimaryIdentifier = isPrimary
+		}
+
 		result = append(result, fieldMapping)
 	}
 	return result
@@ -811,10 +821,11 @@ func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 	result := make([]interface{}, len(mappings))
 	for i, mapping := range mappings {
 		result[i] = map[string]interface{}{
-			"from":      mapping.From,
-			"to":        mapping.To,
-			"operation": mapping.Operation,
-			"constant":  mapping.Constant,
+			"from":                  mapping.From,
+			"to":                    mapping.To,
+			"operation":             mapping.Operation,
+			"constant":              mapping.Constant,
+			"is_primary_identifier": mapping.IsPrimaryIdentifier,
 		}
 	}
 	return result
@@ -1055,20 +1066,30 @@ func convertToString(value interface{}) string {
 	}
 }
 
-// convertFieldMappingsToMappingAttributes converts Terraform FieldMapping to Census API MappingAttributes
-func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping, syncKeys []string) []client.MappingAttributes {
-	result := make([]client.MappingAttributes, len(fieldMappings))
-
-	// Create a map of sync keys for quick lookup
-	syncKeyMap := make(map[string]bool)
-	for _, key := range syncKeys {
-		syncKeyMap[key] = true
+// validatePrimaryIdentifier ensures exactly one field mapping has is_primary_identifier = true
+func validatePrimaryIdentifier(fieldMappings []client.FieldMapping) error {
+	primaryCount := 0
+	for _, fm := range fieldMappings {
+		if fm.IsPrimaryIdentifier {
+			primaryCount++
+		}
 	}
 
-	for i, fm := range fieldMappings {
-		// Determine if this field is a primary identifier (sync key)
-		isPrimaryIdentifier := syncKeyMap[fm.From]
+	if primaryCount == 0 {
+		return fmt.Errorf("exactly one field_mapping must have is_primary_identifier = true, but found 0")
+	}
+	if primaryCount > 1 {
+		return fmt.Errorf("exactly one field_mapping must have is_primary_identifier = true, but found %d", primaryCount)
+	}
 
+	return nil
+}
+
+// convertFieldMappingsToMappingAttributes converts Terraform FieldMapping to Census API MappingAttributes
+func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping) []client.MappingAttributes {
+	result := make([]client.MappingAttributes, len(fieldMappings))
+
+	for i, fm := range fieldMappings {
 		// Convert based on operation type
 		var mappingFrom client.MappingFrom
 		if fm.Operation == "constant" && fm.Constant != nil {
@@ -1092,7 +1113,7 @@ func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping
 		result[i] = client.MappingAttributes{
 			From:                mappingFrom,
 			To:                  fm.To,
-			IsPrimaryIdentifier: isPrimaryIdentifier,
+			IsPrimaryIdentifier: fm.IsPrimaryIdentifier, // Use value from field_mapping directly
 		}
 	}
 
@@ -1144,10 +1165,11 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 		}
 
 		result[i] = client.FieldMapping{
-			From:      from,
-			To:        ma.To,
-			Operation: operation,
-			Constant:  constant,
+			From:                from,
+			To:                  ma.To,
+			Operation:           operation,
+			Constant:            constant,
+			IsPrimaryIdentifier: ma.IsPrimaryIdentifier,
 		}
 	}
 

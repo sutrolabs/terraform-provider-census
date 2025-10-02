@@ -34,6 +34,7 @@ output "sync_paused" {
   * `to` - Destination field name.
   * `operation` - Mapping operation ("direct", "hash", or "constant").
   * `constant` - Constant value (for constant operations).
+  * `is_primary_identifier` - Whether this field is the primary identifier (sync key).
 * `operation` - Sync mode ("upsert", "append", or "mirror").
 * `schedule` - Scheduling configuration block:
   * `frequency` - Sync frequency (hourly, daily, weekly, manual).

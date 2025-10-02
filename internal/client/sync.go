@@ -48,10 +48,11 @@ type Sync struct {
 
 // FieldMapping represents a field mapping between source and destination (for Terraform config)
 type FieldMapping struct {
-	From      string      `json:"from"`
-	To        string      `json:"to"`
-	Operation string      `json:"operation,omitempty"` // direct, hash, etc.
-	Constant  interface{} `json:"constant,omitempty"`
+	From                string      `json:"from"`
+	To                  string      `json:"to"`
+	Operation           string      `json:"operation,omitempty"`            // direct, hash, etc.
+	Constant            interface{} `json:"constant,omitempty"`
+	IsPrimaryIdentifier bool        `json:"is_primary_identifier,omitempty"` // Whether this field is the sync key
 }
 
 // MappingAttributes represents Census API mapping format (OpenAPI compliant)

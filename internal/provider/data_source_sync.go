@@ -82,14 +82,13 @@ func dataSourceSync() *schema.Resource {
 							Computed:    true,
 							Description: "Constant value for constant operations.",
 						},
+						"is_primary_identifier": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether this field is the primary identifier (sync key).",
+						},
 					},
 				},
-			},
-			"sync_key": {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "Fields that uniquely identify records for syncing.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"paused": {
 				Type:        schema.TypeBool,
