@@ -150,9 +150,9 @@ resource "census_sync" "tagged_sync" {
       is_primary_identifier = true
     },
     {
-      to        = "LeadSource"
-      operation = "constant"
-      constant  = "Terraform Managed"
+      to       = "LeadSource"
+      constant = "Terraform Managed"
+      # operation is automatically set to "constant"
     },
   ]
 
@@ -230,10 +230,10 @@ resource "census_sync" "user_list_sync" {
       # Map a constant value to user_list_id via lookup
       # This looks up the user_list record where id = "6600827417"
       constant      = "6600827417"
-      operation     = "constant"
       to            = "user_list_id"
       lookup_object = "user_list"
       lookup_field  = "id"
+      # operation is automatically set to "constant"
     },
   ]
 
@@ -343,8 +343,8 @@ resource "census_sync" "mirror_sync" {
 * `field_mapping` - (Optional) Set of field mappings between source and destination. Each mapping includes:
   * `from` - Source field name (required for non-constant operations)
   * `to` - Destination field name (required)
-  * `operation` - Mapping operation: `"direct"`, `"hash"`, or `"constant"`. Defaults to `"direct"`.
-  * `constant` - Constant value (required when operation is `"constant"`)
+  * `operation` - Mapping operation: `"direct"`, `"hash"`, or `"constant"`. Defaults to `"direct"`. Automatically set to `"constant"` when a `constant` value is specified, so you can omit this field for constant mappings.
+  * `constant` - Constant value (automatically sets operation to `"constant"`)
   * `is_primary_identifier` - (Optional) Boolean indicating if this field is the primary identifier for matching records. Exactly one field_mapping must have this set to `true`. Defaults to `false`.
   * `lookup_object` - (Optional) Object to lookup for relationship mapping (e.g., `"user_list"`). Used with `lookup_field` for foreign key lookups.
   * `lookup_field` - (Optional) Field to use for lookup in the `lookup_object` (e.g., `"id"`). Used with `lookup_object` for foreign key lookups.

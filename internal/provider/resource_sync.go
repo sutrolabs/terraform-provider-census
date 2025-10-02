@@ -143,7 +143,7 @@ func resourceSync() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "direct",
-							Description: "Mapping operation (direct, hash, constant).",
+							Description: "Mapping operation (direct, hash, constant). Automatically set to 'constant' when a constant value is specified.",
 							ValidateFunc: validation.StringInSlice([]string{
 								"direct", "hash", "constant",
 							}, false),
@@ -898,7 +898,10 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['to'] is not a string, type: %T, value: %+v\n", i, m["to"], m["to"])
 		}
 
-		if operation, ok := m["operation"].(string); ok {
+		// Auto-infer operation = "constant" when constant is specified
+		if fieldMapping.Constant != nil && fieldMapping.Constant != "" {
+			fieldMapping.Operation = "constant"
+		} else if operation, ok := m["operation"].(string); ok {
 			fieldMapping.Operation = operation
 		} else {
 			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['operation'] is not a string, type: %T, value: %+v\n", i, m["operation"], m["operation"])
