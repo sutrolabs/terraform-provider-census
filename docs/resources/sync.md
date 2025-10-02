@@ -202,6 +202,92 @@ resource "census_sync" "auto_sync" {
 }
 ```
 
+### Sync with Lookup Field (Foreign Key Relationship)
+
+```hcl
+resource "census_sync" "user_list_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Users to Google Ads Customer Match"
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "users"
+    }
+  })
+
+  destination_object = "user_data"
+
+  field_mapping = [
+    {
+      from                  = "email"
+      to                    = "user_identifier.hashed_email"
+      operation             = "direct"
+      is_primary_identifier = true
+    },
+    {
+      # Map a constant value to user_list_id via lookup
+      # This looks up the user_list record where id = "6600827417"
+      constant      = "6600827417"
+      operation     = "constant"
+      to            = "user_list_id"
+      lookup_object = "user_list"
+      lookup_field  = "id"
+    },
+  ]
+
+  operation = "mirror"
+
+  schedule {
+    frequency = "hourly"
+    minute    = 10
+  }
+}
+```
+
+### Sync with Advanced Configuration (File Export)
+
+```hcl
+resource "census_sync" "blob_storage_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Users to Azure Blob Storage"
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type  = "model"
+      id    = "21130"
+    }
+  })
+
+  destination_object = "path_to_file/data_%m-%d-%y.parquet"
+
+  field_mapping = [
+    {
+      from = "email"
+      to   = "EMAIL"
+    },
+  ]
+
+  operation     = "mirror"
+  field_behavior = "sync_all_properties"
+  field_normalization = "match_source_names"
+
+  # Advanced configuration for file export
+  advanced_configuration = {
+    file_format        = "Parquet"
+    csv_delimiter      = ","
+    csv_include_header = "true"
+  }
+
+  schedule {
+    frequency = "hourly"
+    minute    = 35
+  }
+}
+```
+
 ### Mirror Sync (Replace All)
 
 ```hcl
@@ -260,6 +346,8 @@ resource "census_sync" "mirror_sync" {
   * `operation` - Mapping operation: `"direct"`, `"hash"`, or `"constant"`. Defaults to `"direct"`.
   * `constant` - Constant value (required when operation is `"constant"`)
   * `is_primary_identifier` - (Optional) Boolean indicating if this field is the primary identifier for matching records. Exactly one field_mapping must have this set to `true`. Defaults to `false`.
+  * `lookup_object` - (Optional) Object to lookup for relationship mapping (e.g., `"user_list"`). Used with `lookup_field` for foreign key lookups.
+  * `lookup_field` - (Optional) Field to use for lookup in the `lookup_object` (e.g., `"id"`). Used with `lookup_object` for foreign key lookups.
 * `operation` - (Optional) Sync mode: `"upsert"`, `"append"`, or `"mirror"`. Defaults to `"upsert"`.
 * `field_behavior` - (Optional) Controls how fields are synced:
   * `"specific_properties"` (default) - Use only the field mappings defined in `field_mapping`
@@ -274,6 +362,7 @@ resource "census_sync" "mirror_sync" {
 * `field_order` - (Optional) Specifies how destination fields should be ordered. Only applicable for destinations that support field ordering:
   * `"alphabetical_column_name"` (default) - Sort fields alphabetically
   * `"mapping_order"` - Use the order fields are defined in `field_mapping`
+* `advanced_configuration` - (Optional) Map of advanced configuration options specific to the destination type. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values must be strings. Refer to destination-specific Census documentation for available options.
 * `schedule` - (Optional) Scheduling configuration block:
   * `frequency` - (Required) `"hourly"`, `"daily"`, `"weekly"`, or `"manual"`
   * `minute` - (Optional) Minute of hour to run (0-59)

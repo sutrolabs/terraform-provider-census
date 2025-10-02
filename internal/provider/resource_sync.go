@@ -159,6 +159,16 @@ func resourceSync() *schema.Resource {
 							Default:     false,
 							Description: "Whether this field is the primary identifier (sync key) for matching records. Exactly one field_mapping must have this set to true.",
 						},
+						"lookup_object": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Object to lookup for relationship mapping (e.g., 'user_list'). Used with lookup_field for foreign key lookups.",
+						},
+						"lookup_field": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Field to use for lookup in the lookup_object (e.g., 'id'). Used with lookup_object for foreign key lookups.",
+						},
 					},
 				},
 			},
@@ -203,6 +213,14 @@ func resourceSync() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					"alphabetical_column_name", "mapping_order",
 				}, false),
+			},
+			"advanced_configuration": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Advanced configuration options specific to the destination type. Available options vary by destination. Values are stored as strings.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"schedule": {
 				Type:        schema.TypeList,
@@ -304,8 +322,18 @@ func fieldMappingHash(v interface{}) int {
 		operation = val
 	}
 
+	lookupObject := ""
+	if val, ok := m["lookup_object"].(string); ok {
+		lookupObject = val
+	}
+
+	lookupField := ""
+	if val, ok := m["lookup_field"].(string); ok {
+		lookupField = val
+	}
+
 	// Include constant in hash if it's a constant operation
-	hashStr := fmt.Sprintf("%s:%s:%s", from, to, operation)
+	hashStr := fmt.Sprintf("%s:%s:%s:%s:%s", from, to, operation, lookupObject, lookupField)
 	if operation == "constant" {
 		if constant, ok := m["constant"]; ok && constant != nil {
 			hashStr = fmt.Sprintf("%s:%v", hashStr, constant)
@@ -392,6 +420,9 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		FieldBehavior:      d.Get("field_behavior").(string),
 		FieldNormalization: d.Get("field_normalization").(string),
 		FieldOrder:         d.Get("field_order").(string),
+
+		// Advanced configuration
+		AdvancedConfiguration: expandStringMap(d.Get("advanced_configuration").(map[string]interface{})),
 	}
 
 	fmt.Printf("[DEBUG] Creating sync with request: %+v\n", req)
@@ -494,6 +525,14 @@ To fix this, add the missing workspace_id to terraform state:
 	}
 	if _, ok := d.GetOk("field_order"); ok && sync.FieldOrder != "" {
 		d.Set("field_order", sync.FieldOrder)
+	}
+
+	// Set advanced configuration if present
+	if sync.AdvancedConfiguration != nil && len(sync.AdvancedConfiguration) > 0 {
+		if err := d.Set("advanced_configuration", flattenStringMap(sync.AdvancedConfiguration)); err != nil {
+			fmt.Printf("[DEBUG] Failed to set advanced_configuration: %v\n", err)
+			return diag.Errorf("failed to set advanced_configuration: %v", err)
+		}
 	}
 
 	// Set time fields only if they are not zero values
@@ -782,6 +821,9 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		FieldBehavior:      fieldBehavior,
 		FieldNormalization: fieldNormalization,
 		FieldOrder:         fieldOrder,
+
+		// Advanced configuration
+		AdvancedConfiguration: expandStringMap(d.Get("advanced_configuration").(map[string]interface{})),
 	}
 
 	fmt.Printf("[DEBUG] Update request: %+v\n", req)
@@ -866,6 +908,14 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 			fieldMapping.IsPrimaryIdentifier = isPrimary
 		}
 
+		if lookupObject, ok := m["lookup_object"].(string); ok {
+			fieldMapping.LookupObject = lookupObject
+		}
+
+		if lookupField, ok := m["lookup_field"].(string); ok {
+			fieldMapping.LookupField = lookupField
+		}
+
 		result = append(result, fieldMapping)
 	}
 	return result
@@ -880,6 +930,8 @@ func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 			"operation":             mapping.Operation,
 			"constant":              mapping.Constant,
 			"is_primary_identifier": mapping.IsPrimaryIdentifier,
+			"lookup_object":         mapping.LookupObject,
+			"lookup_field":          mapping.LookupField,
 		}
 	}
 	return result
@@ -1168,6 +1220,8 @@ func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping
 			From:                mappingFrom,
 			To:                  fm.To,
 			IsPrimaryIdentifier: fm.IsPrimaryIdentifier, // Use value from field_mapping directly
+			LookupObject:        fm.LookupObject,
+			LookupField:         fm.LookupField,
 		}
 	}
 
@@ -1224,6 +1278,8 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 			Operation:           operation,
 			Constant:            constant,
 			IsPrimaryIdentifier: ma.IsPrimaryIdentifier,
+			LookupObject:        ma.LookupObject,
+			LookupField:         ma.LookupField,
 		}
 	}
 

@@ -49,6 +49,9 @@ type Sync struct {
 	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
 	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
 	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
+
+	// Advanced configuration - destination-specific options
+	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
 }
 
 // FieldMapping represents a field mapping between source and destination (for Terraform config)
@@ -58,6 +61,8 @@ type FieldMapping struct {
 	Operation           string      `json:"operation,omitempty"`            // direct, hash, etc.
 	Constant            interface{} `json:"constant,omitempty"`
 	IsPrimaryIdentifier bool        `json:"is_primary_identifier,omitempty"` // Whether this field is the sync key
+	LookupObject        string      `json:"lookup_object,omitempty"`         // Object to lookup for relationship mapping
+	LookupField         string      `json:"lookup_field,omitempty"`          // Field to use for lookup
 }
 
 // MappingAttributes represents Census API mapping format (OpenAPI compliant)
@@ -109,6 +114,9 @@ type CreateSyncRequest struct {
 	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
 	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
 	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
+
+	// Advanced configuration - destination-specific options
+	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
 }
 
 // UpdateSyncRequest represents the request to update a sync
@@ -133,6 +141,9 @@ type UpdateSyncRequest struct {
 	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
 	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
 	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
+
+	// Advanced configuration - destination-specific options
+	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
 }
 
 // SyncResponse represents a single sync response
