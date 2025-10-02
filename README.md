@@ -65,7 +65,7 @@ resource "census_sync" "users_to_crm" {
     }
   }
 
-  destination_attributes = {
+  destination_attributes {
     connection_id = census_destination.crm.id
     object        = "Contact"
   }

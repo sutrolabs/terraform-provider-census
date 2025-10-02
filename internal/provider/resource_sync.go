@@ -95,9 +95,24 @@ func resourceSync() *schema.Resource {
 				},
 			},
 			"destination_attributes": {
-				Type:        schema.TypeMap,
+				Type:        schema.TypeList,
 				Optional:    true,
+				MaxItems:    1,
 				Description: "Destination-specific configuration (e.g., object, connection_id).",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"connection_id": {
+							Type:        schema.TypeInt,
+							Required:    true,
+							Description: "The ID of the destination connection.",
+						},
+						"object": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The destination object name (e.g., 'Contact' for Salesforce).",
+						},
+					},
+				},
 			},
 			"operation": {
 				Type:        schema.TypeString,
@@ -290,7 +305,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.Errorf("workspace API key is empty for workspace %d", workspaceIdInt)
 	}
 
-	destinationAttributes := expandStringMap(d.Get("destination_attributes").(map[string]interface{}))
+	destinationAttributes := expandDestinationAttributes(d.Get("destination_attributes").([]interface{}))
 	fieldMappings := expandFieldMappings(d.Get("field_mapping").(*schema.Set).List())
 
 	// Get operation from top-level field (per OpenAPI spec)
@@ -487,7 +502,7 @@ To fix this, add the missing workspace_id to terraform state:
 	}
 
 	fmt.Printf("[DEBUG] Setting destination_attributes\n")
-	if err := d.Set("destination_attributes", flattenStringMap(sync.DestinationAttributes)); err != nil {
+	if err := d.Set("destination_attributes", flattenDestinationAttributes(sync.DestinationAttributes)); err != nil {
 		fmt.Printf("[DEBUG] Failed to set destination_attributes: %v\n", err)
 		return diag.Errorf("failed to set destination_attributes: %v", err)
 	}
@@ -1184,6 +1199,62 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 	}
 
 	return result
+}
+
+// expandDestinationAttributes converts list-based destination_attributes from Terraform to map format for API
+func expandDestinationAttributes(destAttrs []interface{}) map[string]interface{} {
+	if len(destAttrs) == 0 {
+		return nil
+	}
+
+	// Safe type assertion for destination attributes
+	attrInterface := destAttrs[0]
+	attr, ok := attrInterface.(map[string]interface{})
+	if !ok {
+		fmt.Printf("[DEBUG] expandDestinationAttributes: destAttrs[0] is not a map[string]interface{}, type: %T, value: %+v\n", attrInterface, attrInterface)
+		return nil
+	}
+
+	result := make(map[string]interface{})
+
+	// Copy attributes
+	if v, ok := attr["connection_id"]; ok && v != "" {
+		result["connection_id"] = v
+	}
+	if v, ok := attr["object"]; ok && v != "" {
+		result["object"] = v
+	}
+
+	return result
+}
+
+// flattenDestinationAttributes converts API destination_attributes map to Terraform list structure
+func flattenDestinationAttributes(attrs map[string]interface{}) []map[string]interface{} {
+	if attrs == nil {
+		return nil
+	}
+
+	result := make(map[string]interface{})
+
+	// Set connection_id as integer (schema expects TypeInt)
+	if connectionId, ok := attrs["connection_id"]; ok {
+		// Convert float64 to int if needed, otherwise use as-is
+		switch v := connectionId.(type) {
+		case float64:
+			result["connection_id"] = int(v)
+		case int:
+			result["connection_id"] = v
+		default:
+			result["connection_id"] = connectionId
+		}
+	}
+
+	// Set object as string
+	if object, ok := attrs["object"]; ok {
+		result["object"] = convertToString(object)
+	}
+
+	return []map[string]interface{}{result}
 }
 
 func resourceSyncImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {

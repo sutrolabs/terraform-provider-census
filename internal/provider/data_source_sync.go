@@ -38,10 +38,23 @@ func dataSourceSync() *schema.Resource {
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"destination_attributes": {
-				Type:        schema.TypeMap,
+				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "Destination-specific configuration (e.g., object, operation mode).",
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"connection_id": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The ID of the destination connection.",
+						},
+						"object": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The destination object name.",
+						},
+					},
+				},
 			},
 			"field_mapping": {
 				Type:        schema.TypeList,

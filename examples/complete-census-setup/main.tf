@@ -247,7 +247,7 @@ resource "census_sync" "marketing_contact_sync" {
   }
 
   # Destination configuration - specify Salesforce object
-  destination_attributes = {
+  destination_attributes {
     connection_id = census_destination.marketing_prod_crm.id
     object        = "Contact"
   }
@@ -310,7 +310,7 @@ resource "census_sync" "marketing_contact_sync_2" {
   }
 
   # Destination configuration - specify Salesforce object
-  destination_attributes = {
+  destination_attributes {
     connection_id = census_destination.marketing_prod_crm.id
     object        = "Contact"
   }
@@ -373,7 +373,7 @@ resource "census_sync" "marketing_contact_sync_3" {
   }
 
   # Destination configuration - specify Salesforce object
-  destination_attributes = {
+  destination_attributes {
     connection_id = census_destination.marketing_prod_crm.id
     object        = "Contact"
   }
@@ -435,7 +435,7 @@ resource "census_sync" "dataset_contact_sync" {
   }
 
   # Destination configuration - Salesforce Contacts
-  destination_attributes = {
+  destination_attributes {
     connection_id = census_destination.marketing_prod_crm.id
     object        = "Contact"
   }
@@ -498,7 +498,7 @@ resource "census_sync" "dataset_contact_sync" {
 #     }
 #   }
 
-#   destination_attributes = {
+#   destination_attributes {
 #     connection_id = census_destination.marketing_staging_crm.id
 #     object        = "Contact"
 #   }
@@ -552,7 +552,7 @@ resource "census_sync" "dataset_contact_sync" {
 #   }
 
 #   # Destination configuration
-#   destination_attributes = {
+#   destination_attributes {
 #     connection_id = census_destination.marketing_prod_crm.id
 #     object        = "Account"
 #   }
