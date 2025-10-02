@@ -41,13 +41,10 @@ resource "census_sync" "user_sync" {
 
   operation = "upsert"
 
-  trigger = jsonencode({
-    schedule = {
-      frequency = "hourly"
-      hour      = 0
-      minute    = 0
-    }
-  })
+  schedule {
+    frequency = "hourly"
+    minute    = 0
+  }
 }
 ```
 
@@ -83,13 +80,11 @@ resource "census_sync" "high_value_sync" {
 
   operation = "upsert"
 
-  trigger = jsonencode({
-    schedule = {
-      frequency = "daily"
-      hour      = 8
-      minute    = 0
-    }
-  })
+  schedule {
+    frequency = "daily"
+    hour      = 8
+    minute    = 0
+  }
 }
 ```
 
@@ -193,13 +188,11 @@ resource "census_sync" "mirror_sync" {
 
   operation = "mirror"
 
-  trigger = jsonencode({
-    schedule = {
-      frequency = "daily"
-      hour      = 2
-      minute    = 0
-    }
-  })
+  schedule {
+    frequency = "daily"
+    hour      = 2
+    minute    = 0
+  }
 }
 ```
 
@@ -220,11 +213,12 @@ resource "census_sync" "mirror_sync" {
   * `operation` - Mapping operation: `"direct"`, `"hash"`, or `"constant"`. Defaults to `"direct"`.
   * `constant` - Constant value (required when operation is `"constant"`)
 * `operation` - (Optional) Sync mode: `"upsert"`, `"append"`, or `"mirror"`. Defaults to `"upsert"`.
-* `trigger` - (Optional) JSON-encoded trigger configuration for scheduling:
-  * `schedule.frequency` - `"hourly"`, `"daily"`, `"weekly"`, or `"manual"`
-  * `schedule.hour` - Hour of day (0-23) for daily/weekly syncs
-  * `schedule.minute` - Minute of hour (0-59)
-  * `schedule.day_of_week` - Day of week (0-6, Sunday=0) for weekly syncs
+* `schedule` - (Optional) Scheduling configuration block:
+  * `frequency` - (Required) `"hourly"`, `"daily"`, `"weekly"`, or `"manual"`
+  * `minute` - (Optional) Minute of hour to run (0-59)
+  * `hour` - (Optional) Hour of day to run (0-23) for daily/weekly syncs
+  * `day_of_week` - (Optional) Day of week (0-6, Sunday=0) for weekly syncs
+  * `timezone` - (Optional) Timezone for scheduling. Defaults to "UTC"
 
 ## Attribute Reference
 

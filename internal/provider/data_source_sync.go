@@ -107,10 +107,10 @@ func dataSourceSync() *schema.Resource {
 							Computed:    true,
 							Description: "Sync frequency (hourly, daily, weekly).",
 						},
-						"interval": {
+						"minute": {
 							Type:        schema.TypeInt,
 							Computed:    true,
-							Description: "Run every N frequency units.",
+							Description: "Minute to run (0-59).",
 						},
 						"hour": {
 							Type:        schema.TypeInt,

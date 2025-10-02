@@ -189,11 +189,11 @@ func resourceSync() *schema.Resource {
 								"hourly", "daily", "weekly", "manual",
 							}, false),
 						},
-						"interval": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     1,
-							Description: "Run every N frequency units.",
+						"minute": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Description:  "Minute to run (0-59).",
+							ValidateFunc: validation.IntBetween(0, 59),
 						},
 						"hour": {
 							Type:         schema.TypeInt,
@@ -329,8 +329,8 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		if schedule.DayOfWeek != 0 {
 			scheduleDay = &schedule.DayOfWeek
 		}
-		if schedule.Interval != 0 {
-			scheduleMinute = &schedule.Interval
+		if schedule.Minute != 0 {
+			scheduleMinute = &schedule.Minute
 		}
 	}
 
@@ -480,9 +480,9 @@ To fix this, add the missing workspace_id to terraform state:
 			schedule.DayOfWeek = *sync.ScheduleDay
 		}
 
-		// Set interval if present (mapped from ScheduleMinute)
+		// Set minute if present
 		if sync.ScheduleMinute != nil {
-			schedule.Interval = *sync.ScheduleMinute
+			schedule.Minute = *sync.ScheduleMinute
 		}
 
 		// Set timezone (default to UTC if not specified)
@@ -702,8 +702,8 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		if schedule.DayOfWeek != 0 {
 			scheduleDay = &schedule.DayOfWeek
 		}
-		if schedule.Interval != 0 {
-			scheduleMinute = &schedule.Interval
+		if schedule.Minute != 0 {
+			scheduleMinute = &schedule.Minute
 		}
 		fmt.Printf("[DEBUG] Converted schedule to flat fields - frequency: %s, hour: %v, day: %v, minute: %v\n",
 			scheduleFrequency, scheduleHour, scheduleDay, scheduleMinute)
@@ -847,12 +847,12 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 		}
 	}
 
-	interval := 1 // default
-	if intv, ok := s["interval"]; ok && intv != nil {
-		if intvInt, ok := intv.(int); ok {
-			interval = intvInt
+	minute := 0 // default
+	if m, ok := s["minute"]; ok && m != nil {
+		if minuteInt, ok := m.(int); ok {
+			minute = minuteInt
 		} else {
-			fmt.Printf("[DEBUG] expandSyncSchedule: interval is not an int, type: %T, value: %+v\n", intv, intv)
+			fmt.Printf("[DEBUG] expandSyncSchedule: minute is not an int, type: %T, value: %+v\n", m, m)
 		}
 	}
 
@@ -885,7 +885,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 
 	result := &client.SyncSchedule{
 		Frequency: frequency,
-		Interval:  interval,
+		Minute:    minute,
 		Hour:      hour,
 		DayOfWeek: dayOfWeek,
 		Timezone:  timezone,
@@ -903,7 +903,7 @@ func flattenSyncSchedule(schedule *client.SyncSchedule) []interface{} {
 	return []interface{}{
 		map[string]interface{}{
 			"frequency":   schedule.Frequency,
-			"interval":    schedule.Interval,
+			"minute":      schedule.Minute,
 			"hour":        schedule.Hour,
 			"day_of_week": schedule.DayOfWeek,
 			"timezone":    schedule.Timezone,

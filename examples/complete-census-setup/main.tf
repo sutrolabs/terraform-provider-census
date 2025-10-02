@@ -476,9 +476,8 @@ resource "census_sync" "dataset_contact_sync" {
   sync_key = ["email"]
 
   schedule {
-    frequency = "daily"
-    hour      = 8
-    timezone  = "UTC"
+    frequency = "hourly"
+    minute    = 10
   }
 }
 

@@ -72,7 +72,7 @@ type MappingFrom struct {
 // SyncSchedule represents sync scheduling configuration
 type SyncSchedule struct {
 	Frequency string `json:"frequency"`             // hourly, daily, weekly, etc.
-	Interval  int    `json:"interval,omitempty"`    // every N frequency units
+	Minute    int    `json:"minute,omitempty"`      // minute of hour to run (0-59)
 	Hour      int    `json:"hour,omitempty"`        // for daily/weekly
 	DayOfWeek int    `json:"day_of_week,omitempty"` // for weekly (0=Sunday)
 	Timezone  string `json:"timezone,omitempty"`

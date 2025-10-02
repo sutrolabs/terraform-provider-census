@@ -35,6 +35,11 @@ output "sync_paused" {
   * `operation` - Mapping operation ("direct", "hash", or "constant").
   * `constant` - Constant value (for constant operations).
 * `operation` - Sync mode ("upsert", "append", or "mirror").
-* `trigger` - JSON-encoded trigger configuration for scheduling.
+* `schedule` - Scheduling configuration block:
+  * `frequency` - Sync frequency (hourly, daily, weekly, manual).
+  * `minute` - Minute of hour to run (0-59).
+  * `hour` - Hour of day to run (0-23).
+  * `day_of_week` - Day of week (0-6, Sunday=0).
+  * `timezone` - Timezone for scheduling.
 * `paused` - Whether the sync is currently paused.
 * `status` - The current status of the sync.
