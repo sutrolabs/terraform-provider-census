@@ -70,8 +70,11 @@ type AlertAttribute struct {
 type FieldMapping struct {
 	From                string      `json:"from"`
 	To                  string      `json:"to"`
-	Type                string      `json:"operation,omitempty"`             // direct, hash, constant - JSON is still "operation" for API compatibility
-	Constant            interface{} `json:"constant,omitempty"`
+	Type                string      `json:"operation,omitempty"`             // direct, hash, constant, sync_metadata, segment_membership, liquid_template - JSON is still "operation" for API compatibility
+	Constant            interface{} `json:"constant,omitempty"`              // For constant mappings
+	SyncMetadataKey     string      `json:"sync_metadata_key,omitempty"`     // For sync_metadata mappings (e.g., "sync_run_id")
+	SegmentIdentifyBy   string      `json:"segment_identify_by,omitempty"`   // For segment_membership mappings (e.g., "name")
+	LiquidTemplate      string      `json:"liquid_template,omitempty"`       // For liquid_template mappings (template content)
 	IsPrimaryIdentifier bool        `json:"is_primary_identifier,omitempty"` // Whether this field is the sync key
 	LookupObject        string      `json:"lookup_object,omitempty"`         // Object to lookup for relationship mapping
 	LookupField         string      `json:"lookup_field,omitempty"`          // Field to use for lookup
@@ -86,10 +89,10 @@ type MappingAttributes struct {
 	LookupField         string      `json:"lookup_field,omitempty"`
 }
 
-// MappingFrom represents the source of a mapping (column or constant)
+// MappingFrom represents the source of a mapping
 type MappingFrom struct {
-	Type string      `json:"type"` // "column" or "constant_value"
-	Data interface{} `json:"data"`
+	Type string      `json:"type"` // "column", "constant_value", "sync_metadata", "segment_membership", "liquid_template"
+	Data interface{} `json:"data"` // Data format varies by type
 }
 
 // SyncSchedule represents sync scheduling configuration

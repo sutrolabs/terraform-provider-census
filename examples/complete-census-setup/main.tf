@@ -475,6 +475,10 @@ resource "census_sync" "dataset_contact_sync" {
 
   operation = "upsert"
 
+  advanced_configuration = jsonencode({
+    bulk_id_lookup = true
+  })
+
   # Field mappings using dataset columns
 
   field_mapping {
@@ -501,6 +505,27 @@ resource "census_sync" "dataset_contact_sync" {
     type     = "constant"
     constant = "HERE is my constant value"
     to       = "AssistantName"
+  }
+
+  # Sync metadata mapping - track sync run IDs
+  field_mapping {
+    type              = "sync_metadata"
+    sync_metadata_key = "sync_run_id"
+    to                = "another__c"
+  }
+
+  # Segment membership mapping
+  field_mapping {
+    type                = "segment_membership"
+    segment_identify_by = "name"
+    to                  = "MailingStreet"
+  }
+
+  # Liquid template transformation
+  field_mapping {
+    type            = "liquid_template"
+    liquid_template = "{{ record['_fivetran_synced'] | upcase }}"
+    to              = "OtherPostalCode"
   }
 
   schedule {

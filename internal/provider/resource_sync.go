@@ -2,8 +2,10 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -132,7 +134,7 @@ func resourceSync() *schema.Resource {
 						"from": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "Source field name. Required for column mappings, omit for constant mappings.",
+							Description: "Source field name. Required for column mappings (type='direct'). Omit for constant, sync_metadata, segment_membership, and liquid_template mappings.",
 						},
 						"to": {
 							Type:        schema.TypeString,
@@ -143,15 +145,30 @@ func resourceSync() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "direct",
-							Description: "Mapping type: 'direct' (default), 'hash', or 'constant'. Constant mappings must specify type='constant'.",
+							Description: "Mapping type: 'direct' (default), 'hash', 'constant', 'sync_metadata', 'segment_membership', or 'liquid_template'.",
 							ValidateFunc: validation.StringInSlice([]string{
-								"direct", "hash", "constant",
+								"direct", "hash", "constant", "sync_metadata", "segment_membership", "liquid_template",
 							}, false),
 						},
 						"constant": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "Constant value. Must also set type='constant'.",
+						},
+						"sync_metadata_key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Sync metadata key (e.g., 'sync_run_id'). Must also set type='sync_metadata'.",
+						},
+						"segment_identify_by": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "How to identify segments (e.g., 'name'). Must also set type='segment_membership'.",
+						},
+						"liquid_template": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Liquid template for transforming data (e.g., '{{ record[\"field\"] | upcase }}'). Must also set type='liquid_template'.",
 						},
 						"is_primary_identifier": {
 							Type:        schema.TypeBool,
@@ -215,12 +232,11 @@ func resourceSync() *schema.Resource {
 				}, false),
 			},
 			"advanced_configuration": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "Advanced configuration options specific to the destination type. Available options vary by destination. Values are stored as strings.",
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "Advanced configuration options specific to the destination type as JSON. Use jsonencode() to specify values. Available options vary by destination.",
+				ValidateFunc:     validation.StringIsJSON,
+				DiffSuppressFunc: suppressEquivalentJSON,
 			},
 			"alert": {
 				Type:        schema.TypeSet,
@@ -357,8 +373,7 @@ func resourceSync() *schema.Resource {
 func fieldMappingHash(v interface{}) int {
 	m := v.(map[string]interface{})
 
-	// Create a unique string representation based on from+to fields
-	// These are the identifying fields - type and constant are modifiers
+	// Create a unique string representation based on all identifying fields
 	from := ""
 	if val, ok := m["from"].(string); ok {
 		from = val
@@ -384,12 +399,36 @@ func fieldMappingHash(v interface{}) int {
 		lookupField = val
 	}
 
-	// Include constant in hash if it's a constant type
+	syncMetadataKey := ""
+	if val, ok := m["sync_metadata_key"].(string); ok {
+		syncMetadataKey = val
+	}
+
+	segmentIdentifyBy := ""
+	if val, ok := m["segment_identify_by"].(string); ok {
+		segmentIdentifyBy = val
+	}
+
+	liquidTemplate := ""
+	if val, ok := m["liquid_template"].(string); ok {
+		liquidTemplate = val
+	}
+
+	// Build hash string including type-specific fields
 	hashStr := fmt.Sprintf("%s:%s:%s:%s:%s", from, to, mappingType, lookupObject, lookupField)
-	if mappingType == "constant" {
+
+	// Include type-specific data in hash
+	switch mappingType {
+	case "constant":
 		if constant, ok := m["constant"]; ok && constant != nil {
 			hashStr = fmt.Sprintf("%s:%v", hashStr, constant)
 		}
+	case "sync_metadata":
+		hashStr = fmt.Sprintf("%s:%s", hashStr, syncMetadataKey)
+	case "segment_membership":
+		hashStr = fmt.Sprintf("%s:%s", hashStr, segmentIdentifyBy)
+	case "liquid_template":
+		hashStr = fmt.Sprintf("%s:%s", hashStr, liquidTemplate)
 	}
 
 	h := fnv.New32a()
@@ -428,6 +467,26 @@ func alertHash(v interface{}) int {
 	h := fnv.New32a()
 	h.Write([]byte(hashStr))
 	return int(h.Sum32())
+}
+
+// suppressEquivalentJSON suppresses diffs for JSON strings that are semantically equivalent
+func suppressEquivalentJSON(k, old, new string, d *schema.ResourceData) bool {
+	if old == "" && new == "" {
+		return true
+	}
+	if old == "" || new == "" {
+		return false
+	}
+
+	var oldJSON, newJSON interface{}
+	if err := json.Unmarshal([]byte(old), &oldJSON); err != nil {
+		return false
+	}
+	if err := json.Unmarshal([]byte(new), &newJSON); err != nil {
+		return false
+	}
+
+	return reflect.DeepEqual(oldJSON, newJSON)
 }
 
 func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -507,7 +566,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		FieldOrder:         d.Get("field_order").(string),
 
 		// Advanced configuration
-		AdvancedConfiguration: expandStringMap(d.Get("advanced_configuration").(map[string]interface{})),
+		AdvancedConfiguration: expandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
 
 		// Alert configuration
 		AlertAttributes: expandAlerts(d.Get("alert").(*schema.Set).List()),
@@ -617,7 +676,7 @@ To fix this, add the missing workspace_id to terraform state:
 
 	// Set advanced configuration if present
 	if sync.AdvancedConfiguration != nil && len(sync.AdvancedConfiguration) > 0 {
-		if err := d.Set("advanced_configuration", flattenStringMap(sync.AdvancedConfiguration)); err != nil {
+		if err := d.Set("advanced_configuration", flattenAdvancedConfiguration(sync.AdvancedConfiguration)); err != nil {
 			fmt.Printf("[DEBUG] Failed to set advanced_configuration: %v\n", err)
 			return diag.Errorf("failed to set advanced_configuration: %v", err)
 		}
@@ -927,7 +986,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		FieldOrder:         fieldOrder,
 
 		// Advanced configuration
-		AdvancedConfiguration: expandStringMap(d.Get("advanced_configuration").(map[string]interface{})),
+		AdvancedConfiguration: expandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
 
 		// Alert configuration
 		AlertAttributes: expandAlerts(alertSet.List()),
@@ -992,7 +1051,7 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 			Constant: m["constant"], // This is safe as interface{}
 		}
 
-		// Safe type assertions for required string fields
+		// Safe type assertions for string fields
 		if from, ok := m["from"].(string); ok {
 			fieldMapping.From = from
 		} else {
@@ -1011,6 +1070,19 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 			mappingType = typeVal
 		}
 		fieldMapping.Type = mappingType
+
+		// Handle type-specific fields
+		if syncMetadataKey, ok := m["sync_metadata_key"].(string); ok {
+			fieldMapping.SyncMetadataKey = syncMetadataKey
+		}
+
+		if segmentIdentifyBy, ok := m["segment_identify_by"].(string); ok {
+			fieldMapping.SegmentIdentifyBy = segmentIdentifyBy
+		}
+
+		if liquidTemplate, ok := m["liquid_template"].(string); ok {
+			fieldMapping.LiquidTemplate = liquidTemplate
+		}
 
 		// Validate: if constant is present, type must be "constant"
 		if fieldMapping.Constant != nil && fieldMapping.Constant != "" {
@@ -1045,6 +1117,9 @@ func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 			"to":                    mapping.To,
 			"type":                  mapping.Type,
 			"constant":              mapping.Constant,
+			"sync_metadata_key":     mapping.SyncMetadataKey,
+			"segment_identify_by":   mapping.SegmentIdentifyBy,
+			"liquid_template":       mapping.LiquidTemplate,
 			"is_primary_identifier": mapping.IsPrimaryIdentifier,
 			"lookup_object":         mapping.LookupObject,
 			"lookup_field":          mapping.LookupField,
@@ -1248,19 +1323,33 @@ func flattenStringMap(m map[string]interface{}) map[string]interface{} {
 	}
 	result := make(map[string]interface{})
 	for k, v := range m {
-		// Convert numeric values to strings for TypeMap compatibility
-		switch val := v.(type) {
-		case float64:
-			result[k] = fmt.Sprintf("%.0f", val)
-		case int:
-			result[k] = fmt.Sprintf("%d", val)
-		case int64:
-			result[k] = fmt.Sprintf("%d", val)
-		default:
-			result[k] = v
-		}
+		result[k] = v
 	}
 	return result
+}
+
+func expandAdvancedConfiguration(jsonStr string) map[string]interface{} {
+	if jsonStr == "" {
+		return nil
+	}
+	var result map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
+		fmt.Printf("[DEBUG] Failed to unmarshal advanced_configuration: %v\n", err)
+		return nil
+	}
+	return result
+}
+
+func flattenAdvancedConfiguration(m map[string]interface{}) string {
+	if m == nil || len(m) == 0 {
+		return ""
+	}
+	jsonBytes, err := json.Marshal(m)
+	if err != nil {
+		fmt.Printf("[DEBUG] Failed to marshal advanced_configuration: %v\n", err)
+		return ""
+	}
+	return string(jsonBytes)
 }
 
 // flattenSourceAttributes converts API source_attributes map to Terraform list structure
@@ -1401,7 +1490,9 @@ func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping
 	for i, fm := range fieldMappings {
 		// Convert based on type
 		var mappingFrom client.MappingFrom
-		if fm.Type == "constant" && fm.Constant != nil {
+
+		switch fm.Type {
+		case "constant":
 			// Format constant values as required by Census API
 			constantData := map[string]interface{}{
 				"basic_type": "text", // Default to text type for string constants
@@ -1411,8 +1502,36 @@ func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping
 				Type: "constant_value",
 				Data: constantData,
 			}
-		} else {
-			// Default to column mapping
+
+		case "sync_metadata":
+			// Sync metadata mapping (e.g., sync_run_id)
+			mappingFrom = client.MappingFrom{
+				Type: "sync_metadata",
+				Data: fm.SyncMetadataKey, // e.g., "sync_run_id"
+			}
+
+		case "segment_membership":
+			// Segment membership mapping
+			segmentData := map[string]interface{}{
+				"identify_by": fm.SegmentIdentifyBy,
+			}
+			mappingFrom = client.MappingFrom{
+				Type: "segment_membership",
+				Data: segmentData,
+			}
+
+		case "liquid_template":
+			// Liquid template transformation
+			templateData := map[string]interface{}{
+				"liquid_template": fm.LiquidTemplate,
+			}
+			mappingFrom = client.MappingFrom{
+				Type: "liquid_template",
+				Data: templateData,
+			}
+
+		default:
+			// Default to column mapping (direct or hash)
 			mappingFrom = client.MappingFrom{
 				Type: "column",
 				Data: fm.From,
@@ -1443,6 +1562,9 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 		var mappingType string
 		var constant interface{}
 		var from string
+		var syncMetadataKey string
+		var segmentIdentifyBy string
+		var liquidTemplate string
 
 		// Convert based on mapping from type - add nil checks
 		if ma.From.Data == nil {
@@ -1465,6 +1587,37 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 					constant = ma.From.Data // Fallback if not a map
 				}
 				from = "" // Empty from field for constants
+
+			case "sync_metadata":
+				mappingType = "sync_metadata"
+				// Census API returns: "sync_run_id" as string
+				if dataStr, ok := ma.From.Data.(string); ok {
+					syncMetadataKey = dataStr
+				} else {
+					syncMetadataKey = fmt.Sprintf("%v", ma.From.Data)
+				}
+				from = "" // Empty from field for sync_metadata
+
+			case "segment_membership":
+				mappingType = "segment_membership"
+				// Census API returns: {"identify_by": "name"}
+				if dataMap, ok := ma.From.Data.(map[string]interface{}); ok {
+					if identifyBy, ok := dataMap["identify_by"].(string); ok {
+						segmentIdentifyBy = identifyBy
+					}
+				}
+				from = "" // Empty from field for segment_membership
+
+			case "liquid_template":
+				mappingType = "liquid_template"
+				// Census API returns: {"liquid_template": "{{ record['field'] | upcase }}"}
+				if dataMap, ok := ma.From.Data.(map[string]interface{}); ok {
+					if template, ok := dataMap["liquid_template"].(string); ok {
+						liquidTemplate = template
+					}
+				}
+				from = "" // Empty from field for liquid_template
+
 			default: // "column"
 				mappingType = "direct"
 				if dataStr, ok := ma.From.Data.(string); ok {
@@ -1480,6 +1633,9 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 			To:                  ma.To,
 			Type:                mappingType,
 			Constant:            constant,
+			SyncMetadataKey:     syncMetadataKey,
+			SegmentIdentifyBy:   segmentIdentifyBy,
+			LiquidTemplate:      liquidTemplate,
 			IsPrimaryIdentifier: ma.IsPrimaryIdentifier,
 			LookupObject:        ma.LookupObject,
 			LookupField:         ma.LookupField,

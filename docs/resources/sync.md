@@ -153,6 +153,119 @@ resource "census_sync" "tagged_sync" {
 }
 ```
 
+### Sync with Sync Metadata Mapping
+
+```hcl
+resource "census_sync" "metadata_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Sync with Metadata Tracking"
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "users"
+    }
+  })
+
+  destination_object = "Contact"
+
+  field_mapping = [
+    {
+      from                  = "email"
+      to                    = "Email"
+      is_primary_identifier = true
+    },
+    {
+      from = "first_name"
+      to   = "FirstName"
+    },
+    {
+      # Map Census sync_run_id to a custom field
+      type             = "sync_metadata"
+      sync_metadata_key = "sync_run_id"
+      to               = "Last_Sync_Run_ID__c"
+    },
+  ]
+
+  operation = "upsert"
+}
+```
+
+### Sync with Segment Membership
+
+```hcl
+resource "census_sync" "segment_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Sync with Segment Data"
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "users"
+    }
+  })
+
+  destination_object = "Contact"
+
+  field_mapping = [
+    {
+      from                  = "email"
+      to                    = "Email"
+      is_primary_identifier = true
+    },
+    {
+      # Map segment membership information
+      type              = "segment_membership"
+      segment_identify_by = "name"
+      to                = "Active_Segments__c"
+    },
+  ]
+
+  operation = "upsert"
+}
+```
+
+### Sync with Liquid Template Transformation
+
+```hcl
+resource "census_sync" "template_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Sync with Field Transformations"
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "users"
+    }
+  })
+
+  destination_object = "Contact"
+
+  field_mapping = [
+    {
+      from                  = "email"
+      to                    = "Email"
+      is_primary_identifier = true
+    },
+    {
+      from = "first_name"
+      to   = "FirstName"
+    },
+    {
+      # Use Liquid template to transform data
+      type           = "liquid_template"
+      liquid_template = "{{ record['status'] | upcase }}"
+      to             = "Account_Status__c"
+    },
+  ]
+
+  operation = "upsert"
+}
+```
+
 ### Sync with Automatic Field Mapping (Sync All Properties)
 
 ```hcl
@@ -266,11 +379,11 @@ resource "census_sync" "blob_storage_sync" {
   field_normalization = "match_source_names"
 
   # Advanced configuration for file export
-  advanced_configuration = {
+  advanced_configuration = jsonencode({
     file_format        = "Parquet"
     csv_delimiter      = ","
-    csv_include_header = "true"
-  }
+    csv_include_header = true
+  })
 
   schedule {
     frequency = "hourly"
@@ -408,10 +521,13 @@ resource "census_sync" "mirror_sync" {
     * For other sources: `id` of the dataset/model/etc.
 * `destination_object` - (Required) The destination object name (e.g., "Contact" for Salesforce, "contacts" for HubSpot).
 * `field_mapping` - (Optional) Set of field mappings between source and destination. Each mapping includes:
-  * `from` - Source field name (required for non-constant mappings)
+  * `from` - Source field name (required for `type="direct"` or `type="hash"`). Omit for `constant`, `sync_metadata`, `segment_membership`, and `liquid_template` mappings.
   * `to` - Destination field name (required)
-  * `type` - Mapping type: `"direct"` (default), `"hash"`, or `"constant"`. When using a constant value, must set to `"constant"`.
-  * `constant` - Constant value (must also set type to `"constant"`)
+  * `type` - Mapping type: `"direct"` (default), `"hash"`, `"constant"`, `"sync_metadata"`, `"segment_membership"`, or `"liquid_template"`.
+  * `constant` - Constant value (must also set `type="constant"`)
+  * `sync_metadata_key` - Sync metadata key (e.g., `"sync_run_id"`). Must also set `type="sync_metadata"`.
+  * `segment_identify_by` - How to identify segments (e.g., `"name"`). Must also set `type="segment_membership"`.
+  * `liquid_template` - Liquid template for data transformation (e.g., `"{{ record['field'] | upcase }}"`). Must also set `type="liquid_template"`.
   * `is_primary_identifier` - (Optional) Boolean indicating if this field is the primary identifier for matching records. Exactly one field_mapping must have this set to `true`. Defaults to `false`.
   * `lookup_object` - (Optional) Object to lookup for relationship mapping (e.g., `"user_list"`). Used with `lookup_field` for foreign key lookups.
   * `lookup_field` - (Optional) Field to use for lookup in the `lookup_object` (e.g., `"id"`). Used with `lookup_object` for foreign key lookups.
@@ -429,7 +545,7 @@ resource "census_sync" "mirror_sync" {
 * `field_order` - (Optional) Specifies how destination fields should be ordered. Only applicable for destinations that support field ordering:
   * `"alphabetical_column_name"` (default) - Sort fields alphabetically
   * `"mapping_order"` - Use the order fields are defined in `field_mapping`
-* `advanced_configuration` - (Optional) Map of advanced configuration options specific to the destination type. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values must be strings. Refer to destination-specific Census documentation for available options.
+* `advanced_configuration` - (Optional) Advanced configuration options specific to the destination type as JSON string. Use `jsonencode()` to specify values. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values can be strings, numbers, or booleans. Refer to destination-specific Census documentation for available options.
 * `alert` - (Optional) Set of alert configurations for monitoring sync health. Multiple alerts can be configured. Each alert includes:
   * `type` - (Required) Type of alert. Valid values:
     * `"FailureAlertConfiguration"` - Alert when sync fails completely
