@@ -119,7 +119,7 @@ func resourceSync() *schema.Resource {
 					"append", "insert", "mirror", "update", "upsert",
 				}, false),
 			},
-			"field_mappings": {
+			"field_mapping": {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Field mappings between source and destination.",
@@ -128,8 +128,8 @@ func resourceSync() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"from": {
 							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Source field name.",
+							Optional:    true,
+							Description: "Source field name. Required for column mappings, omit for constant mappings.",
 						},
 						"to": {
 							Type:        schema.TypeString,
@@ -140,7 +140,7 @@ func resourceSync() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "direct",
-							Description: "Mapping operation (direct, hash, etc.).",
+							Description: "Mapping operation (direct, hash, constant).",
 							ValidateFunc: validation.StringInSlice([]string{
 								"direct", "hash", "constant",
 							}, false),
@@ -148,7 +148,7 @@ func resourceSync() *schema.Resource {
 						"constant": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "Constant value for constant operations.",
+							Description: "Constant value when operation is 'constant'.",
 						},
 					},
 				},
@@ -303,7 +303,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	destinationAttributes := expandStringMap(d.Get("destination_attributes").(map[string]interface{}))
-	fieldMappings := expandFieldMappings(d.Get("field_mappings").(*schema.Set).List())
+	fieldMappings := expandFieldMappings(d.Get("field_mapping").(*schema.Set).List())
 
 	// Get operation from top-level field (per OpenAPI spec)
 	operation := d.Get("operation").(string)
@@ -518,10 +518,10 @@ To fix this, add the missing workspace_id to terraform state:
 		fieldMappings = []client.FieldMapping{} // Empty slice as fallback
 	}
 
-	fmt.Printf("[DEBUG] Setting field_mappings\n")
-	if err := d.Set("field_mappings", flattenFieldMappings(fieldMappings)); err != nil {
-		fmt.Printf("[DEBUG] Failed to set field_mappings: %v\n", err)
-		return diag.Errorf("failed to set field_mappings: %v", err)
+	fmt.Printf("[DEBUG] Setting field_mapping\n")
+	if err := d.Set("field_mapping", flattenFieldMappings(fieldMappings)); err != nil {
+		fmt.Printf("[DEBUG] Failed to set field_mapping: %v\n", err)
+		return diag.Errorf("failed to set field_mapping: %v", err)
 	}
 
 	// Handle sync_key with nil check
@@ -663,11 +663,11 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.Errorf("destination_attributes is not a valid map or list: %v", destAttrsInterface)
 	}
 
-	fieldMappingsInterface := d.Get("field_mappings")
+	fieldMappingsInterface := d.Get("field_mapping")
 	fieldMappingsSet, ok := fieldMappingsInterface.(*schema.Set)
 	if !ok {
-		fmt.Printf("[DEBUG] field_mappings is not a *schema.Set, type: %T, value: %+v\n", fieldMappingsInterface, fieldMappingsInterface)
-		return diag.Errorf("field_mappings is not a valid set: %v", fieldMappingsInterface)
+		fmt.Printf("[DEBUG] field_mapping is not a *schema.Set, type: %T, value: %+v\n", fieldMappingsInterface, fieldMappingsInterface)
+		return diag.Errorf("field_mapping is not a valid set: %v", fieldMappingsInterface)
 	}
 	fieldMappings := fieldMappingsSet.List()
 
@@ -1118,7 +1118,17 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 			switch ma.From.Type {
 			case "constant_value":
 				operation = "constant"
-				constant = ma.From.Data
+				// Extract value from the data map structure
+				// Census API returns: {"value": "...", "basic_type": "text"}
+				if dataMap, ok := ma.From.Data.(map[string]interface{}); ok {
+					if value, ok := dataMap["value"]; ok {
+						constant = value // Extract just the value
+					} else {
+						constant = ma.From.Data // Fallback to full data if no value field
+					}
+				} else {
+					constant = ma.From.Data // Fallback if not a map
+				}
 				from = "" // Empty from field for constants
 			default: // "column"
 				operation = "direct"

@@ -50,7 +50,7 @@ resource "census_sync" "test_sync" {
 
   destination_object = var.destination_object
 
-  field_mappings = var.field_mappings
+  field_mapping = var.field_mapping
 
   schedule = {
     frequency = var.sync_frequency

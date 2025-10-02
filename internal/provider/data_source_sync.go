@@ -53,7 +53,7 @@ func dataSourceSync() *schema.Resource {
 				Description: "Destination-specific configuration (e.g., object, operation mode).",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
-			"field_mappings": {
+			"field_mapping": {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "Field mappings between source and destination.",
@@ -216,8 +216,8 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	if err := d.Set("destination_attributes", flattenStringMap(sync.DestinationAttributes)); err != nil {
 		return diag.Errorf("failed to set destination_attributes: %v", err)
 	}
-	if err := d.Set("field_mappings", flattenFieldMappings(sync.FieldMappings)); err != nil {
-		return diag.Errorf("failed to set field_mappings: %v", err)
+	if err := d.Set("field_mapping", flattenFieldMappings(sync.FieldMappings)); err != nil {
+		return diag.Errorf("failed to set field_mapping: %v", err)
 	}
 	if err := d.Set("sync_key", sync.SyncKey); err != nil {
 		return diag.Errorf("failed to set sync_key: %v", err)

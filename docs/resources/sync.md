@@ -23,7 +23,7 @@ resource "census_sync" "user_sync" {
 
   destination_object = "Contact"
 
-  field_mappings = [
+  field_mapping = [
     {
       from      = "email"
       to        = "Email"
@@ -72,7 +72,7 @@ resource "census_sync" "high_value_sync" {
 
   destination_object = "contacts"
 
-  field_mappings = [
+  field_mapping = [
     {
       from      = "email"
       to        = "email"
@@ -116,7 +116,7 @@ resource "census_sync" "secure_sync" {
 
   destination_object = "user"
 
-  field_mappings = [
+  field_mapping = [
     {
       from      = "id"
       to        = "userId"
@@ -152,7 +152,7 @@ resource "census_sync" "tagged_sync" {
 
   destination_object = "Contact"
 
-  field_mappings = [
+  field_mapping = [
     {
       from      = "email"
       to        = "Email"
@@ -188,7 +188,7 @@ resource "census_sync" "mirror_sync" {
 
   destination_object = "Product2"
 
-  field_mappings = [
+  field_mapping = [
     {
       from      = "product_id"
       to        = "ProductCode"
@@ -226,7 +226,7 @@ resource "census_sync" "mirror_sync" {
     * For table sources: `table_name`, optionally `table_schema` and `table_catalog`
     * For other sources: `id` of the dataset/model/etc.
 * `destination_object` - (Required) The destination object name (e.g., "Contact" for Salesforce, "contacts" for HubSpot).
-* `field_mappings` - (Optional) Set of field mappings between source and destination. Each mapping includes:
+* `field_mapping` - (Optional) Set of field mappings between source and destination. Each mapping includes:
   * `from` - Source field name (required for non-constant operations)
   * `to` - Destination field name (required)
   * `operation` - Mapping operation: `"direct"`, `"hash"`, or `"constant"`. Defaults to `"direct"`.

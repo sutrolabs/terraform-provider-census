@@ -31,7 +31,7 @@ output "sync_paused" {
 * `destination_id` - The ID of the destination connection.
 * `source_attributes` - JSON-encoded configuration for the source object.
 * `destination_object` - The destination object name.
-* `field_mappings` - Set of field mappings between source and destination:
+* `field_mapping` - Set of field mappings between source and destination:
   * `from` - Source field name.
   * `to` - Destination field name.
   * `operation` - Mapping operation ("direct", "hash", or "constant").

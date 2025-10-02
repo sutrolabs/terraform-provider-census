@@ -259,25 +259,25 @@ resource "census_sync" "marketing_contact_sync" {
   operation = "upsert"
 
   # Field mappings between source and destination
-  field_mappings {
+  field_mapping {
     from      = "email"
     to        = "Email"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "first_name"
     to        = "FirstName"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "last_name"
     to        = "LastName"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "id"
     to        = "Census_ID__c"
     operation = "direct"
@@ -325,25 +325,25 @@ resource "census_sync" "marketing_contact_sync_2" {
   operation = "upsert"
 
   # Field mappings between source and destination
-  field_mappings {
+  field_mapping {
     from      = "email"
     to        = "Email"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "first_name"
     to        = "FirstName"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "last_name"
     to        = "LastName"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "id"
     to        = "Census_ID__c"
     operation = "direct"
@@ -391,25 +391,25 @@ resource "census_sync" "marketing_contact_sync_3" {
   operation = "upsert"
 
   # Field mappings between source and destination
-  field_mappings {
+  field_mapping {
     from      = "email"
     to        = "Email"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "first_name"
     to        = "FirstName"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "last_name"
     to        = "LastName"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "id"
     to        = "Census_ID__c"
     operation = "direct"
@@ -456,27 +456,33 @@ resource "census_sync" "dataset_contact_sync" {
 
   # Field mappings using dataset columns
 
-  field_mappings {
+  field_mapping {
     from      = "user_id"
     to        = "Census_ID__c"
     operation = "direct"
   }
-  field_mappings {
+  field_mapping {
     from      = "email"
     to        = "Email"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "first_name"
     to        = "FirstName"
     operation = "direct"
   }
 
-  field_mappings {
+  field_mapping {
     from      = "last_name"
     to        = "LastName"
     operation = "direct"
+  }
+
+  field_mapping {
+    constant  = "HERE is my constant value"
+    operation = "constant"
+    to        = "AssistantName"
   }
 
   sync_key = ["email"]
@@ -486,8 +492,6 @@ resource "census_sync" "dataset_contact_sync" {
     hour      = 8
     timezone  = "UTC"
   }
-
-  paused = true
 }
 
 # resource "census_sync" "marketing_staging_test_sync" {
@@ -516,19 +520,19 @@ resource "census_sync" "dataset_contact_sync" {
 #   # Operation mode for the sync
 #   operation = "upsert"
 
-#   field_mappings {
+#   field_mapping {
 #     from      = "email"
 #     to        = "Email"
 #     operation = "direct"
 #   }
 
-#   field_mappings {
+#   field_mapping {
 #     from      = "first_name"
 #     to        = "FirstName"
 #     operation = "direct"
 #   }
 
-#   field_mappings {
+#   field_mapping {
 #     from      = "last_name"
 #     to        = "LastName"
 #     operation = "direct"
@@ -573,37 +577,37 @@ resource "census_sync" "dataset_contact_sync" {
 #   operation = "upsert"
 
 #   # Field mappings for account data
-#   field_mappings {
+#   field_mapping {
 #     from      = "company_domain"
 #     to        = "Website"
 #     operation = "direct"
 #   }
 
-#   field_mappings {
+#   field_mapping {
 #     from      = "company_name"
 #     to        = "Name"
 #     operation = "direct"
 #   }
 
-#   field_mappings {
+#   field_mapping {
 #     from      = "industry"
 #     to        = "Industry"
 #     operation = "direct"
 #   }
 
-#   field_mappings {
+#   field_mapping {
 #     from      = "employee_count"
 #     to        = "NumberOfEmployees"
 #     operation = "direct"
 #   }
 
-#   field_mappings {
+#   field_mapping {
 #     from      = "annual_revenue"
 #     to        = "AnnualRevenue"
 #     operation = "direct"
 #   }
 
-#   field_mappings {
+#   field_mapping {
 #     from      = "country"
 #     to        = "BillingCountry"
 #     operation = "direct"

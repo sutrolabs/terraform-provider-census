@@ -75,7 +75,7 @@ resource "census_sync" "users_to_crm" {
   operation = "upsert"
   sync_key  = ["email"]
 
-  field_mappings {
+  field_mapping {
     from      = "email"
     to        = "Email"
     operation = "direct"

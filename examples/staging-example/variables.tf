@@ -75,7 +75,7 @@ variable "sync_label" {
   default     = "Staging Test Sync"
 }
 
-variable "field_mappings" {
+variable "field_mapping" {
   description = "Field mappings for the sync"
   type = list(object({
     from      = string
