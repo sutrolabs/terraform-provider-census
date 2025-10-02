@@ -4,7 +4,7 @@ A Terraform provider for managing [Census](https://getcensus.com) resources. Cen
 
 ## Features
 
-- **Multi-region support**: Works with both US and EU Census instances
+- **Multi-region support**: Works with US, EU, and AU Census regions
 - **Complete Census workflow**: Manage workspaces, sources, datasets, destinations, and syncs
 - **PAT-only authentication**: Uses personal access tokens with dynamic workspace token retrieval
 - **Import support**: Import existing Census resources into Terraform state
