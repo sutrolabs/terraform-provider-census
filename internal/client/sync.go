@@ -52,13 +52,25 @@ type Sync struct {
 
 	// Advanced configuration - destination-specific options
 	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
+
+	// Alert configuration
+	AlertAttributes []AlertAttribute `json:"alert_attributes,omitempty"`
+}
+
+// AlertAttribute represents an alert configuration for a sync
+type AlertAttribute struct {
+	ID                 int                    `json:"id,omitempty"`
+	Type               string                 `json:"type"`
+	SendFor            string                 `json:"send_for"`
+	ShouldSendRecovery bool                   `json:"should_send_recovery"`
+	Options            map[string]interface{} `json:"options"`
 }
 
 // FieldMapping represents a field mapping between source and destination (for Terraform config)
 type FieldMapping struct {
 	From                string      `json:"from"`
 	To                  string      `json:"to"`
-	Operation           string      `json:"operation,omitempty"`            // direct, hash, etc.
+	Type                string      `json:"operation,omitempty"`             // direct, hash, constant - JSON is still "operation" for API compatibility
 	Constant            interface{} `json:"constant,omitempty"`
 	IsPrimaryIdentifier bool        `json:"is_primary_identifier,omitempty"` // Whether this field is the sync key
 	LookupObject        string      `json:"lookup_object,omitempty"`         // Object to lookup for relationship mapping
@@ -98,8 +110,8 @@ type CreateSyncRequest struct {
 	Mappings              []MappingAttributes    `json:"mappings"`               // Required: Field mappings
 
 	// Optional fields
-	Label           string        `json:"label,omitempty"`
-	AlertAttributes []interface{} `json:"alert_attributes,omitempty"`
+	Label           string           `json:"label,omitempty"`
+	AlertAttributes []AlertAttribute `json:"alert_attributes,omitempty"`
 
 	// Schedule fields - Census Management API expects these as flat fields, not nested object
 	ScheduleFrequency string `json:"schedule_frequency,omitempty"`
@@ -144,6 +156,9 @@ type UpdateSyncRequest struct {
 
 	// Advanced configuration - destination-specific options
 	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
+
+	// Alert configuration
+	AlertAttributes []AlertAttribute `json:"alert_attributes,omitempty"`
 }
 
 // SyncResponse represents a single sync response

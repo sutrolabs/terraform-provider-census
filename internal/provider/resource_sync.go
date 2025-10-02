@@ -139,11 +139,11 @@ func resourceSync() *schema.Resource {
 							Required:    true,
 							Description: "Destination field name.",
 						},
-						"operation": {
+						"type": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "direct",
-							Description: "Mapping operation (direct, hash, constant). Automatically set to 'constant' when a constant value is specified.",
+							Description: "Mapping type: 'direct' (default), 'hash', or 'constant'. Constant mappings must specify type='constant'.",
 							ValidateFunc: validation.StringInSlice([]string{
 								"direct", "hash", "constant",
 							}, false),
@@ -151,7 +151,7 @@ func resourceSync() *schema.Resource {
 						"constant": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "Constant value when operation is 'constant'.",
+							Description: "Constant value. Must also set type='constant'.",
 						},
 						"is_primary_identifier": {
 							Type:        schema.TypeBool,
@@ -221,6 +221,58 @@ func resourceSync() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"alert": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "Alert configurations for the sync. Multiple alerts of different types can be configured.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The ID of the alert configuration (assigned by Census).",
+						},
+						"type": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Type of alert configuration.",
+							ValidateFunc: validation.StringInSlice([]string{
+								"FailureAlertConfiguration",
+								"InvalidRecordPercentAlertConfiguration",
+								"FullSyncTriggerAlertConfiguration",
+								"RecordCountDeviationAlertConfiguration",
+								"RuntimeAlertConfiguration",
+								"StatusAlertConfiguration",
+							}, false),
+						},
+						"send_for": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "first_time",
+							Description: "When to send alerts: 'first_time' (default) or 'every_time'.",
+							ValidateFunc: validation.StringInSlice([]string{
+								"first_time",
+								"every_time",
+							}, false),
+						},
+						"should_send_recovery": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     true,
+							Description: "Whether to send a recovery notification when the alert condition is resolved.",
+						},
+						"options": {
+							Type:        schema.TypeMap,
+							Optional:    true,
+							Description: "Alert-specific options (e.g., threshold for InvalidRecordPercentAlertConfiguration).",
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
+				Set: alertHash,
 			},
 			"schedule": {
 				Type:        schema.TypeList,
@@ -306,7 +358,7 @@ func fieldMappingHash(v interface{}) int {
 	m := v.(map[string]interface{})
 
 	// Create a unique string representation based on from+to fields
-	// These are the identifying fields - operation and constant are modifiers
+	// These are the identifying fields - type and constant are modifiers
 	from := ""
 	if val, ok := m["from"].(string); ok {
 		from = val
@@ -317,9 +369,9 @@ func fieldMappingHash(v interface{}) int {
 		to = val
 	}
 
-	operation := "direct" // default
-	if val, ok := m["operation"].(string); ok && val != "" {
-		operation = val
+	mappingType := "direct" // default
+	if val, ok := m["type"].(string); ok && val != "" {
+		mappingType = val
 	}
 
 	lookupObject := ""
@@ -332,12 +384,45 @@ func fieldMappingHash(v interface{}) int {
 		lookupField = val
 	}
 
-	// Include constant in hash if it's a constant operation
-	hashStr := fmt.Sprintf("%s:%s:%s:%s:%s", from, to, operation, lookupObject, lookupField)
-	if operation == "constant" {
+	// Include constant in hash if it's a constant type
+	hashStr := fmt.Sprintf("%s:%s:%s:%s:%s", from, to, mappingType, lookupObject, lookupField)
+	if mappingType == "constant" {
 		if constant, ok := m["constant"]; ok && constant != nil {
 			hashStr = fmt.Sprintf("%s:%v", hashStr, constant)
 		}
+	}
+
+	h := fnv.New32a()
+	h.Write([]byte(hashStr))
+	return int(h.Sum32())
+}
+
+// alertHash creates a hash for an alert to use in a TypeSet
+func alertHash(v interface{}) int {
+	m := v.(map[string]interface{})
+
+	// Create a unique string representation based on type and key options
+	alertType := ""
+	if val, ok := m["type"].(string); ok {
+		alertType = val
+	}
+
+	sendFor := "first_time" // default
+	if val, ok := m["send_for"].(string); ok && val != "" {
+		sendFor = val
+	}
+
+	shouldSendRecovery := "true" // default
+	if val, ok := m["should_send_recovery"].(bool); ok {
+		shouldSendRecovery = fmt.Sprintf("%t", val)
+	}
+
+	// Include options in hash for uniqueness
+	hashStr := fmt.Sprintf("%s:%s:%s", alertType, sendFor, shouldSendRecovery)
+
+	// Add options to hash if present
+	if options, ok := m["options"].(map[string]interface{}); ok && len(options) > 0 {
+		hashStr = fmt.Sprintf("%s:%v", hashStr, options)
 	}
 
 	h := fnv.New32a()
@@ -423,6 +508,9 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 		// Advanced configuration
 		AdvancedConfiguration: expandStringMap(d.Get("advanced_configuration").(map[string]interface{})),
+
+		// Alert configuration
+		AlertAttributes: expandAlerts(d.Get("alert").(*schema.Set).List()),
 	}
 
 	fmt.Printf("[DEBUG] Creating sync with request: %+v\n", req)
@@ -532,6 +620,14 @@ To fix this, add the missing workspace_id to terraform state:
 		if err := d.Set("advanced_configuration", flattenStringMap(sync.AdvancedConfiguration)); err != nil {
 			fmt.Printf("[DEBUG] Failed to set advanced_configuration: %v\n", err)
 			return diag.Errorf("failed to set advanced_configuration: %v", err)
+		}
+	}
+
+	// Set alert attributes if present
+	if len(sync.AlertAttributes) > 0 {
+		if err := d.Set("alert", flattenAlerts(sync.AlertAttributes)); err != nil {
+			fmt.Printf("[DEBUG] Failed to set alert: %v\n", err)
+			return diag.Errorf("failed to set alert: %v", err)
 		}
 	}
 
@@ -804,6 +900,14 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	fieldOrderInterface := d.Get("field_order")
 	fieldOrder, _ := fieldOrderInterface.(string)
 
+	// Safe type assertions for alerts
+	alertInterface := d.Get("alert")
+	alertSet, ok := alertInterface.(*schema.Set)
+	if !ok {
+		fmt.Printf("[DEBUG] alert is not a *schema.Set, type: %T, value: %+v\n", alertInterface, alertInterface)
+		return diag.Errorf("alert is not a valid set: %v", alertInterface)
+	}
+
 	req := &client.UpdateSyncRequest{
 		Label:                 label,
 		SourceAttributes:      expandStringMap(sourceAttrs),
@@ -824,6 +928,9 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 		// Advanced configuration
 		AdvancedConfiguration: expandStringMap(d.Get("advanced_configuration").(map[string]interface{})),
+
+		// Alert configuration
+		AlertAttributes: expandAlerts(alertSet.List()),
 	}
 
 	fmt.Printf("[DEBUG] Update request: %+v\n", req)
@@ -898,13 +1005,19 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['to'] is not a string, type: %T, value: %+v\n", i, m["to"], m["to"])
 		}
 
-		// Auto-infer operation = "constant" when constant is specified
+		// Get type field (defaults to "direct" in schema)
+		mappingType := "direct" // fallback default
+		if typeVal, ok := m["type"].(string); ok && typeVal != "" {
+			mappingType = typeVal
+		}
+		fieldMapping.Type = mappingType
+
+		// Validate: if constant is present, type must be "constant"
 		if fieldMapping.Constant != nil && fieldMapping.Constant != "" {
-			fieldMapping.Operation = "constant"
-		} else if operation, ok := m["operation"].(string); ok {
-			fieldMapping.Operation = operation
-		} else {
-			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['operation'] is not a string, type: %T, value: %+v\n", i, m["operation"], m["operation"])
+			if mappingType != "constant" {
+				fmt.Printf("[ERROR] expandFieldMappings: field_mapping[%d] has a constant value but type is '%s'. When using constant, type must be 'constant'.\n", i, mappingType)
+				// Continue processing but log the error - validation should catch this
+			}
 		}
 
 		if isPrimary, ok := m["is_primary_identifier"].(bool); ok {
@@ -930,12 +1043,99 @@ func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 		result[i] = map[string]interface{}{
 			"from":                  mapping.From,
 			"to":                    mapping.To,
-			"operation":             mapping.Operation,
+			"type":                  mapping.Type,
 			"constant":              mapping.Constant,
 			"is_primary_identifier": mapping.IsPrimaryIdentifier,
 			"lookup_object":         mapping.LookupObject,
 			"lookup_field":          mapping.LookupField,
 		}
+	}
+	return result
+}
+
+func expandAlerts(alerts []interface{}) []client.AlertAttribute {
+	if len(alerts) == 0 {
+		return nil
+	}
+
+	result := make([]client.AlertAttribute, 0, len(alerts))
+	for i, alert := range alerts {
+		m, ok := alert.(map[string]interface{})
+		if !ok {
+			fmt.Printf("[DEBUG] expandAlerts: alerts[%d] is not a map[string]interface{}, type: %T, value: %+v\n", i, alert, alert)
+			continue
+		}
+
+		alertAttr := client.AlertAttribute{
+			Options: make(map[string]interface{}),
+		}
+
+		if alertType, ok := m["type"].(string); ok {
+			alertAttr.Type = alertType
+		}
+
+		if sendFor, ok := m["send_for"].(string); ok {
+			alertAttr.SendFor = sendFor
+		} else {
+			alertAttr.SendFor = "first_time" // default
+		}
+
+		if shouldSendRecovery, ok := m["should_send_recovery"].(bool); ok {
+			alertAttr.ShouldSendRecovery = shouldSendRecovery
+		} else {
+			alertAttr.ShouldSendRecovery = true // default
+		}
+
+		// Handle options - convert string values to appropriate types
+		if options, ok := m["options"].(map[string]interface{}); ok {
+			for key, value := range options {
+				// Try to convert string values to integers for threshold fields
+				if strVal, ok := value.(string); ok {
+					if key == "threshold" {
+						if intVal, err := strconv.Atoi(strVal); err == nil {
+							alertAttr.Options[key] = intVal
+							continue
+						}
+					}
+				}
+				alertAttr.Options[key] = value
+			}
+		}
+
+		result = append(result, alertAttr)
+	}
+	return result
+}
+
+func flattenAlerts(alerts []client.AlertAttribute) []interface{} {
+	if len(alerts) == 0 {
+		return []interface{}{}
+	}
+
+	result := make([]interface{}, 0, len(alerts))
+	for _, alert := range alerts {
+		// Convert options to string map for Terraform
+		options := make(map[string]interface{})
+		for key, value := range alert.Options {
+			switch v := value.(type) {
+			case int:
+				options[key] = strconv.Itoa(v)
+			case float64:
+				options[key] = strconv.Itoa(int(v))
+			case string:
+				options[key] = v
+			default:
+				options[key] = fmt.Sprintf("%v", v)
+			}
+		}
+
+		result = append(result, map[string]interface{}{
+			"id":                   alert.ID,
+			"type":                 alert.Type,
+			"send_for":             alert.SendFor,
+			"should_send_recovery": alert.ShouldSendRecovery,
+			"options":              options,
+		})
 	}
 	return result
 }
@@ -1199,9 +1399,9 @@ func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping
 	result := make([]client.MappingAttributes, len(fieldMappings))
 
 	for i, fm := range fieldMappings {
-		// Convert based on operation type
+		// Convert based on type
 		var mappingFrom client.MappingFrom
-		if fm.Operation == "constant" && fm.Constant != nil {
+		if fm.Type == "constant" && fm.Constant != nil {
 			// Format constant values as required by Census API
 			constantData := map[string]interface{}{
 				"basic_type": "text", // Default to text type for string constants
@@ -1240,7 +1440,7 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 	result := make([]client.FieldMapping, len(mappings))
 
 	for i, ma := range mappings {
-		var operation string
+		var mappingType string
 		var constant interface{}
 		var from string
 
@@ -1248,11 +1448,11 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 		if ma.From.Data == nil {
 			// Handle nil data gracefully
 			from = ""
-			operation = "direct"
+			mappingType = "direct"
 		} else {
 			switch ma.From.Type {
 			case "constant_value":
-				operation = "constant"
+				mappingType = "constant"
 				// Extract value from the data map structure
 				// Census API returns: {"value": "...", "basic_type": "text"}
 				if dataMap, ok := ma.From.Data.(map[string]interface{}); ok {
@@ -1266,7 +1466,7 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 				}
 				from = "" // Empty from field for constants
 			default: // "column"
-				operation = "direct"
+				mappingType = "direct"
 				if dataStr, ok := ma.From.Data.(string); ok {
 					from = dataStr
 				} else {
@@ -1278,7 +1478,7 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 		result[i] = client.FieldMapping{
 			From:                from,
 			To:                  ma.To,
-			Operation:           operation,
+			Type:                mappingType,
 			Constant:            constant,
 			IsPrimaryIdentifier: ma.IsPrimaryIdentifier,
 			LookupObject:        ma.LookupObject,

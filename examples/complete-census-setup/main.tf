@@ -259,26 +259,22 @@ resource "census_sync" "marketing_contact_sync" {
   field_mapping {
     from                  = "email"
     to                    = "Email"
-    operation             = "direct"
     is_primary_identifier = true
   }
 
   field_mapping {
-    from      = "first_name"
-    to        = "FirstName"
-    operation = "direct"
+    from = "first_name"
+    to   = "FirstName"
   }
 
   field_mapping {
-    from      = "last_name"
-    to        = "LastName"
-    operation = "direct"
+    from = "last_name"
+    to   = "LastName"
   }
 
   field_mapping {
-    from      = "id"
-    to        = "Census_ID__c"
-    operation = "direct"
+    from = "id"
+    to   = "Census_ID__c"
   }
 
   # Scheduling - run daily at 6 AM UTC
@@ -286,6 +282,23 @@ resource "census_sync" "marketing_contact_sync" {
     frequency = "daily"
     hour      = 6
     timezone  = "UTC"
+  }
+
+  # Alert configurations for production sync monitoring
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options              = {}
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
+    }
   }
 
   # Start paused until ready to go live
@@ -316,30 +329,43 @@ resource "census_sync" "marketing_contact_sync_2" {
   # Operation mode for the sync
   operation = "upsert"
 
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options              = {}
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
+    }
+  }
+
+
   # Field mappings between source and destination
   field_mapping {
     from                  = "email"
     to                    = "Email"
-    operation             = "direct"
     is_primary_identifier = true
   }
 
   field_mapping {
-    from      = "first_name"
-    to        = "FirstName"
-    operation = "direct"
+    from = "first_name"
+    to   = "FirstName"
   }
 
   field_mapping {
-    from      = "last_name"
-    to        = "LastName"
-    operation = "direct"
+    from = "last_name"
+    to   = "LastName"
   }
 
   field_mapping {
-    from      = "id"
-    to        = "Census_ID__c"
-    operation = "direct"
+    from = "id"
+    to   = "Census_ID__c"
   }
 
   # Scheduling - run daily at 6 AM UTC
@@ -381,27 +407,40 @@ resource "census_sync" "marketing_contact_sync_3" {
   field_mapping {
     from                  = "email"
     to                    = "Email"
-    operation             = "direct"
     is_primary_identifier = true
   }
 
   field_mapping {
-    from      = "first_name"
-    to        = "FirstName"
-    operation = "direct"
+    from = "first_name"
+    to   = "FirstName"
   }
 
   field_mapping {
-    from      = "last_name"
-    to        = "LastName"
-    operation = "direct"
+    from = "last_name"
+    to   = "LastName"
   }
 
   field_mapping {
-    from      = "id"
-    to        = "Census_ID__c"
-    operation = "direct"
+    from = "id"
+    to   = "Census_ID__c"
   }
+
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options              = {}
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
+    }
+  }
+
 
   # Scheduling - run daily at 6 AM UTC
   schedule {
@@ -439,39 +478,71 @@ resource "census_sync" "dataset_contact_sync" {
   # Field mappings using dataset columns
 
   field_mapping {
-    from      = "user_id"
-    to        = "Census_ID__c"
-    operation = "direct"
+    from = "user_id"
+    to   = "Census_ID__c"
   }
   field_mapping {
     from                  = "email"
     to                    = "Email"
-    operation             = "direct"
     is_primary_identifier = true
   }
 
   field_mapping {
-    from      = "first_name"
-    to        = "FirstName"
-    operation = "direct"
+    from = "first_name"
+    to   = "FirstName"
   }
 
   field_mapping {
-    from      = "last_name"
-    to        = "LastName"
-    operation = "direct"
+    from = "last_name"
+    to   = "LastName"
   }
 
   field_mapping {
-    constant  = "HERE is my constant value"
-    operation = "constant"
-    to        = "AssistantName"
+    type     = "constant"
+    constant = "HERE is my constant value"
+    to       = "AssistantName"
   }
-
 
   schedule {
     frequency = "hourly"
     minute    = 10
+  }
+
+  # Comprehensive alerting for high-frequency sync
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options              = {}
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
+    }
+  }
+
+  alert {
+    type                 = "RuntimeAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = false
+    options = {
+      threshold  = "45"
+      unit       = "minutes"
+      start_type = "actual"
+    }
+  }
+
+  alert {
+    type                 = "StatusAlertConfiguration"
+    send_for             = "every_time"
+    should_send_recovery = false
+    options = {
+      status_name = "completed"
+    }
   }
 }
 
@@ -502,20 +573,17 @@ resource "census_sync" "dataset_contact_sync" {
 #   field_mapping {
 #     from                  = "email"
 #     to                    = "Email"
-#     operation             = "direct"
 #     is_primary_identifier = true
 #   }
 
 #   field_mapping {
-#     from      = "first_name"
-#     to        = "FirstName"
-#     operation = "direct"
+#     from = "first_name"
+#     to   = "FirstName"
 #   }
 
 #   field_mapping {
-#     from      = "last_name"
-#     to        = "LastName"
-#     operation = "direct"
+#     from = "last_name"
+#     to   = "LastName"
 #   }
 
 
@@ -557,38 +625,32 @@ resource "census_sync" "dataset_contact_sync" {
 #   field_mapping {
 #     from                  = "company_domain"
 #     to                    = "Website"
-#     operation             = "direct"
 #     is_primary_identifier = true
 #   }
 
 #   field_mapping {
-#     from      = "company_name"
-#     to        = "Name"
-#     operation = "direct"
+#     from = "company_name"
+#     to   = "Name"
 #   }
 
 #   field_mapping {
-#     from      = "industry"
-#     to        = "Industry"
-#     operation = "direct"
+#     from = "industry"
+#     to   = "Industry"
 #   }
 
 #   field_mapping {
-#     from      = "employee_count"
-#     to        = "NumberOfEmployees"
-#     operation = "direct"
+#     from = "employee_count"
+#     to   = "NumberOfEmployees"
 #   }
 
 #   field_mapping {
-#     from      = "annual_revenue"
-#     to        = "AnnualRevenue"
-#     operation = "direct"
+#     from = "annual_revenue"
+#     to   = "AnnualRevenue"
 #   }
 
 #   field_mapping {
-#     from      = "country"
-#     to        = "BillingCountry"
-#     operation = "direct"
+#     from = "country"
+#     to   = "BillingCountry"
 #   }
 
 

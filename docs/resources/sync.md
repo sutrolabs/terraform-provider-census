@@ -25,18 +25,15 @@ resource "census_sync" "user_sync" {
     {
       from                  = "email"
       to                    = "Email"
-      operation             = "direct"
       is_primary_identifier = true
     },
     {
-      from      = "first_name"
-      to        = "FirstName"
-      operation = "direct"
+      from = "first_name"
+      to   = "FirstName"
     },
     {
-      from      = "last_name"
-      to        = "LastName"
-      operation = "direct"
+      from = "last_name"
+      to   = "LastName"
     },
   ]
 
@@ -68,15 +65,13 @@ resource "census_sync" "high_value_sync" {
 
   field_mapping = [
     {
-      from      = "email"
-      to        = "email"
-      operation = "direct"
+      from                  = "email"
+      to                    = "email"
       is_primary_identifier = true
     },
     {
-      from      = "lifetime_value"
-      to        = "lifetime_value"
-      operation = "direct"
+      from = "lifetime_value"
+      to   = "lifetime_value"
     },
   ]
 
@@ -111,13 +106,12 @@ resource "census_sync" "secure_sync" {
     {
       from                  = "id"
       to                    = "userId"
-      operation             = "direct"
       is_primary_identifier = true
     },
     {
-      from      = "email"
-      to        = "email_hash"
-      operation = "hash"
+      from = "email"
+      to   = "email_hash"
+      type = "hash"
     },
   ]
 
@@ -144,15 +138,14 @@ resource "census_sync" "tagged_sync" {
 
   field_mapping = [
     {
-      from      = "email"
-      to        = "Email"
-      operation = "direct"
+      from                  = "email"
+      to                    = "Email"
       is_primary_identifier = true
     },
     {
-      to       = "LeadSource"
+      type     = "constant"
       constant = "Terraform Managed"
-      # operation is automatically set to "constant"
+      to       = "LeadSource"
     },
   ]
 
@@ -187,7 +180,6 @@ resource "census_sync" "auto_sync" {
     {
       from                  = "email"
       to                    = "Email"
-      operation             = "direct"
       is_primary_identifier = true
     },
   ]
@@ -223,17 +215,16 @@ resource "census_sync" "user_list_sync" {
     {
       from                  = "email"
       to                    = "user_identifier.hashed_email"
-      operation             = "direct"
       is_primary_identifier = true
     },
     {
       # Map a constant value to user_list_id via lookup
       # This looks up the user_list record where id = "6600827417"
+      type          = "constant"
       constant      = "6600827417"
       to            = "user_list_id"
       lookup_object = "user_list"
       lookup_field  = "id"
-      # operation is automatically set to "constant"
     },
   ]
 
@@ -288,6 +279,84 @@ resource "census_sync" "blob_storage_sync" {
 }
 ```
 
+### Sync with Alert Configurations
+
+```hcl
+resource "census_sync" "monitored_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "High-Priority Customer Sync with Alerts"
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "customers"
+    }
+  })
+
+  destination_object = "Contact"
+
+  field_mapping = [
+    {
+      from                  = "email"
+      to                    = "Email"
+      is_primary_identifier = true
+    },
+    {
+      from = "name"
+      to   = "Name"
+    },
+  ]
+
+  operation = "upsert"
+
+  # Configure multiple alerts
+  alert = [
+    {
+      # Alert when sync fails completely
+      type                 = "FailureAlertConfiguration"
+      send_for             = "first_time"
+      should_send_recovery = true
+      options              = {}
+    },
+    {
+      # Alert when more than 50% of records are invalid
+      type                 = "InvalidRecordPercentAlertConfiguration"
+      send_for             = "every_time"
+      should_send_recovery = true
+      options = {
+        threshold = "50"
+      }
+    },
+    {
+      # Alert when sync runtime exceeds 30 minutes
+      type                 = "RuntimeAlertConfiguration"
+      send_for             = "first_time"
+      should_send_recovery = false
+      options = {
+        threshold  = "30"
+        unit       = "minutes"
+        start_type = "actual"
+      }
+    },
+    {
+      # Alert on sync completion
+      type                 = "StatusAlertConfiguration"
+      send_for             = "every_time"
+      should_send_recovery = false
+      options = {
+        status_name = "completed"
+      }
+    },
+  ]
+
+  schedule {
+    frequency = "hourly"
+    minute    = 0
+  }
+}
+```
+
 ### Mirror Sync (Replace All)
 
 ```hcl
@@ -309,13 +378,11 @@ resource "census_sync" "mirror_sync" {
     {
       from                  = "product_id"
       to                    = "ProductCode"
-      operation             = "direct"
       is_primary_identifier = true
     },
     {
-      from      = "name"
-      to        = "Name"
-      operation = "direct"
+      from = "name"
+      to   = "Name"
     },
   ]
 
@@ -341,10 +408,10 @@ resource "census_sync" "mirror_sync" {
     * For other sources: `id` of the dataset/model/etc.
 * `destination_object` - (Required) The destination object name (e.g., "Contact" for Salesforce, "contacts" for HubSpot).
 * `field_mapping` - (Optional) Set of field mappings between source and destination. Each mapping includes:
-  * `from` - Source field name (required for non-constant operations)
+  * `from` - Source field name (required for non-constant mappings)
   * `to` - Destination field name (required)
-  * `operation` - Mapping operation: `"direct"`, `"hash"`, or `"constant"`. Defaults to `"direct"`. Automatically set to `"constant"` when a `constant` value is specified, so you can omit this field for constant mappings.
-  * `constant` - Constant value (automatically sets operation to `"constant"`)
+  * `type` - Mapping type: `"direct"` (default), `"hash"`, or `"constant"`. When using a constant value, must set to `"constant"`.
+  * `constant` - Constant value (must also set type to `"constant"`)
   * `is_primary_identifier` - (Optional) Boolean indicating if this field is the primary identifier for matching records. Exactly one field_mapping must have this set to `true`. Defaults to `false`.
   * `lookup_object` - (Optional) Object to lookup for relationship mapping (e.g., `"user_list"`). Used with `lookup_field` for foreign key lookups.
   * `lookup_field` - (Optional) Field to use for lookup in the `lookup_object` (e.g., `"id"`). Used with `lookup_object` for foreign key lookups.
@@ -363,6 +430,29 @@ resource "census_sync" "mirror_sync" {
   * `"alphabetical_column_name"` (default) - Sort fields alphabetically
   * `"mapping_order"` - Use the order fields are defined in `field_mapping`
 * `advanced_configuration` - (Optional) Map of advanced configuration options specific to the destination type. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values must be strings. Refer to destination-specific Census documentation for available options.
+* `alert` - (Optional) Set of alert configurations for monitoring sync health. Multiple alerts can be configured. Each alert includes:
+  * `type` - (Required) Type of alert. Valid values:
+    * `"FailureAlertConfiguration"` - Alert when sync fails completely
+    * `"InvalidRecordPercentAlertConfiguration"` - Alert when invalid/rejected records exceed threshold
+    * `"FullSyncTriggerAlertConfiguration"` - Alert when a full sync is triggered
+    * `"RecordCountDeviationAlertConfiguration"` - Alert when record counts deviate from expected
+    * `"RuntimeAlertConfiguration"` - Alert when sync runtime exceeds threshold
+    * `"StatusAlertConfiguration"` - Alert on sync status changes (started, completed)
+  * `send_for` - (Optional) When to send alerts: `"first_time"` (default, only first violation) or `"every_time"` (every violation)
+  * `should_send_recovery` - (Optional) Whether to send recovery notification when condition resolves. Defaults to `true`.
+  * `options` - (Optional) Alert-specific configuration options (values as strings):
+    * For `InvalidRecordPercentAlertConfiguration`:
+      * `threshold` - Percentage (0-100) of invalid records that triggers alert
+    * For `RecordCountDeviationAlertConfiguration`:
+      * `threshold` - Percentage (0-100) deviation from expected count
+      * `record_type` - Type to monitor: `source_record_count`, `records_updates`, `records_deletes`, `records_invalid`, `records_processed`, `records_updated`, or `records_failed`
+    * For `RuntimeAlertConfiguration`:
+      * `threshold` - Number of time units before alert
+      * `unit` - Time unit: `"minutes"` or `"hours"`
+      * `start_type` - When to start measuring: `"actual"` (when sync actually starts) or `"scheduled"` (from scheduled time)
+    * For `StatusAlertConfiguration`:
+      * `status_name` - Status to alert on: `"started"` or `"completed"`
+  * `id` - (Computed) The alert configuration ID assigned by Census
 * `schedule` - (Optional) Scheduling configuration block:
   * `frequency` - (Required) `"hourly"`, `"daily"`, `"weekly"`, or `"manual"`
   * `minute` - (Optional) Minute of hour to run (0-59)
