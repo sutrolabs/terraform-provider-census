@@ -38,8 +38,6 @@ resource "census_destination" "crm" {
 resource "census_sync" "test_sync" {
   workspace_id   = census_workspace.staging_test.id
   label          = var.sync_label
-  source_id      = census_source.warehouse.id
-  destination_id = census_destination.crm.id
 
   source_type = "table"
   source_attributes = {

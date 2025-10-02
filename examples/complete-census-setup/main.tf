@@ -235,9 +235,6 @@ resource "census_sync" "marketing_contact_sync" {
   workspace_id = census_workspace.marketing_prod.id
   label        = "REAL Marketing Contact Sync"
 
-  source_id      = census_source.marketing_prod_warehouse.id
-  destination_id = census_destination.marketing_prod_crm.id
-
   # Source configuration - use a table from the warehouse
   source_attributes {
     connection_id = census_source.marketing_prod_warehouse.id
@@ -301,9 +298,6 @@ resource "census_sync" "marketing_contact_sync_2" {
   workspace_id = census_workspace.marketing_prod.id
   label        = "REAL Marketing Contact Sync 2"
 
-  source_id      = census_source.marketing_prod_warehouse.id
-  destination_id = census_destination.marketing_prod_crm.id
-
   # Source configuration - use a table from the warehouse
   source_attributes {
     connection_id = census_source.marketing_prod_warehouse.id
@@ -366,9 +360,6 @@ resource "census_sync" "marketing_contact_sync_2" {
 resource "census_sync" "marketing_contact_sync_3" {
   workspace_id = census_workspace.marketing_prod.id
   label        = "Marketing Contact Sync 3"
-
-  source_id      = census_source.marketing_prod_warehouse.id
-  destination_id = census_destination.marketing_prod_crm.id
 
   # Source configuration - use a table from the warehouse
   source_attributes {
@@ -434,9 +425,6 @@ resource "census_sync" "dataset_contact_sync" {
   workspace_id = census_workspace.marketing_prod.id
   label        = "Dataset to Contacts Sync"
 
-  source_id      = census_source.marketing_prod_warehouse.id
-  destination_id = census_destination.marketing_prod_crm.id
-
   # Source configuration - use a dataset instead of table
   source_attributes {
     connection_id = census_source.marketing_prod_warehouse.id
@@ -498,8 +486,6 @@ resource "census_sync" "dataset_contact_sync" {
 #   workspace_id = census_workspace.marketing_staging.id
 #   label        = "Marketing Staging Test Sync"
 
-#   source_id      = census_source.marketing_staging_warehouse.id
-#   destination_id = census_destination.marketing_staging_crm.id
 
 #   # Test sync with limited data  
 #   source_attributes {
@@ -553,8 +539,6 @@ resource "census_sync" "dataset_contact_sync" {
 #   workspace_id = census_workspace.revops_prod.id
 #   label        = "RevOps Account Sync"
 
-#   source_id      = census_source.revops_prod_warehouse.id
-#   destination_id = census_destination.marketing_prod_crm.id # Cross-workspace sync example
 
 #   # Source configuration - account enrichment data
 #   source_attributes {

@@ -27,8 +27,6 @@ output "sync_paused" {
 ## Attribute Reference
 
 * `name` - The name of the sync.
-* `source_id` - The ID of the source (source connection, dataset, model, etc.).
-* `destination_id` - The ID of the destination connection.
 * `source_attributes` - JSON-encoded configuration for the source object.
 * `destination_object` - The destination object name.
 * `field_mapping` - Set of field mappings between source and destination:

@@ -55,8 +55,6 @@ resource "census_sync" "users_to_crm" {
   workspace_id = census_workspace.data_team.id
   label        = "Users to CRM"
 
-  source_id      = census_source.warehouse.id
-  destination_id = census_destination.crm.id
 
   source_attributes {
     connection_id = census_source.warehouse.id

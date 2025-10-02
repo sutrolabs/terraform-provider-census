@@ -44,18 +44,6 @@ func resourceSync() *schema.Resource {
 				Required:    true,
 				Description: "The name/label of the sync.",
 			},
-			"source_id": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The ID of the source to sync data from.",
-			},
-			"destination_id": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The ID of the destination to sync data to.",
-			},
 			"source_attributes": {
 				Type:        schema.TypeList,
 				Optional:    true,

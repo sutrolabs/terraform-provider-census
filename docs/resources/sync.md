@@ -10,8 +10,6 @@ Manages a Census sync that moves data from a source (table, dataset, model, etc.
 resource "census_sync" "user_sync" {
   workspace_id   = census_workspace.main.id
   name           = "Users to Salesforce"
-  source_id      = census_source.warehouse.id
-  destination_id = census_destination.salesforce.id
 
   source_attributes = jsonencode({
     connection_id = census_source.warehouse.id
@@ -59,8 +57,6 @@ resource "census_sync" "user_sync" {
 resource "census_sync" "high_value_sync" {
   workspace_id   = census_workspace.main.id
   name           = "High Value Customers to HubSpot"
-  source_id      = census_dataset.high_value_customers.id
-  destination_id = census_destination.hubspot.id
 
   source_attributes = jsonencode({
     connection_id = census_source.warehouse.id
@@ -103,8 +99,6 @@ resource "census_sync" "high_value_sync" {
 resource "census_sync" "secure_sync" {
   workspace_id   = census_workspace.main.id
   name           = "Hashed Email Sync"
-  source_id      = census_source.warehouse.id
-  destination_id = census_destination.segment.id
 
   source_attributes = jsonencode({
     connection_id = census_source.warehouse.id
@@ -139,8 +133,6 @@ resource "census_sync" "secure_sync" {
 resource "census_sync" "tagged_sync" {
   workspace_id   = census_workspace.main.id
   name           = "Tagged Contact Sync"
-  source_id      = census_source.warehouse.id
-  destination_id = census_destination.salesforce.id
 
   source_attributes = jsonencode({
     connection_id = census_source.warehouse.id
@@ -175,8 +167,6 @@ resource "census_sync" "tagged_sync" {
 resource "census_sync" "mirror_sync" {
   workspace_id   = census_workspace.main.id
   name           = "Product Catalog Mirror"
-  source_id      = census_source.warehouse.id
-  destination_id = census_destination.salesforce.id
 
   source_attributes = jsonencode({
     connection_id = census_source.warehouse.id
@@ -217,8 +207,6 @@ resource "census_sync" "mirror_sync" {
 
 * `workspace_id` - (Required, Forces new resource) The ID of the workspace this sync belongs to.
 * `name` - (Required) The name of the sync.
-* `source_id` - (Required) The ID of the source (can be a source connection, dataset, model, etc.).
-* `destination_id` - (Required) The ID of the destination connection.
 * `source_attributes` - (Required) JSON-encoded configuration for the source. Must include:
   * `connection_id` - The source connection ID
   * `object` - Object configuration with:

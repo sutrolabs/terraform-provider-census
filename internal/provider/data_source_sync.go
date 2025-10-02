@@ -31,16 +31,6 @@ func dataSourceSync() *schema.Resource {
 				Computed:    true,
 				Description: "The name/label of the sync.",
 			},
-			"source_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "The ID of the source to sync data from.",
-			},
-			"destination_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "The ID of the destination to sync data to.",
-			},
 			"source_attributes": {
 				Type:        schema.TypeMap,
 				Computed:    true,
