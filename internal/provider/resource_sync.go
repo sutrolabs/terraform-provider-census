@@ -174,6 +174,36 @@ func resourceSync() *schema.Resource {
 				Default:     false,
 				Description: "Whether the sync is paused.",
 			},
+			"field_behavior": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: "Specify how fields are synced. Use 'sync_all_properties' to automatically sync all properties from source to destination. " +
+					"Use 'specific_properties' (default) for manual field mappings only.",
+				ValidateFunc: validation.StringInSlice([]string{
+					"sync_all_properties", "specific_properties",
+				}, false),
+			},
+			"field_normalization": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: "If field_behavior is 'sync_all_properties', specify how automatic field names should be normalized. " +
+					"Options: 'start_case', 'lower_case', 'upper_case', 'camel_case', 'snake_case', 'match_source_names'.",
+				ValidateFunc: validation.StringInSlice([]string{
+					"start_case", "lower_case", "upper_case", "camel_case", "snake_case", "match_source_names",
+				}, false),
+			},
+			"field_order": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: "Specify how destination fields should be ordered. Options: 'alphabetical_column_name' (default) or 'mapping_order'. " +
+					"Only works on destinations that support field ordering.",
+				ValidateFunc: validation.StringInSlice([]string{
+					"alphabetical_column_name", "mapping_order",
+				}, false),
+			},
 			"schedule": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -357,6 +387,11 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		ScheduleMinute:    scheduleMinute,
 
 		Paused: d.Get("paused").(bool),
+
+		// Field configuration
+		FieldBehavior:      d.Get("field_behavior").(string),
+		FieldNormalization: d.Get("field_normalization").(string),
+		FieldOrder:         d.Get("field_order").(string),
 	}
 
 	fmt.Printf("[DEBUG] Creating sync with request: %+v\n", req)
@@ -447,6 +482,18 @@ To fix this, add the missing workspace_id to terraform state:
 	// Set operation field from API response
 	if sync.Operation != "" {
 		d.Set("operation", sync.Operation)
+	}
+
+	// Set field configuration only if explicitly configured by user
+	// This prevents drift when API returns defaults but user hasn't specified them
+	if _, ok := d.GetOk("field_behavior"); ok && sync.FieldBehavior != "" {
+		d.Set("field_behavior", sync.FieldBehavior)
+	}
+	if _, ok := d.GetOk("field_normalization"); ok && sync.FieldNormalization != "" {
+		d.Set("field_normalization", sync.FieldNormalization)
+	}
+	if _, ok := d.GetOk("field_order"); ok && sync.FieldOrder != "" {
+		d.Set("field_order", sync.FieldOrder)
 	}
 
 	// Set time fields only if they are not zero values
@@ -680,13 +727,6 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 	fieldMappings := fieldMappingsSet.List()
 
-	syncKeyInterface := d.Get("sync_key")
-	syncKey, ok := syncKeyInterface.([]interface{})
-	if !ok {
-		fmt.Printf("[DEBUG] sync_key is not a []interface{}, type: %T, value: %+v\n", syncKeyInterface, syncKeyInterface)
-		return diag.Errorf("sync_key is not a valid list: %v", syncKeyInterface)
-	}
-
 	pausedInterface := d.Get("paused")
 	paused, ok := pausedInterface.(bool)
 	if !ok {
@@ -715,12 +755,21 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			scheduleFrequency, scheduleHour, scheduleDay, scheduleMinute)
 	}
 
+	// Safe type assertions for field configuration
+	fieldBehaviorInterface := d.Get("field_behavior")
+	fieldBehavior, _ := fieldBehaviorInterface.(string)
+
+	fieldNormalizationInterface := d.Get("field_normalization")
+	fieldNormalization, _ := fieldNormalizationInterface.(string)
+
+	fieldOrderInterface := d.Get("field_order")
+	fieldOrder, _ := fieldOrderInterface.(string)
+
 	req := &client.UpdateSyncRequest{
 		Label:                 label,
 		SourceAttributes:      expandStringMap(sourceAttrs),
 		DestinationAttributes: expandStringMap(destAttrs),
 		FieldMappings:         expandFieldMappings(fieldMappings),
-		SyncKey:               expandStringList(syncKey),
 		Paused:                paused,
 
 		// Flat schedule fields for Census Management API
@@ -728,6 +777,11 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		ScheduleDay:       scheduleDay,
 		ScheduleHour:      scheduleHour,
 		ScheduleMinute:    scheduleMinute,
+
+		// Field configuration
+		FieldBehavior:      fieldBehavior,
+		FieldNormalization: fieldNormalization,
+		FieldOrder:         fieldOrder,
 	}
 
 	fmt.Printf("[DEBUG] Update request: %+v\n", req)

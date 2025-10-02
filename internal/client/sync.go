@@ -44,6 +44,11 @@ type Sync struct {
 	LastRunAt *time.Time `json:"last_run_at,omitempty"`
 	NextRunAt *time.Time `json:"next_run_at,omitempty"`
 	LastRunID *int       `json:"last_run_id,omitempty"`
+
+	// Field configuration
+	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
+	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
+	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
 }
 
 // FieldMapping represents a field mapping between source and destination (for Terraform config)
@@ -99,6 +104,11 @@ type CreateSyncRequest struct {
 	CronExpression    string `json:"cron_expression,omitempty"`
 
 	Paused bool `json:"paused,omitempty"`
+
+	// Field configuration
+	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
+	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
+	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
 }
 
 // UpdateSyncRequest represents the request to update a sync
@@ -118,6 +128,11 @@ type UpdateSyncRequest struct {
 	CronExpression    string `json:"cron_expression,omitempty"`
 
 	Paused bool `json:"paused,omitempty"`
+
+	// Field configuration
+	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
+	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
+	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
 }
 
 // SyncResponse represents a single sync response

@@ -160,6 +160,48 @@ resource "census_sync" "tagged_sync" {
 }
 ```
 
+### Sync with Automatic Field Mapping (Sync All Properties)
+
+```hcl
+resource "census_sync" "auto_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "Auto-Mapped Users Sync"
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "users"
+    }
+  })
+
+  destination_object = "Contact"
+
+  # Automatically sync all properties from source to destination
+  field_behavior      = "sync_all_properties"
+  field_normalization = "snake_case"  # Format field names in snake_case
+  field_order         = "mapping_order"
+
+  # Only need to define the primary identifier when using sync_all_properties
+  field_mapping = [
+    {
+      from                  = "email"
+      to                    = "Email"
+      operation             = "direct"
+      is_primary_identifier = true
+    },
+  ]
+
+  operation = "upsert"
+
+  schedule {
+    frequency = "daily"
+    hour      = 8
+    minute    = 0
+  }
+}
+```
+
 ### Mirror Sync (Replace All)
 
 ```hcl
@@ -219,6 +261,19 @@ resource "census_sync" "mirror_sync" {
   * `constant` - Constant value (required when operation is `"constant"`)
   * `is_primary_identifier` - (Optional) Boolean indicating if this field is the primary identifier for matching records. Exactly one field_mapping must have this set to `true`. Defaults to `false`.
 * `operation` - (Optional) Sync mode: `"upsert"`, `"append"`, or `"mirror"`. Defaults to `"upsert"`.
+* `field_behavior` - (Optional) Controls how fields are synced:
+  * `"specific_properties"` (default) - Use only the field mappings defined in `field_mapping`
+  * `"sync_all_properties"` - Automatically sync all properties from source to destination
+* `field_normalization` - (Optional) When `field_behavior` is `"sync_all_properties"`, specifies how automatic field names should be normalized:
+  * `"start_case"` - Start Case (e.g., "First Name")
+  * `"lower_case"` - lower case (e.g., "first name")
+  * `"upper_case"` - UPPER CASE (e.g., "FIRST NAME")
+  * `"camel_case"` - camelCase (e.g., "firstName")
+  * `"snake_case"` - snake_case (e.g., "first_name")
+  * `"match_source_names"` - Use exact source field names
+* `field_order` - (Optional) Specifies how destination fields should be ordered. Only applicable for destinations that support field ordering:
+  * `"alphabetical_column_name"` (default) - Sort fields alphabetically
+  * `"mapping_order"` - Use the order fields are defined in `field_mapping`
 * `schedule` - (Optional) Scheduling configuration block:
   * `frequency` - (Required) `"hourly"`, `"daily"`, `"weekly"`, or `"manual"`
   * `minute` - (Optional) Minute of hour to run (0-59)
