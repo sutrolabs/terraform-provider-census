@@ -113,6 +113,11 @@ func resourceSync() *schema.Resource {
 							Required:    true,
 							Description: "The destination object name (e.g., 'Contact' for Salesforce).",
 						},
+						"lead_union_insert_to": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Where to insert a union object (for Salesforce connections).",
+						},
 					},
 				},
 			},
@@ -1711,6 +1716,9 @@ func expandDestinationAttributes(destAttrs []interface{}) map[string]interface{}
 	if v, ok := attr["object"]; ok && v != "" {
 		result["object"] = v
 	}
+	if v, ok := attr["lead_union_insert_to"]; ok && v != "" {
+		result["lead_union_insert_to"] = v
+	}
 
 	return result
 }
@@ -1739,6 +1747,11 @@ func flattenDestinationAttributes(attrs map[string]interface{}) []map[string]int
 	// Set object as string
 	if object, ok := attrs["object"]; ok {
 		result["object"] = convertToString(object)
+	}
+
+	// Set lead_union_insert_to as string if present
+	if leadUnionInsertTo, ok := attrs["lead_union_insert_to"]; ok {
+		result["lead_union_insert_to"] = convertToString(leadUnionInsertTo)
 	}
 
 	return []map[string]interface{}{result}

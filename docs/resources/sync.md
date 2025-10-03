@@ -617,7 +617,10 @@ resource "census_sync" "preserve_example" {
     * `type` - Source type: `"table"`, `"dataset"`, `"model"`, `"topic"`, `"segment"`, or `"cohort"`
     * For table sources: `table_name`, optionally `table_schema` and `table_catalog`
     * For other sources: `id` of the dataset/model/etc.
-* `destination_object` - (Required) The destination object name (e.g., "Contact" for Salesforce, "contacts" for HubSpot).
+* `destination_attributes` - (Required) Destination configuration block:
+  * `connection_id` - (Required) The destination connection ID
+  * `object` - (Required) The destination object name (e.g., "Contact" for Salesforce, "contacts" for HubSpot)
+  * `lead_union_insert_to` - (Optional) Where to insert a union object (for Salesforce connections only)
 * `field_mapping` - (Optional) Set of field mappings between source and destination. Each mapping includes:
   * `from` - Source field name (required for `type="direct"` or `type="hash"`). Omit for `constant`, `sync_metadata`, `segment_membership`, and `liquid_template` mappings.
   * `to` - Destination field name (required)
