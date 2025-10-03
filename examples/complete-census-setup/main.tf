@@ -268,13 +268,13 @@ resource "census_sync" "marketing_contact_sync" {
   }
 
   field_mapping {
-    from = "last_name"
-    to   = "LastName"
+    from = "id"
+    to   = "Census_ID__c"
   }
 
   field_mapping {
-    from = "id"
-    to   = "Census_ID__c"
+    from = "last_name"
+    to   = "LastName"
   }
 
   # Scheduling - run daily at 6 AM UTC
@@ -359,13 +359,13 @@ resource "census_sync" "marketing_contact_sync_2" {
   }
 
   field_mapping {
-    from = "last_name"
-    to   = "LastName"
+    from = "id"
+    to   = "Census_ID__c"
   }
 
   field_mapping {
-    from = "id"
-    to   = "Census_ID__c"
+    from = "last_name"
+    to   = "LastName"
   }
 
   # Scheduling - run daily at 6 AM UTC
@@ -416,15 +416,15 @@ resource "census_sync" "marketing_contact_sync_3" {
   }
 
   field_mapping {
-    from = "last_name"
-    to   = "LastName"
-  }
-
-  field_mapping {
     from = "id"
     to   = "Census_ID__c"
   }
 
+
+  field_mapping {
+    from = "last_name"
+    to   = "LastName"
+  }
   alert {
     type                 = "FailureAlertConfiguration"
     send_for             = "first_time"
@@ -482,29 +482,8 @@ resource "census_sync" "dataset_contact_sync" {
   # Field mappings using dataset columns
 
   field_mapping {
-    from = "user_id"
-    to   = "Census_ID__c"
-  }
-  field_mapping {
-    from                  = "email"
-    to                    = "Email"
-    is_primary_identifier = true
-  }
-
-  field_mapping {
-    from = "first_name"
-    to   = "FirstName"
-  }
-
-  field_mapping {
     from = "last_name"
     to   = "LastName"
-  }
-
-  field_mapping {
-    type     = "constant"
-    constant = "HERE is my constant value"
-    to       = "AssistantName"
   }
 
   # Sync metadata mapping - track sync run IDs
@@ -526,6 +505,27 @@ resource "census_sync" "dataset_contact_sync" {
     type            = "liquid_template"
     liquid_template = "{{ record['_fivetran_synced'] | upcase }}"
     to              = "OtherPostalCode"
+  }
+
+  field_mapping {
+    from = "user_id"
+    to   = "Census_ID__c"
+  }
+
+  field_mapping {
+    type     = "constant"
+    constant = "HERE is my constant value 2"
+    to       = "AssistantName"
+  }
+  field_mapping {
+    from                  = "email"
+    to                    = "Email"
+    is_primary_identifier = true
+  }
+
+  field_mapping {
+    from = "first_name"
+    to   = "FirstName"
   }
 
   schedule {

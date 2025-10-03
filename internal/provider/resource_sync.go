@@ -125,10 +125,9 @@ func resourceSync() *schema.Resource {
 				}, false),
 			},
 			"field_mapping": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "Field mappings between source and destination.",
-				Set:         fieldMappingHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from": {
@@ -391,92 +390,6 @@ func resourceSync() *schema.Resource {
 	}
 }
 
-// fieldMappingHash creates a hash for a field mapping to use in a TypeSet
-// This ensures field mappings are compared by content, not order
-func fieldMappingHash(v interface{}) int {
-	m := v.(map[string]interface{})
-
-	// Create a unique string representation based on all identifying fields
-	from := ""
-	if val, ok := m["from"].(string); ok {
-		from = val
-	}
-
-	to := ""
-	if val, ok := m["to"].(string); ok {
-		to = val
-	}
-
-	mappingType := "direct" // default
-	if val, ok := m["type"].(string); ok && val != "" {
-		mappingType = val
-	}
-
-	lookupObject := ""
-	if val, ok := m["lookup_object"].(string); ok {
-		lookupObject = val
-	}
-
-	lookupField := ""
-	if val, ok := m["lookup_field"].(string); ok {
-		lookupField = val
-	}
-
-	syncMetadataKey := ""
-	if val, ok := m["sync_metadata_key"].(string); ok {
-		syncMetadataKey = val
-	}
-
-	segmentIdentifyBy := ""
-	if val, ok := m["segment_identify_by"].(string); ok {
-		segmentIdentifyBy = val
-	}
-
-	liquidTemplate := ""
-	if val, ok := m["liquid_template"].(string); ok {
-		liquidTemplate = val
-	}
-
-	// Build hash string including type-specific fields
-	hashStr := fmt.Sprintf("%s:%s:%s:%s:%s", from, to, mappingType, lookupObject, lookupField)
-
-	// Include type-specific data in hash
-	switch mappingType {
-	case "constant":
-		if constant, ok := m["constant"]; ok && constant != nil {
-			hashStr = fmt.Sprintf("%s:%v", hashStr, constant)
-		}
-	case "sync_metadata":
-		hashStr = fmt.Sprintf("%s:%s", hashStr, syncMetadataKey)
-	case "segment_membership":
-		hashStr = fmt.Sprintf("%s:%s", hashStr, segmentIdentifyBy)
-	case "liquid_template":
-		hashStr = fmt.Sprintf("%s:%s", hashStr, liquidTemplate)
-	}
-
-	// Include new boolean fields in hash
-	preserveValues := "false"
-	if val, ok := m["preserve_values"].(bool); ok && val {
-		preserveValues = "true"
-	}
-
-	generateField := "false"
-	if val, ok := m["generate_field"].(bool); ok && val {
-		generateField = "true"
-	}
-
-	syncNullValues := "true" // default
-	if val, ok := m["sync_null_values"].(bool); ok {
-		syncNullValues = fmt.Sprintf("%t", val)
-	}
-
-	hashStr = fmt.Sprintf("%s:%s:%s:%s", hashStr, preserveValues, generateField, syncNullValues)
-
-	h := fnv.New32a()
-	h.Write([]byte(hashStr))
-	return int(h.Sum32())
-}
-
 // alertHash creates a hash for an alert to use in a TypeSet
 func alertHash(v interface{}) int {
 	m := v.(map[string]interface{})
@@ -550,7 +463,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	destinationAttributes := expandDestinationAttributes(d.Get("destination_attributes").([]interface{}))
-	fieldMappings := expandFieldMappings(d.Get("field_mapping").(*schema.Set).List())
+	fieldMappings := expandFieldMappings(d.Get("field_mapping").([]interface{}))
 
 	// Validate exactly one primary identifier
 	if err := validatePrimaryIdentifier(fieldMappings); err != nil {
@@ -963,12 +876,11 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	fieldMappingsInterface := d.Get("field_mapping")
-	fieldMappingsSet, ok := fieldMappingsInterface.(*schema.Set)
+	fieldMappings, ok := fieldMappingsInterface.([]interface{})
 	if !ok {
-		fmt.Printf("[DEBUG] field_mapping is not a *schema.Set, type: %T, value: %+v\n", fieldMappingsInterface, fieldMappingsInterface)
-		return diag.Errorf("field_mapping is not a valid set: %v", fieldMappingsInterface)
+		fmt.Printf("[DEBUG] field_mapping is not a []interface{}, type: %T, value: %+v\n", fieldMappingsInterface, fieldMappingsInterface)
+		return diag.Errorf("field_mapping is not a valid list: %v", fieldMappingsInterface)
 	}
-	fieldMappings := fieldMappingsSet.List()
 
 	pausedInterface := d.Get("paused")
 	paused, ok := pausedInterface.(bool)
@@ -1193,11 +1105,12 @@ func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 			"generate_field":        mapping.GenerateField,
 		}
 
-		// Handle sync_null_values (pointer bool)
+		// Always include sync_null_values explicitly to match API response
 		if mapping.SyncNullValues != nil {
 			mappingMap["sync_null_values"] = *mapping.SyncNullValues
 		} else {
-			mappingMap["sync_null_values"] = true // default value
+			// If API didn't return it, use schema default
+			mappingMap["sync_null_values"] = true
 		}
 
 		result[i] = mappingMap
