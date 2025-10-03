@@ -53,6 +53,9 @@ type Sync struct {
 	// Advanced configuration - destination-specific options
 	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
 
+	// High water mark attribute - timestamp column for append syncs
+	HighWaterMarkAttribute string `json:"high_water_mark_attribute,omitempty"`
+
 	// Alert configuration
 	AlertAttributes []AlertAttribute `json:"alert_attributes,omitempty"`
 }
@@ -78,6 +81,9 @@ type FieldMapping struct {
 	IsPrimaryIdentifier bool        `json:"is_primary_identifier,omitempty"` // Whether this field is the sync key
 	LookupObject        string      `json:"lookup_object,omitempty"`         // Object to lookup for relationship mapping
 	LookupField         string      `json:"lookup_field,omitempty"`          // Field to use for lookup
+	PreserveValues      bool        `json:"preserve_values,omitempty"`       // Whether to preserve existing destination values
+	GenerateField       bool        `json:"generate_field,omitempty"`        // Whether Census should generate this field
+	SyncNullValues      *bool       `json:"sync_null_values,omitempty"`      // Whether to sync null values (pointer to distinguish from false vs not set)
 }
 
 // MappingAttributes represents Census API mapping format (OpenAPI compliant)
@@ -87,6 +93,9 @@ type MappingAttributes struct {
 	IsPrimaryIdentifier bool        `json:"is_primary_identifier"`
 	LookupObject        string      `json:"lookup_object,omitempty"`
 	LookupField         string      `json:"lookup_field,omitempty"`
+	PreserveValues      bool        `json:"preserve_values,omitempty"`
+	GenerateField       bool        `json:"generate_field,omitempty"`
+	SyncNullValues      *bool       `json:"sync_null_values,omitempty"` // Pointer to distinguish from false vs not set (default is true)
 }
 
 // MappingFrom represents the source of a mapping
@@ -132,6 +141,9 @@ type CreateSyncRequest struct {
 
 	// Advanced configuration - destination-specific options
 	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
+
+	// High water mark attribute - timestamp column for append syncs
+	HighWaterMarkAttribute string `json:"high_water_mark_attribute,omitempty"`
 }
 
 // UpdateSyncRequest represents the request to update a sync
@@ -159,6 +171,9 @@ type UpdateSyncRequest struct {
 
 	// Advanced configuration - destination-specific options
 	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
+
+	// High water mark attribute - timestamp column for append syncs
+	HighWaterMarkAttribute string `json:"high_water_mark_attribute,omitempty"`
 
 	// Alert configuration
 	AlertAttributes []AlertAttribute `json:"alert_attributes,omitempty"`

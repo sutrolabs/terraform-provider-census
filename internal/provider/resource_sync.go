@@ -186,6 +186,24 @@ func resourceSync() *schema.Resource {
 							Optional:    true,
 							Description: "Field to use for lookup in the lookup_object (e.g., 'id'). Used with lookup_object for foreign key lookups.",
 						},
+						"preserve_values": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "If true, preserves existing values in the destination field and prevents Census from overwriting them.",
+						},
+						"generate_field": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "If true, Census will generate/create this field in the destination.",
+						},
+						"sync_null_values": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     true,
+							Description: "If true (default), null values in the source will be synced to the destination. Set to false to skip syncing null values.",
+						},
 					},
 				},
 			},
@@ -237,6 +255,11 @@ func resourceSync() *schema.Resource {
 				Description:      "Advanced configuration options specific to the destination type as JSON. Use jsonencode() to specify values. Available options vary by destination.",
 				ValidateFunc:     validation.StringIsJSON,
 				DiffSuppressFunc: suppressEquivalentJSON,
+			},
+			"high_water_mark_attribute": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Census diff engine (using primary keys). Example: 'updated_at'.",
 			},
 			"alert": {
 				Type:        schema.TypeSet,
@@ -431,6 +454,24 @@ func fieldMappingHash(v interface{}) int {
 		hashStr = fmt.Sprintf("%s:%s", hashStr, liquidTemplate)
 	}
 
+	// Include new boolean fields in hash
+	preserveValues := "false"
+	if val, ok := m["preserve_values"].(bool); ok && val {
+		preserveValues = "true"
+	}
+
+	generateField := "false"
+	if val, ok := m["generate_field"].(bool); ok && val {
+		generateField = "true"
+	}
+
+	syncNullValues := "true" // default
+	if val, ok := m["sync_null_values"].(bool); ok {
+		syncNullValues = fmt.Sprintf("%t", val)
+	}
+
+	hashStr = fmt.Sprintf("%s:%s:%s:%s", hashStr, preserveValues, generateField, syncNullValues)
+
 	h := fnv.New32a()
 	h.Write([]byte(hashStr))
 	return int(h.Sum32())
@@ -568,6 +609,9 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		// Advanced configuration
 		AdvancedConfiguration: expandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
 
+		// High water mark attribute
+		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
+
 		// Alert configuration
 		AlertAttributes: expandAlerts(d.Get("alert").(*schema.Set).List()),
 	}
@@ -680,6 +724,11 @@ To fix this, add the missing workspace_id to terraform state:
 			fmt.Printf("[DEBUG] Failed to set advanced_configuration: %v\n", err)
 			return diag.Errorf("failed to set advanced_configuration: %v", err)
 		}
+	}
+
+	// Set high water mark attribute if present
+	if sync.HighWaterMarkAttribute != "" {
+		d.Set("high_water_mark_attribute", sync.HighWaterMarkAttribute)
 	}
 
 	// Set alert attributes if present
@@ -988,6 +1037,9 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		// Advanced configuration
 		AdvancedConfiguration: expandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
 
+		// High water mark attribute
+		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
+
 		// Alert configuration
 		AlertAttributes: expandAlerts(alertSet.List()),
 	}
@@ -1104,6 +1156,20 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 			fieldMapping.LookupField = lookupField
 		}
 
+		if preserveValues, ok := m["preserve_values"].(bool); ok {
+			fieldMapping.PreserveValues = preserveValues
+		}
+
+		if generateField, ok := m["generate_field"].(bool); ok {
+			fieldMapping.GenerateField = generateField
+		}
+
+		if syncNullValues, ok := m["sync_null_values"]; ok {
+			if val, isBool := syncNullValues.(bool); isBool {
+				fieldMapping.SyncNullValues = &val
+			}
+		}
+
 		result = append(result, fieldMapping)
 	}
 	return result
@@ -1112,7 +1178,7 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 	result := make([]interface{}, len(mappings))
 	for i, mapping := range mappings {
-		result[i] = map[string]interface{}{
+		mappingMap := map[string]interface{}{
 			"from":                  mapping.From,
 			"to":                    mapping.To,
 			"type":                  mapping.Type,
@@ -1123,7 +1189,18 @@ func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 			"is_primary_identifier": mapping.IsPrimaryIdentifier,
 			"lookup_object":         mapping.LookupObject,
 			"lookup_field":          mapping.LookupField,
+			"preserve_values":       mapping.PreserveValues,
+			"generate_field":        mapping.GenerateField,
 		}
+
+		// Handle sync_null_values (pointer bool)
+		if mapping.SyncNullValues != nil {
+			mappingMap["sync_null_values"] = *mapping.SyncNullValues
+		} else {
+			mappingMap["sync_null_values"] = true // default value
+		}
+
+		result[i] = mappingMap
 	}
 	return result
 }
@@ -1544,6 +1621,9 @@ func convertFieldMappingsToMappingAttributes(fieldMappings []client.FieldMapping
 			IsPrimaryIdentifier: fm.IsPrimaryIdentifier, // Use value from field_mapping directly
 			LookupObject:        fm.LookupObject,
 			LookupField:         fm.LookupField,
+			PreserveValues:      fm.PreserveValues,
+			GenerateField:       fm.GenerateField,
+			SyncNullValues:      fm.SyncNullValues,
 		}
 	}
 
@@ -1639,6 +1719,9 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 			IsPrimaryIdentifier: ma.IsPrimaryIdentifier,
 			LookupObject:        ma.LookupObject,
 			LookupField:         ma.LookupField,
+			PreserveValues:      ma.PreserveValues,
+			GenerateField:       ma.GenerateField,
+			SyncNullValues:      ma.SyncNullValues,
 		}
 	}
 

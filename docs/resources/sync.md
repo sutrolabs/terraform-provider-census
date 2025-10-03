@@ -509,6 +509,104 @@ resource "census_sync" "mirror_sync" {
 }
 ```
 
+### Append Sync with High Water Mark
+
+```hcl
+resource "census_sync" "incremental_append" {
+  workspace_id   = census_workspace.main.id
+  name           = "Incremental Event Log Sync"
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "event_logs"
+    }
+  })
+
+  destination_object = "Event__c"
+
+  field_mapping = [
+    {
+      from                  = "event_id"
+      to                    = "Event_ID__c"
+      is_primary_identifier = true
+    },
+    {
+      from = "event_name"
+      to   = "Name"
+    },
+    {
+      from = "updated_at"
+      to   = "Updated_At__c"
+    },
+  ]
+
+  operation = "append"
+
+  # Use high water mark to only sync new records based on timestamp
+  # This is more efficient than Census's default diff engine for append operations
+  high_water_mark_attribute = "updated_at"
+
+  schedule {
+    frequency = "hourly"
+    minute    = 15
+  }
+}
+```
+
+### Sync with Field Preservation and Null Value Control
+
+```hcl
+resource "census_sync" "preserve_example" {
+  workspace_id   = census_workspace.main.id
+  name           = "Customer Sync with Field Preservation"
+
+  source_attributes = jsonencode({
+    connection_id = census_source.warehouse.id
+    object = {
+      type       = "table"
+      table_name = "customers"
+    }
+  })
+
+  destination_object = "Contact"
+
+  field_mapping = [
+    {
+      from                  = "email"
+      to                    = "Email"
+      is_primary_identifier = true
+    },
+    {
+      from = "first_name"
+      to   = "FirstName"
+    },
+    {
+      # Don't overwrite existing phone numbers in destination
+      from            = "phone"
+      to              = "Phone"
+      preserve_values = true
+      sync_null_values = false  # Don't sync null phone values
+    },
+    {
+      # Generate a custom field in the destination
+      from           = "customer_tier"
+      to             = "Customer_Tier__c"
+      generate_field = true
+    },
+  ]
+
+  operation = "upsert"
+
+  schedule {
+    frequency = "daily"
+    hour      = 9
+    minute    = 0
+  }
+}
+```
+
 ## Argument Reference
 
 * `workspace_id` - (Required, Forces new resource) The ID of the workspace this sync belongs to.
@@ -531,6 +629,9 @@ resource "census_sync" "mirror_sync" {
   * `is_primary_identifier` - (Optional) Boolean indicating if this field is the primary identifier for matching records. Exactly one field_mapping must have this set to `true`. Defaults to `false`.
   * `lookup_object` - (Optional) Object to lookup for relationship mapping (e.g., `"user_list"`). Used with `lookup_field` for foreign key lookups.
   * `lookup_field` - (Optional) Field to use for lookup in the `lookup_object` (e.g., `"id"`). Used with `lookup_object` for foreign key lookups.
+  * `preserve_values` - (Optional) If true, preserves existing values in the destination field and prevents Census from overwriting them. Defaults to `false`.
+  * `generate_field` - (Optional) If true, Census will generate/create this field in the destination. Defaults to `false`.
+  * `sync_null_values` - (Optional) If true (default), null values in the source will be synced to the destination. Set to false to skip syncing null values. Defaults to `true`.
 * `operation` - (Optional) Sync mode: `"upsert"`, `"append"`, or `"mirror"`. Defaults to `"upsert"`.
 * `field_behavior` - (Optional) Controls how fields are synced:
   * `"specific_properties"` (default) - Use only the field mappings defined in `field_mapping`
@@ -546,6 +647,7 @@ resource "census_sync" "mirror_sync" {
   * `"alphabetical_column_name"` (default) - Sort fields alphabetically
   * `"mapping_order"` - Use the order fields are defined in `field_mapping`
 * `advanced_configuration` - (Optional) Advanced configuration options specific to the destination type as JSON string. Use `jsonencode()` to specify values. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values can be strings, numbers, or booleans. Refer to destination-specific Census documentation for available options.
+* `high_water_mark_attribute` - (Optional) The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Census diff engine (using primary keys). This is more efficient for append operations with timestamp-based data. Example: `"updated_at"`.
 * `alert` - (Optional) Set of alert configurations for monitoring sync health. Multiple alerts can be configured. Each alert includes:
   * `type` - (Required) Type of alert. Valid values:
     * `"FailureAlertConfiguration"` - Alert when sync fails completely
