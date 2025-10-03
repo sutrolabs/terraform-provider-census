@@ -85,6 +85,53 @@ resource "census_sync" "high_value_sync" {
 }
 ```
 
+### Sync with Segment Source
+
+```hcl
+resource "census_sync" "vip_segment_sync" {
+  workspace_id   = census_workspace.main.id
+  name           = "VIP Users Segment to Salesforce"
+
+  source_attributes {
+    connection_id     = 829
+    filter_segment_id = 3060  # The segment ID
+    object {
+      type = "dataset"
+      id   = "5951"  # The dataset ID that the segment belongs to
+    }
+  }
+
+  destination_attributes {
+    connection_id = 456
+    object        = "Contact"
+  }
+
+  field_mapping = [
+    {
+      from                  = "email"
+      to                    = "Email"
+      is_primary_identifier = true
+    },
+    {
+      from = "first_name"
+      to   = "FirstName"
+    },
+    {
+      from = "last_name"
+      to   = "LastName"
+    },
+  ]
+
+  operation = "upsert"
+
+  schedule {
+    frequency = "daily"
+    hour      = 2
+    minute    = 0
+  }
+}
+```
+
 ### Sync with Hash Operation
 
 ```hcl
@@ -611,12 +658,14 @@ resource "census_sync" "preserve_example" {
 
 * `workspace_id` - (Required, Forces new resource) The ID of the workspace this sync belongs to.
 * `name` - (Required) The name of the sync.
-* `source_attributes` - (Required) JSON-encoded configuration for the source. Must include:
-  * `connection_id` - The source connection ID
-  * `object` - Object configuration with:
-    * `type` - Source type: `"table"`, `"dataset"`, `"model"`, `"topic"`, `"segment"`, or `"cohort"`
+* `source_attributes` - (Required) Configuration block for the source. Must include:
+  * `connection_id` - (Required) The source connection ID
+  * `filter_segment_id` - (Optional) The filter segment ID. When using a segment source, set this to the segment ID and set `object.type` to `"dataset"` with `object.id` as the dataset ID that the segment belongs to.
+  * `object` - (Required) Object configuration block:
+    * `type` - (Required) Source type: `"table"`, `"dataset"`, `"model"`, `"topic"`, `"segment"`, or `"cohort"`
     * For table sources: `table_name`, optionally `table_schema` and `table_catalog`
-    * For other sources: `id` of the dataset/model/etc.
+    * For dataset/model/segment sources: `id` of the dataset/model
+    * For segment sources specifically: use `type="dataset"` and provide the dataset `id`, then specify the segment via the top-level `filter_segment_id` field
 * `destination_attributes` - (Required) Destination configuration block:
   * `connection_id` - (Required) The destination connection ID
   * `object` - (Required) The destination object name (e.g., "Contact" for Salesforce, "contacts" for HubSpot)

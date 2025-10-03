@@ -58,6 +58,11 @@ func resourceSync() *schema.Resource {
 							Required:    true,
 							Description: "The ID of the source connection.",
 						},
+						"cohort_id": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "The ID of the cohort (for cohort sources). When specified, object.type should be 'cohort', object.id should be the cohort ID, and object.dataset_id should be the dataset ID.",
+						},
 						"object": {
 							Type:        schema.TypeList,
 							Required:    true,
@@ -88,7 +93,12 @@ func resourceSync() *schema.Resource {
 									"id": {
 										Type:        schema.TypeString,
 										Optional:    true,
-										Description: "Object ID (for dataset, model, etc.).",
+										Description: "Object ID (for dataset, model, segment, cohort, topic, etc.).",
+									},
+									"dataset_id": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Dataset ID (for segment and cohort sources - the underlying dataset that the segment/cohort belongs to).",
 									},
 								},
 							},
@@ -1368,7 +1378,19 @@ func flattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 		}
 	}
 
-	// Handle object structure
+	// Set cohort_id if present (for cohort sources)
+	if cohortId, ok := attrs["cohort_id"]; ok {
+		switch v := cohortId.(type) {
+		case float64:
+			result["cohort_id"] = int(v)
+		case int:
+			result["cohort_id"] = v
+		default:
+			result["cohort_id"] = cohortId
+		}
+	}
+
+	// Handle object structure with smart translation
 	if objectData, ok := attrs["object"]; ok {
 		objectMap, isMap := objectData.(map[string]interface{})
 		if isMap {
@@ -1380,11 +1402,45 @@ func flattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 				objectType = convertToString(t)
 			}
 
-			// Handle type translation: Census API returns "business_object_source" for datasets
-			if objectType == "business_object_source" {
+			// Check for special source types that need reverse translation
+			filterSegmentId, hasFilterSegment := attrs["filter_segment_id"]
+			cohortId, hasCohort := attrs["cohort_id"]
+
+			if hasFilterSegment && objectType == "filter_segment_source" {
+				// API returns filter_segment_source - translate to segment for user
+				convertedObject["type"] = "segment"
+				// Use filter_segment_id as the object id
+				switch v := filterSegmentId.(type) {
+				case float64:
+					convertedObject["id"] = fmt.Sprintf("%.0f", v)
+				case int:
+					convertedObject["id"] = fmt.Sprintf("%d", v)
+				default:
+					convertedObject["id"] = convertToString(filterSegmentId)
+				}
+				// Include dataset_id from the object
+				if datasetId, ok := objectMap["dataset_id"]; ok {
+					convertedObject["dataset_id"] = convertToString(datasetId)
+				}
+			} else if hasCohort && objectType == "cohort_source" {
+				// API returns cohort_source - translate to cohort for user
+				convertedObject["type"] = "cohort"
+				// Use cohort_id as the object id
+				switch v := cohortId.(type) {
+				case float64:
+					convertedObject["id"] = fmt.Sprintf("%.0f", v)
+				case int:
+					convertedObject["id"] = fmt.Sprintf("%d", v)
+				default:
+					convertedObject["id"] = convertToString(cohortId)
+				}
+				// Try to get dataset_id from the object
+				if datasetId, ok := objectMap["dataset_id"]; ok {
+					convertedObject["dataset_id"] = convertToString(datasetId)
+				}
+			} else if objectType == "business_object_source" {
 				// Translate business_object_source -> dataset for Terraform
 				convertedObject["type"] = "dataset"
-
 				// For datasets, use dataset_id instead of id
 				if datasetId, ok := objectMap["dataset_id"]; ok {
 					convertedObject["id"] = convertToString(datasetId)
@@ -1402,7 +1458,7 @@ func flattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 					convertedObject["table_catalog"] = convertToString(v)
 				}
 			} else {
-				// For other types, copy type and id if present
+				// For other types (model, topic, dataset), copy type and id if present
 				if objectType != "" {
 					convertedObject["type"] = objectType
 				}
@@ -1667,7 +1723,13 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 		result["connection_id"] = v
 	}
 
+	// Copy top-level cohort_id if present (for cohort sources)
+	if v, ok := attr["cohort_id"]; ok && v != "" {
+		result["cohort_id"] = v
+	}
+
 	// Handle nested object - it can be either a list of maps (from Terraform state) or a direct map
+	var objectMap map[string]interface{}
 	if objData, ok := attr["object"]; ok {
 		switch v := objData.(type) {
 		case []interface{}:
@@ -1675,7 +1737,7 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 			if len(v) > 0 {
 				if obj, ok := v[0].(map[string]interface{}); ok {
 					fmt.Printf("[DEBUG] expandSourceAttributes: object extracted from list: %+v\n", obj)
-					result["object"] = obj
+					objectMap = obj
 				} else {
 					fmt.Printf("[DEBUG] expandSourceAttributes: objList[0] is not a map[string]interface{}, type: %T, value: %+v\n", v[0], v[0])
 					return result // Return partial result instead of nil
@@ -1684,9 +1746,52 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 		case map[string]interface{}:
 			// Object is directly a map (direct config)
 			fmt.Printf("[DEBUG] expandSourceAttributes: object is direct map: %+v\n", v)
-			result["object"] = v
+			objectMap = v
 		default:
 			fmt.Printf("[DEBUG] expandSourceAttributes: object is unexpected type: %T, value: %+v\n", objData, objData)
+		}
+	}
+
+	// Smart translation for segment and cohort sources
+	if objectMap != nil {
+		objectType := ""
+		if t, ok := objectMap["type"].(string); ok {
+			objectType = t
+		}
+
+		switch objectType {
+		case "segment":
+			// User provides: type="segment", id=<segment_id>, dataset_id=<dataset_id>
+			// API needs: object.type="dataset", object.id=<dataset_id>, filter_segment_id=<segment_id>
+			translatedObject := make(map[string]interface{})
+			translatedObject["type"] = "dataset"
+			if datasetId, ok := objectMap["dataset_id"]; ok && datasetId != "" {
+				translatedObject["id"] = datasetId
+			}
+			result["object"] = translatedObject
+			if segmentId, ok := objectMap["id"]; ok && segmentId != "" {
+				result["filter_segment_id"] = segmentId
+			}
+			fmt.Printf("[DEBUG] expandSourceAttributes: Translated segment source - object: %+v, filter_segment_id: %+v\n", translatedObject, result["filter_segment_id"])
+
+		case "cohort":
+			// User provides: type="cohort", id=<cohort_id>, dataset_id=<dataset_id>
+			// API needs: object.type="dataset", object.id=<dataset_id>, cohort_id=<cohort_id>
+			translatedObject := make(map[string]interface{})
+			translatedObject["type"] = "dataset"
+			if datasetId, ok := objectMap["dataset_id"]; ok && datasetId != "" {
+				translatedObject["id"] = datasetId
+			}
+			result["object"] = translatedObject
+			if cohortId, ok := objectMap["id"]; ok && cohortId != "" {
+				result["cohort_id"] = cohortId
+			}
+			fmt.Printf("[DEBUG] expandSourceAttributes: Translated cohort source - object: %+v, cohort_id: %+v\n", translatedObject, result["cohort_id"])
+
+		default:
+			// For all other types (model, topic, dataset, table), pass through as-is
+			result["object"] = objectMap
+			fmt.Printf("[DEBUG] expandSourceAttributes: Pass-through object for type %s: %+v\n", objectType, objectMap)
 		}
 	}
 
