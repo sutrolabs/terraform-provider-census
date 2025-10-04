@@ -50,6 +50,9 @@ type Sync struct {
 	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
 	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
 
+	// Sync behavior family
+	SyncBehaviorFamily string `json:"sync_behavior_family,omitempty"` // activateEvents or mapRecords
+
 	// Advanced configuration - destination-specific options
 	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
 
@@ -139,6 +142,9 @@ type CreateSyncRequest struct {
 	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
 	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
 
+	// Sync behavior family
+	SyncBehaviorFamily string `json:"sync_behavior_family,omitempty"` // activateEvents or mapRecords
+
 	// Advanced configuration - destination-specific options
 	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`
 
@@ -168,6 +174,9 @@ type UpdateSyncRequest struct {
 	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
 	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
 	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
+
+	// Sync behavior family
+	SyncBehaviorFamily string `json:"sync_behavior_family,omitempty"` // activateEvents or mapRecords
 
 	// Advanced configuration - destination-specific options
 	AdvancedConfiguration map[string]interface{} `json:"advanced_configuration,omitempty"`

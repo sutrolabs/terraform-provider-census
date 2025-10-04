@@ -263,6 +263,17 @@ func resourceSync() *schema.Resource {
 					"alphabetical_column_name", "mapping_order",
 				}, false),
 			},
+			"sync_behavior_family": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: "Specifies the behavior family for the sync. Use 'activateEvents' for event-based activation syncs " +
+					"(only supported for live syncs from Kafka/streaming sources). Use 'mapRecords' for record mapping syncs " +
+					"(not supported for live syncs from Materialize).",
+				ValidateFunc: validation.StringInSlice([]string{
+					"activateEvents", "mapRecords",
+				}, false),
+			},
 			"advanced_configuration": {
 				Type:             schema.TypeString,
 				Optional:         true,
@@ -534,6 +545,9 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		FieldNormalization: d.Get("field_normalization").(string),
 		FieldOrder:         d.Get("field_order").(string),
 
+		// Sync behavior family
+		SyncBehaviorFamily: d.Get("sync_behavior_family").(string),
+
 		// Advanced configuration
 		AdvancedConfiguration: expandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
 
@@ -644,6 +658,9 @@ To fix this, add the missing workspace_id to terraform state:
 	}
 	if _, ok := d.GetOk("field_order"); ok && sync.FieldOrder != "" {
 		d.Set("field_order", sync.FieldOrder)
+	}
+	if _, ok := d.GetOk("sync_behavior_family"); ok && sync.SyncBehaviorFamily != "" {
+		d.Set("sync_behavior_family", sync.SyncBehaviorFamily)
 	}
 
 	// Set advanced configuration if present
@@ -935,6 +952,9 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	fieldOrderInterface := d.Get("field_order")
 	fieldOrder, _ := fieldOrderInterface.(string)
 
+	syncBehaviorFamilyInterface := d.Get("sync_behavior_family")
+	syncBehaviorFamily, _ := syncBehaviorFamilyInterface.(string)
+
 	// Safe type assertions for alerts
 	alertInterface := d.Get("alert")
 	alertSet, ok := alertInterface.(*schema.Set)
@@ -960,6 +980,9 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		FieldBehavior:      fieldBehavior,
 		FieldNormalization: fieldNormalization,
 		FieldOrder:         fieldOrder,
+
+		// Sync behavior family
+		SyncBehaviorFamily: syncBehaviorFamily,
 
 		// Advanced configuration
 		AdvancedConfiguration: expandAdvancedConfiguration(d.Get("advanced_configuration").(string)),

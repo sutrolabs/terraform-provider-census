@@ -698,6 +698,9 @@ resource "census_sync" "preserve_example" {
 * `field_order` - (Optional) Specifies how destination fields should be ordered. Only applicable for destinations that support field ordering:
   * `"alphabetical_column_name"` (default) - Sort fields alphabetically
   * `"mapping_order"` - Use the order fields are defined in `field_mapping`
+* `sync_behavior_family` - (Optional) Specifies the behavior family for the sync:
+  * `"activateEvents"` - For event-based activation syncs (only supported for live syncs from Kafka/streaming sources)
+  * `"mapRecords"` - For record mapping syncs (not supported for live syncs from Materialize)
 * `advanced_configuration` - (Optional) Advanced configuration options specific to the destination type as JSON string. Use `jsonencode()` to specify values. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values can be strings, numbers, or booleans. Refer to destination-specific Census documentation for available options.
 * `high_water_mark_attribute` - (Optional) The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Census diff engine (using primary keys). This is more efficient for append operations with timestamp-based data. Example: `"updated_at"`.
 * `alert` - (Optional) Set of alert configurations for monitoring sync health. Multiple alerts can be configured. Each alert includes:
