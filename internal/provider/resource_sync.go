@@ -314,6 +314,20 @@ func resourceSync() *schema.Resource {
 					"skip_current_records", "backfill_all_records",
 				}, false),
 			},
+			"mirror_strategy": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: "Specifies the strategy for mirror syncs. Only applicable when operation is 'mirror'. " +
+					"Options: 'sync_updates_and_deletes' (incrementally sync changes - most common), " +
+					"'sync_updates_and_nulls' (update records and set nulls without deletes), " +
+					"'upload_and_swap' (replace entire destination table with source snapshot).",
+				ValidateFunc: validation.StringInSlice([]string{
+					"sync_updates_and_deletes",
+					"sync_updates_and_nulls",
+					"upload_and_swap",
+				}, false),
+			},
 			"alert": {
 				Type:        schema.TypeSet,
 				Optional:    true,
@@ -653,6 +667,9 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		// Historical sync operation
 		HistoricalSyncOperation: d.Get("historical_sync_operation").(string),
 
+		// Mirror strategy
+		MirrorStrategy: d.Get("mirror_strategy").(string),
+
 		// Alert configuration
 		AlertAttributes: expandAlerts(d.Get("alert").(*schema.Set).List()),
 	}
@@ -778,6 +795,11 @@ To fix this, add the missing workspace_id to terraform state:
 	// Set historical sync operation if present
 	if sync.HistoricalSyncOperation != "" {
 		d.Set("historical_sync_operation", sync.HistoricalSyncOperation)
+	}
+
+	// Set mirror strategy if present
+	if sync.MirrorStrategy != "" {
+		d.Set("mirror_strategy", sync.MirrorStrategy)
 	}
 
 	// Set alert attributes if present
@@ -1049,6 +1071,9 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 		// Historical sync operation
 		HistoricalSyncOperation: d.Get("historical_sync_operation").(string),
+
+		// Mirror strategy
+		MirrorStrategy: d.Get("mirror_strategy").(string),
 
 		// Alert configuration
 		AlertAttributes: expandAlerts(alertSet.List()),

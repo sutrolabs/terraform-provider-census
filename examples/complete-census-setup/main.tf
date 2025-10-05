@@ -549,7 +549,7 @@ resource "census_sync" "dataset_contact_sync" {
     triggers {
       schedule {
         frequency = "hourly"
-        minute    = 8
+        minute    = 10
       }
     }
   }

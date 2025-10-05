@@ -65,6 +65,9 @@ type Sync struct {
 	// Historical sync operation - how first sync handles existing records
 	HistoricalSyncOperation string `json:"historical_sync_operation,omitempty"` // skip_current_records or backfill_all_records
 
+	// Mirror strategy - how mirror syncs keep destination in sync (when operation=mirror)
+	MirrorStrategy string `json:"mirror_strategy,omitempty"` // sync_updates_and_deletes, sync_updates_and_nulls, upload_and_swap
+
 	// Alert configuration
 	AlertAttributes []AlertAttribute `json:"alert_attributes,omitempty"`
 }
@@ -208,6 +211,9 @@ type CreateSyncRequest struct {
 
 	// Historical sync operation - how first sync handles existing records
 	HistoricalSyncOperation string `json:"historical_sync_operation,omitempty"` // skip_current_records or backfill_all_records
+
+	// Mirror strategy - how mirror syncs keep destination in sync (when operation=mirror)
+	MirrorStrategy string `json:"mirror_strategy,omitempty"` // sync_updates_and_deletes, sync_updates_and_nulls, upload_and_swap
 }
 
 // UpdateSyncRequest represents the request to update a sync
@@ -247,6 +253,9 @@ type UpdateSyncRequest struct {
 
 	// Historical sync operation - how first sync handles existing records
 	HistoricalSyncOperation string `json:"historical_sync_operation,omitempty"` // skip_current_records or backfill_all_records
+
+	// Mirror strategy - how mirror syncs keep destination in sync (when operation=mirror)
+	MirrorStrategy string `json:"mirror_strategy,omitempty"` // sync_updates_and_deletes, sync_updates_and_nulls, upload_and_swap
 
 	// Alert configuration
 	AlertAttributes []AlertAttribute `json:"alert_attributes,omitempty"`

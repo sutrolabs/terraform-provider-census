@@ -709,6 +709,10 @@ resource "census_sync" "preserve_example" {
 * `historical_sync_operation` - (Optional) Specifies how the first sync should handle historical records when using append operation. Only applicable for append syncs:
   * `"skip_current_records"` - Skip existing records on first sync, only sync new records going forward
   * `"backfill_all_records"` - Include all existing records on first sync (full backfill)
+* `mirror_strategy` - (Optional, Computed) Specifies the strategy for mirror syncs. Only applicable when `operation` is set to `"mirror"`. Determines how Census keeps the destination in sync with the source data:
+  * `"sync_updates_and_deletes"` - Incrementally syncs changes by inserting new records, updating modified records, and deleting records that no longer exist in the source. This is the most common and efficient strategy for keeping destinations in sync (default).
+  * `"sync_updates_and_nulls"` - Updates existing records and sets fields to null when the source contains null values, without performing deletes.
+  * `"upload_and_swap"` - Replaces the entire destination table with the current source snapshot. Useful for destinations that don't support incremental updates or when you need a complete refresh.
 * `alert` - (Optional) Set of alert configurations for monitoring sync health. Multiple alerts can be configured. Each alert includes:
   * `type` - (Required) Type of alert. Valid values:
     * `"FailureAlertConfiguration"` - Alert when sync fails completely
