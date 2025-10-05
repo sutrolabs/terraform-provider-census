@@ -684,6 +684,9 @@ resource "census_sync" "preserve_example" {
   * `preserve_values` - (Optional) If true, preserves existing values in the destination field and prevents Census from overwriting them. Defaults to `false`.
   * `generate_field` - (Optional) If true, Census will generate/create this field in the destination. Defaults to `false`.
   * `sync_null_values` - (Optional) If true (default), null values in the source will be synced to the destination. Set to false to skip syncing null values. Defaults to `true`.
+  * `array_field` - (Optional) Whether the destination field is an array type. Only applicable when `generate_field` is true (for user-defined fields). Defaults to `false`.
+  * `field_type` - (Optional) The type of the destination field. Only applicable when `generate_field` is true (for user-defined fields). Available types depend on the destination (e.g., "text", "number", "boolean", "date").
+  * `follow_source_type` - (Optional) Whether the destination field type should automatically follow changes to the source column type. Defaults to `false`.
 * `operation` - (Optional) Sync mode: `"upsert"`, `"append"`, or `"mirror"`. Defaults to `"upsert"`.
 * `field_behavior` - (Optional) Controls how fields are synced:
   * `"specific_properties"` (default) - Use only the field mappings defined in `field_mapping`
@@ -703,6 +706,9 @@ resource "census_sync" "preserve_example" {
   * `"mapRecords"` - For record mapping syncs (not supported for live syncs from Materialize)
 * `advanced_configuration` - (Optional) Advanced configuration options specific to the destination type as JSON string. Use `jsonencode()` to specify values. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values can be strings, numbers, or booleans. Refer to destination-specific Census documentation for available options.
 * `high_water_mark_attribute` - (Optional) The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Census diff engine (using primary keys). This is more efficient for append operations with timestamp-based data. Example: `"updated_at"`.
+* `historical_sync_operation` - (Optional) Specifies how the first sync should handle historical records when using append operation. Only applicable for append syncs:
+  * `"skip_current_records"` - Skip existing records on first sync, only sync new records going forward
+  * `"backfill_all_records"` - Include all existing records on first sync (full backfill)
 * `alert` - (Optional) Set of alert configurations for monitoring sync health. Multiple alerts can be configured. Each alert includes:
   * `type` - (Required) Type of alert. Valid values:
     * `"FailureAlertConfiguration"` - Alert when sync fails completely

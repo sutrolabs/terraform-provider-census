@@ -59,6 +59,9 @@ type Sync struct {
 	// High water mark attribute - timestamp column for append syncs
 	HighWaterMarkAttribute string `json:"high_water_mark_attribute,omitempty"`
 
+	// Historical sync operation - how first sync handles existing records
+	HistoricalSyncOperation string `json:"historical_sync_operation,omitempty"` // skip_current_records or backfill_all_records
+
 	// Alert configuration
 	AlertAttributes []AlertAttribute `json:"alert_attributes,omitempty"`
 }
@@ -87,6 +90,9 @@ type FieldMapping struct {
 	PreserveValues      bool        `json:"preserve_values,omitempty"`       // Whether to preserve existing destination values
 	GenerateField       bool        `json:"generate_field,omitempty"`        // Whether Census should generate this field
 	SyncNullValues      *bool       `json:"sync_null_values,omitempty"`      // Whether to sync null values (pointer to distinguish from false vs not set)
+	ArrayField          bool        `json:"array_field,omitempty"`           // Whether the destination field is an array type
+	FieldType           string      `json:"field_type,omitempty"`            // The type of the destination field (for user-defined fields)
+	FollowSourceType    bool        `json:"follow_source_type,omitempty"`    // Whether destination field type should follow source column type
 }
 
 // MappingAttributes represents Census API mapping format (OpenAPI compliant)
@@ -99,6 +105,9 @@ type MappingAttributes struct {
 	PreserveValues      bool        `json:"preserve_values,omitempty"`
 	GenerateField       bool        `json:"generate_field,omitempty"`
 	SyncNullValues      *bool       `json:"sync_null_values,omitempty"` // Pointer to distinguish from false vs not set (default is true)
+	ArrayField          bool        `json:"array_field,omitempty"`
+	FieldType           string      `json:"field_type,omitempty"`
+	FollowSourceType    bool        `json:"follow_source_type,omitempty"`
 }
 
 // MappingFrom represents the source of a mapping
@@ -150,6 +159,9 @@ type CreateSyncRequest struct {
 
 	// High water mark attribute - timestamp column for append syncs
 	HighWaterMarkAttribute string `json:"high_water_mark_attribute,omitempty"`
+
+	// Historical sync operation - how first sync handles existing records
+	HistoricalSyncOperation string `json:"historical_sync_operation,omitempty"` // skip_current_records or backfill_all_records
 }
 
 // UpdateSyncRequest represents the request to update a sync
@@ -183,6 +195,9 @@ type UpdateSyncRequest struct {
 
 	// High water mark attribute - timestamp column for append syncs
 	HighWaterMarkAttribute string `json:"high_water_mark_attribute,omitempty"`
+
+	// Historical sync operation - how first sync handles existing records
+	HistoricalSyncOperation string `json:"historical_sync_operation,omitempty"` // skip_current_records or backfill_all_records
 
 	// Alert configuration
 	AlertAttributes []AlertAttribute `json:"alert_attributes,omitempty"`

@@ -218,6 +218,23 @@ func resourceSync() *schema.Resource {
 							Default:     true,
 							Description: "If true (default), null values in the source will be synced to the destination. Set to false to skip syncing null values.",
 						},
+						"array_field": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Whether the destination field is an array type. Only applicable when generate_field is true (for user-defined fields).",
+						},
+						"field_type": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The type of the destination field. Only applicable when generate_field is true (for user-defined fields). Available types depend on the destination.",
+						},
+						"follow_source_type": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Whether the destination field type should automatically follow changes to the source column type.",
+						},
 					},
 				},
 			},
@@ -285,6 +302,17 @@ func resourceSync() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Census diff engine (using primary keys). Example: 'updated_at'.",
+			},
+			"historical_sync_operation": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				Description: "Specifies how the first sync should handle historical records when using append operation. " +
+					"Only applicable for append syncs. Options: 'skip_current_records' (skip existing records on first sync) or " +
+					"'backfill_all_records' (include all existing records on first sync).",
+				ValidateFunc: validation.StringInSlice([]string{
+					"skip_current_records", "backfill_all_records",
+				}, false),
 			},
 			"alert": {
 				Type:        schema.TypeSet,
@@ -554,6 +582,9 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		// High water mark attribute
 		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
 
+		// Historical sync operation
+		HistoricalSyncOperation: d.Get("historical_sync_operation").(string),
+
 		// Alert configuration
 		AlertAttributes: expandAlerts(d.Get("alert").(*schema.Set).List()),
 	}
@@ -674,6 +705,11 @@ To fix this, add the missing workspace_id to terraform state:
 	// Set high water mark attribute if present
 	if sync.HighWaterMarkAttribute != "" {
 		d.Set("high_water_mark_attribute", sync.HighWaterMarkAttribute)
+	}
+
+	// Set historical sync operation if present
+	if sync.HistoricalSyncOperation != "" {
+		d.Set("historical_sync_operation", sync.HistoricalSyncOperation)
 	}
 
 	// Set alert attributes if present
@@ -990,6 +1026,9 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		// High water mark attribute
 		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
 
+		// Historical sync operation
+		HistoricalSyncOperation: d.Get("historical_sync_operation").(string),
+
 		// Alert configuration
 		AlertAttributes: expandAlerts(alertSet.List()),
 	}
@@ -1120,6 +1159,18 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 			}
 		}
 
+		if arrayField, ok := m["array_field"].(bool); ok {
+			fieldMapping.ArrayField = arrayField
+		}
+
+		if fieldType, ok := m["field_type"].(string); ok {
+			fieldMapping.FieldType = fieldType
+		}
+
+		if followSourceType, ok := m["follow_source_type"].(bool); ok {
+			fieldMapping.FollowSourceType = followSourceType
+		}
+
 		result = append(result, fieldMapping)
 	}
 	return result
@@ -1141,6 +1192,9 @@ func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 			"lookup_field":          mapping.LookupField,
 			"preserve_values":       mapping.PreserveValues,
 			"generate_field":        mapping.GenerateField,
+			"array_field":           mapping.ArrayField,
+			"field_type":            mapping.FieldType,
+			"follow_source_type":    mapping.FollowSourceType,
 		}
 
 		// Always include sync_null_values explicitly to match API response
