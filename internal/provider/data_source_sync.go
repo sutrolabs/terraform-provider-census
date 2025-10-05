@@ -95,36 +95,111 @@ func dataSourceSync() *schema.Resource {
 				Computed:    true,
 				Description: "Whether the sync is paused.",
 			},
-			"schedule": {
+			"run_mode": {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "Sync scheduling configuration.",
+				Description: "Run mode configuration for the sync (live vs triggered with various trigger types).",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"frequency": {
+						"type": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "Sync frequency (hourly, daily, weekly).",
+							Description: "Mode type: 'live' for continuous syncing or 'triggered' for event-based syncing.",
 						},
-						"minute": {
-							Type:        schema.TypeInt,
+						"triggers": {
+							Type:        schema.TypeList,
 							Computed:    true,
-							Description: "Minute to run (0-59).",
-						},
-						"hour": {
-							Type:        schema.TypeInt,
-							Computed:    true,
-							Description: "Hour to run (for daily/weekly schedules, 0-23).",
-						},
-						"day_of_week": {
-							Type:        schema.TypeInt,
-							Computed:    true,
-							Description: "Day of week to run (for weekly schedules, 0=Sunday).",
-						},
-						"timezone": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Timezone for scheduling.",
+							Description: "Trigger configurations (only for 'triggered' mode).",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"schedule": {
+										Type:        schema.TypeList,
+										Computed:    true,
+										Description: "Schedule-based trigger configuration.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"frequency": {
+													Type:        schema.TypeString,
+													Computed:    true,
+													Description: "Sync frequency: never, continuous, quarter_hourly, hourly, daily, weekly, or expression (for cron).",
+												},
+												"day": {
+													Type:        schema.TypeString,
+													Computed:    true,
+													Description: "Day of week (Sunday-Saturday, for weekly schedules).",
+												},
+												"hour": {
+													Type:        schema.TypeInt,
+													Computed:    true,
+													Description: "Hour to run (0-24).",
+												},
+												"minute": {
+													Type:        schema.TypeInt,
+													Computed:    true,
+													Description: "Minute to run (0-59).",
+												},
+												"cron_expression": {
+													Type:        schema.TypeString,
+													Computed:    true,
+													Description: "Cron expression (only valid when frequency is 'expression').",
+												},
+											},
+										},
+									},
+									"dbt_cloud": {
+										Type:        schema.TypeList,
+										Computed:    true,
+										Description: "dbt Cloud job trigger configuration.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"project_id": {
+													Type:        schema.TypeString,
+													Computed:    true,
+													Description: "dbt Cloud project ID.",
+												},
+												"job_id": {
+													Type:        schema.TypeString,
+													Computed:    true,
+													Description: "dbt Cloud job ID.",
+												},
+											},
+										},
+									},
+									"fivetran": {
+										Type:        schema.TypeList,
+										Computed:    true,
+										Description: "Fivetran connector trigger configuration.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"job_id": {
+													Type:        schema.TypeString,
+													Computed:    true,
+													Description: "Fivetran job ID.",
+												},
+												"job_name": {
+													Type:        schema.TypeString,
+													Computed:    true,
+													Description: "Fivetran job name.",
+												},
+											},
+										},
+									},
+									"sync_sequence": {
+										Type:        schema.TypeList,
+										Computed:    true,
+										Description: "Sync dependency trigger configuration (triggers after another sync completes).",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"sync_id": {
+													Type:        schema.TypeInt,
+													Computed:    true,
+													Description: "ID of the sync to trigger after.",
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -224,8 +299,10 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	if err := d.Set("sync_key", sync.SyncKey); err != nil {
 		return diag.Errorf("failed to set sync_key: %v", err)
 	}
-	if err := d.Set("schedule", flattenSyncSchedule(sync.Schedule)); err != nil {
-		return diag.Errorf("failed to set schedule: %v", err)
+	if sync.Mode != nil {
+		if err := d.Set("run_mode", flattenRunMode(sync.Mode)); err != nil {
+			return diag.Errorf("failed to set run_mode: %v", err)
+		}
 	}
 
 	return nil

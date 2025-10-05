@@ -40,6 +40,9 @@ type Sync struct {
 	Schedule *SyncSchedule `json:"schedule,omitempty"`
 	Paused   bool          `json:"paused,omitempty"`
 
+	// Mode - live vs triggered with trigger configurations
+	Mode *SyncMode `json:"mode,omitempty"`
+
 	// Run information
 	LastRunAt *time.Time `json:"last_run_at,omitempty"`
 	NextRunAt *time.Time `json:"next_run_at,omitempty"`
@@ -125,6 +128,46 @@ type SyncSchedule struct {
 	Timezone  string `json:"timezone,omitempty"`
 }
 
+// SyncMode represents the mode configuration for a sync (live vs triggered)
+type SyncMode struct {
+	Type     string        `json:"type"`               // live or triggered
+	Triggers *SyncTriggers `json:"triggers,omitempty"` // trigger configurations
+}
+
+// SyncTriggers represents all possible trigger types for a sync
+type SyncTriggers struct {
+	Schedule     *TriggerSchedule     `json:"schedule,omitempty"`
+	DbtCloud     *DbtCloudTrigger     `json:"dbt_cloud,omitempty"`
+	Fivetran     *FivetranTrigger     `json:"fivetran,omitempty"`
+	SyncSequence *SyncSequenceTrigger `json:"sync_sequence,omitempty"`
+}
+
+// TriggerSchedule represents schedule-based trigger configuration
+type TriggerSchedule struct {
+	Frequency      string `json:"frequency"`                 // never, continuous, quarter_hourly, hourly, daily, weekly, expression
+	Day            string `json:"day,omitempty"`             // Sunday-Saturday (for weekly)
+	Hour           int    `json:"hour,omitempty"`            // 0-24
+	Minute         int    `json:"minute,omitempty"`          // 0-59
+	CronExpression string `json:"cron_expression,omitempty"` // for frequency="expression"
+}
+
+// DbtCloudTrigger represents dbt Cloud job trigger configuration
+type DbtCloudTrigger struct {
+	ProjectId string `json:"project_id"`
+	JobId     string `json:"job_id"`
+}
+
+// FivetranTrigger represents Fivetran job trigger configuration
+type FivetranTrigger struct {
+	JobId   string `json:"job_id"`
+	JobName string `json:"job_name"`
+}
+
+// SyncSequenceTrigger represents sync dependency trigger configuration
+type SyncSequenceTrigger struct {
+	SyncId int `json:"sync_id"`
+}
+
 // CreateSyncRequest represents the request to create a sync (OpenAPI compliant)
 type CreateSyncRequest struct {
 	// Required fields per BaseSyncAttributes
@@ -143,6 +186,9 @@ type CreateSyncRequest struct {
 	ScheduleHour      *int   `json:"schedule_hour,omitempty"`
 	ScheduleMinute    *int   `json:"schedule_minute,omitempty"`
 	CronExpression    string `json:"cron_expression,omitempty"`
+
+	// Mode - live vs triggered with trigger configurations (replaces schedule fields)
+	Mode *SyncMode `json:"mode,omitempty"`
 
 	Paused bool `json:"paused,omitempty"`
 
@@ -179,6 +225,9 @@ type UpdateSyncRequest struct {
 	ScheduleHour      *int   `json:"schedule_hour,omitempty"`
 	ScheduleMinute    *int   `json:"schedule_minute,omitempty"`
 	CronExpression    string `json:"cron_expression,omitempty"`
+
+	// Mode - live vs triggered with trigger configurations (replaces schedule fields)
+	Mode *SyncMode `json:"mode,omitempty"`
 
 	Paused bool `json:"paused,omitempty"`
 

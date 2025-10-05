@@ -366,45 +366,128 @@ func resourceSync() *schema.Resource {
 				},
 				Set: alertHash,
 			},
-			"schedule": {
+			"run_mode": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Sync scheduling configuration.",
+				Description: "Run mode configuration for the sync (live vs triggered with various trigger types).",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"frequency": {
+						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Sync frequency (hourly, daily, weekly).",
+							Description: "Mode type: 'live' for continuous syncing or 'triggered' for event-based syncing.",
 							ValidateFunc: validation.StringInSlice([]string{
-								"hourly", "daily", "weekly", "manual",
+								"live", "triggered",
 							}, false),
 						},
-						"minute": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Default:      0,
-							Description:  "Minute to run (0-59).",
-							ValidateFunc: validation.IntBetween(0, 59),
-						},
-						"hour": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Description:  "Hour to run (for daily/weekly schedules, 0-23).",
-							ValidateFunc: validation.IntBetween(0, 23),
-						},
-						"day_of_week": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Description:  "Day of week to run (for weekly schedules, 0=Sunday).",
-							ValidateFunc: validation.IntBetween(0, 6),
-						},
-						"timezone": {
-							Type:        schema.TypeString,
+						"triggers": {
+							Type:        schema.TypeList,
 							Optional:    true,
-							Default:     "UTC",
-							Description: "Timezone for scheduling.",
+							MaxItems:    1,
+							Description: "Trigger configurations (only for 'triggered' mode).",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"schedule": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										MaxItems:    1,
+										Description: "Schedule-based trigger configuration.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"frequency": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "Sync frequency: never, continuous, quarter_hourly, hourly, daily, weekly, or expression (for cron).",
+													ValidateFunc: validation.StringInSlice([]string{
+														"never", "continuous", "quarter_hourly", "hourly", "daily", "weekly", "expression",
+													}, false),
+												},
+												"day": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "Day of week (Sunday-Saturday, for weekly schedules).",
+													ValidateFunc: validation.StringInSlice([]string{
+														"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+													}, false),
+												},
+												"hour": {
+													Type:         schema.TypeInt,
+													Optional:     true,
+													Description:  "Hour to run (0-24).",
+													ValidateFunc: validation.IntBetween(0, 24),
+												},
+												"minute": {
+													Type:         schema.TypeInt,
+													Optional:     true,
+													Description:  "Minute to run (0-59).",
+													ValidateFunc: validation.IntBetween(0, 59),
+												},
+												"cron_expression": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "Cron expression (only valid when frequency is 'expression').",
+												},
+											},
+										},
+									},
+									"dbt_cloud": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										MaxItems:    1,
+										Description: "dbt Cloud job trigger configuration.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"project_id": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "dbt Cloud project ID.",
+												},
+												"job_id": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "dbt Cloud job ID.",
+												},
+											},
+										},
+									},
+									"fivetran": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										MaxItems:    1,
+										Description: "Fivetran connector trigger configuration.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"job_id": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "Fivetran job ID.",
+												},
+												"job_name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "Fivetran job name.",
+												},
+											},
+										},
+									},
+									"sync_sequence": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										MaxItems:    1,
+										Description: "Sync dependency trigger configuration (triggers after another sync completes).",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"sync_id": {
+													Type:        schema.TypeInt,
+													Required:    true,
+													Description: "ID of the sync to trigger after.",
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -530,24 +613,12 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	// Convert FieldMappings to MappingAttributes for API compliance
 	mappings := convertFieldMappingsToMappingAttributes(fieldMappings)
 
-	// Convert schedule object to flat schedule fields for Census Management API
-	schedule := expandSyncSchedule(d.Get("schedule").([]interface{}))
-	var scheduleFrequency string
-	var scheduleDay *int
-	var scheduleHour *int
-	var scheduleMinute *int
+	// Handle run_mode
+	var mode *client.SyncMode
+	runModeRaw := d.Get("run_mode").([]interface{})
 
-	if schedule != nil {
-		scheduleFrequency = schedule.Frequency
-		if schedule.Hour != 0 {
-			scheduleHour = &schedule.Hour
-		}
-		if schedule.DayOfWeek != 0 {
-			scheduleDay = &schedule.DayOfWeek
-		}
-		if schedule.Minute != 0 {
-			scheduleMinute = &schedule.Minute
-		}
+	if len(runModeRaw) > 0 {
+		mode = expandRunMode(runModeRaw)
 	}
 
 	req := &client.CreateSyncRequest{
@@ -560,11 +631,8 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		// Optional fields
 		Label: d.Get("label").(string),
 
-		// Schedule fields - Census Management API expects flat fields, not nested object
-		ScheduleFrequency: scheduleFrequency,
-		ScheduleDay:       scheduleDay,
-		ScheduleHour:      scheduleHour,
-		ScheduleMinute:    scheduleMinute,
+		// Mode - live vs triggered with trigger configurations
+		Mode: mode,
 
 		Paused: d.Get("paused").(bool),
 
@@ -738,37 +806,17 @@ To fix this, add the missing workspace_id to terraform state:
 		d.Set("last_run_id", *sync.LastRunID)
 	}
 
-	// Build schedule from API response flat fields
-	if sync.ScheduleFrequency != "" {
-		fmt.Printf("[DEBUG] Building schedule from API response fields\n")
-
-		// Create a SyncSchedule from the flat API response fields
-		schedule := &client.SyncSchedule{
-			Frequency: sync.ScheduleFrequency,
+	// Handle run_mode from API response
+	if sync.Mode != nil {
+		fmt.Printf("[DEBUG] Setting run_mode from API response\n")
+		if err := d.Set("run_mode", flattenRunMode(sync.Mode)); err != nil {
+			fmt.Printf("[DEBUG] Failed to set run_mode: %v\n", err)
+			return diag.Errorf("failed to set run_mode: %v", err)
 		}
-
-		// Set hour if present
-		if sync.ScheduleHour != nil {
-			schedule.Hour = *sync.ScheduleHour
-		}
-
-		// Set day of week if present (for weekly schedules)
-		if sync.ScheduleDay != nil {
-			schedule.DayOfWeek = *sync.ScheduleDay
-		}
-
-		// Set minute if present
-		if sync.ScheduleMinute != nil {
-			schedule.Minute = *sync.ScheduleMinute
-		}
-
-		// Set timezone (default to UTC if not specified)
-		schedule.Timezone = "UTC"
-
-		if err := d.Set("schedule", flattenSyncSchedule(schedule)); err != nil {
-			fmt.Printf("[DEBUG] Failed to set schedule: %v\n", err)
-			return diag.Errorf("failed to set schedule: %v", err)
-		}
+	} else if sync.ScheduleFrequency != "" {
+		// Handle very old syncs that pre-date Mode API field (created before Census added Mode support)
+		fmt.Printf("[DEBUG] Legacy sync detected - has flat schedule fields but no Mode\n")
+		return diag.Errorf("This sync was created with an older version of the Census API that pre-dates run_mode support. Please recreate it using run_mode configuration or contact Census support to migrate it.")
 	}
 
 	// Set complex attributes with nil checks
@@ -854,17 +902,14 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	fmt.Printf("[DEBUG] Building update request...\n")
 
-	// Safe type assertion for schedule
-	scheduleInterface := d.Get("schedule")
-	scheduleList, ok := scheduleInterface.([]interface{})
-	if !ok {
-		fmt.Printf("[DEBUG] schedule is not a []interface{}, type: %T, value: %+v\n", scheduleInterface, scheduleInterface)
-		return diag.Errorf("schedule is not a valid list: %v", scheduleInterface)
-	}
-	fmt.Printf("[DEBUG] Schedule data from terraform: %+v\n", scheduleList)
+	// Handle run_mode
+	var mode *client.SyncMode
+	runModeRaw := d.Get("run_mode").([]interface{})
 
-	schedule := expandSyncSchedule(scheduleList)
-	fmt.Printf("[DEBUG] Expanded schedule: %+v\n", schedule)
+	if len(runModeRaw) > 0 {
+		mode = expandRunMode(runModeRaw)
+		fmt.Printf("[DEBUG] Using run_mode: %+v\n", mode)
+	}
 
 	// Safe type assertions for all fields
 	labelInterface := d.Get("label")
@@ -957,27 +1002,6 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.Errorf("paused is not a valid boolean: %v", pausedInterface)
 	}
 
-	// Convert schedule object to flat schedule fields for Census Management API
-	var scheduleFrequency string
-	var scheduleDay *int
-	var scheduleHour *int
-	var scheduleMinute *int
-
-	if schedule != nil {
-		scheduleFrequency = schedule.Frequency
-		if schedule.Hour != 0 {
-			scheduleHour = &schedule.Hour
-		}
-		if schedule.DayOfWeek != 0 {
-			scheduleDay = &schedule.DayOfWeek
-		}
-		if schedule.Minute != 0 {
-			scheduleMinute = &schedule.Minute
-		}
-		fmt.Printf("[DEBUG] Converted schedule to flat fields - frequency: %s, hour: %v, day: %v, minute: %v\n",
-			scheduleFrequency, scheduleHour, scheduleDay, scheduleMinute)
-	}
-
 	// Safe type assertions for field configuration
 	fieldBehaviorInterface := d.Get("field_behavior")
 	fieldBehavior, _ := fieldBehaviorInterface.(string)
@@ -1001,16 +1025,13 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	req := &client.UpdateSyncRequest{
 		Label:                 label,
-		SourceAttributes:      expandStringMap(sourceAttrs),
+		SourceAttributes:      expandSourceAttributes(d.Get("source_attributes").([]interface{})),
 		DestinationAttributes: expandStringMap(destAttrs),
 		FieldMappings:         expandFieldMappings(fieldMappings),
 		Paused:                paused,
 
-		// Flat schedule fields for Census Management API
-		ScheduleFrequency: scheduleFrequency,
-		ScheduleDay:       scheduleDay,
-		ScheduleHour:      scheduleHour,
-		ScheduleMinute:    scheduleMinute,
+		// Mode - live vs triggered with trigger configurations
+		Mode: mode,
 
 		// Field configuration
 		FieldBehavior:      fieldBehavior,
@@ -1372,20 +1393,177 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 	return result
 }
 
-func flattenSyncSchedule(schedule *client.SyncSchedule) []interface{} {
-	if schedule == nil {
+// expandRunMode converts Terraform run_mode config to API SyncMode struct
+func expandRunMode(runModes []interface{}) *client.SyncMode {
+	fmt.Printf("[DEBUG] expandRunMode called with: %+v\n", runModes)
+
+	if len(runModes) == 0 || runModes[0] == nil {
+		fmt.Printf("[DEBUG] expandRunMode returning nil (empty or nil run_mode)\n")
+		return nil
+	}
+
+	runModeMap, ok := runModes[0].(map[string]interface{})
+	if !ok {
+		fmt.Printf("[DEBUG] expandRunMode: runModes[0] is not a map[string]interface{}, type: %T\n", runModes[0])
+		return nil
+	}
+
+	mode := &client.SyncMode{}
+
+	// Extract type (required)
+	if modeType, ok := runModeMap["type"].(string); ok {
+		mode.Type = modeType
+	}
+
+	// Extract triggers (optional, only for triggered mode)
+	if triggersList, ok := runModeMap["triggers"].([]interface{}); ok && len(triggersList) > 0 {
+		if triggersMap, ok := triggersList[0].(map[string]interface{}); ok {
+			triggers := &client.SyncTriggers{}
+
+			// Extract schedule trigger
+			if scheduleList, ok := triggersMap["schedule"].([]interface{}); ok && len(scheduleList) > 0 {
+				if scheduleMap, ok := scheduleList[0].(map[string]interface{}); ok {
+					schedule := &client.TriggerSchedule{}
+
+					if freq, ok := scheduleMap["frequency"].(string); ok {
+						schedule.Frequency = freq
+					}
+					if day, ok := scheduleMap["day"].(string); ok {
+						schedule.Day = day
+					}
+					if hour, ok := scheduleMap["hour"].(int); ok {
+						schedule.Hour = hour
+					}
+					if minute, ok := scheduleMap["minute"].(int); ok {
+						schedule.Minute = minute
+					}
+					if cron, ok := scheduleMap["cron_expression"].(string); ok {
+						schedule.CronExpression = cron
+					}
+
+					triggers.Schedule = schedule
+				}
+			}
+
+			// Extract dbt_cloud trigger
+			if dbtList, ok := triggersMap["dbt_cloud"].([]interface{}); ok && len(dbtList) > 0 {
+				if dbtMap, ok := dbtList[0].(map[string]interface{}); ok {
+					dbt := &client.DbtCloudTrigger{}
+
+					if projectId, ok := dbtMap["project_id"].(string); ok {
+						dbt.ProjectId = projectId
+					}
+					if jobId, ok := dbtMap["job_id"].(string); ok {
+						dbt.JobId = jobId
+					}
+
+					triggers.DbtCloud = dbt
+				}
+			}
+
+			// Extract fivetran trigger
+			if fivetranList, ok := triggersMap["fivetran"].([]interface{}); ok && len(fivetranList) > 0 {
+				if fivetranMap, ok := fivetranList[0].(map[string]interface{}); ok {
+					fivetran := &client.FivetranTrigger{}
+
+					if jobId, ok := fivetranMap["job_id"].(string); ok {
+						fivetran.JobId = jobId
+					}
+					if jobName, ok := fivetranMap["job_name"].(string); ok {
+						fivetran.JobName = jobName
+					}
+
+					triggers.Fivetran = fivetran
+				}
+			}
+
+			// Extract sync_sequence trigger
+			if seqList, ok := triggersMap["sync_sequence"].([]interface{}); ok && len(seqList) > 0 {
+				if seqMap, ok := seqList[0].(map[string]interface{}); ok {
+					seq := &client.SyncSequenceTrigger{}
+
+					if syncId, ok := seqMap["sync_id"].(int); ok {
+						seq.SyncId = syncId
+					}
+
+					triggers.SyncSequence = seq
+				}
+			}
+
+			mode.Triggers = triggers
+		}
+	}
+
+	fmt.Printf("[DEBUG] expandRunMode returning: %+v\n", mode)
+	return mode
+}
+
+// flattenRunMode converts API SyncMode struct to Terraform run_mode config
+func flattenRunMode(mode *client.SyncMode) []interface{} {
+	if mode == nil {
 		return []interface{}{}
 	}
 
-	return []interface{}{
-		map[string]interface{}{
-			"frequency":   schedule.Frequency,
-			"minute":      schedule.Minute,
-			"hour":        schedule.Hour,
-			"day_of_week": schedule.DayOfWeek,
-			"timezone":    schedule.Timezone,
-		},
+	modeMap := map[string]interface{}{
+		"type": mode.Type,
 	}
+
+	// Flatten triggers if present
+	if mode.Triggers != nil {
+		triggersMap := map[string]interface{}{}
+
+		// Flatten schedule trigger
+		if mode.Triggers.Schedule != nil {
+			scheduleMap := map[string]interface{}{
+				"frequency": mode.Triggers.Schedule.Frequency,
+			}
+
+			if mode.Triggers.Schedule.Day != "" {
+				scheduleMap["day"] = mode.Triggers.Schedule.Day
+			}
+			if mode.Triggers.Schedule.Hour != 0 {
+				scheduleMap["hour"] = mode.Triggers.Schedule.Hour
+			}
+			if mode.Triggers.Schedule.Minute != 0 {
+				scheduleMap["minute"] = mode.Triggers.Schedule.Minute
+			}
+			if mode.Triggers.Schedule.CronExpression != "" {
+				scheduleMap["cron_expression"] = mode.Triggers.Schedule.CronExpression
+			}
+
+			triggersMap["schedule"] = []interface{}{scheduleMap}
+		}
+
+		// Flatten dbt_cloud trigger
+		if mode.Triggers.DbtCloud != nil {
+			dbtMap := map[string]interface{}{
+				"project_id": mode.Triggers.DbtCloud.ProjectId,
+				"job_id":     mode.Triggers.DbtCloud.JobId,
+			}
+			triggersMap["dbt_cloud"] = []interface{}{dbtMap}
+		}
+
+		// Flatten fivetran trigger
+		if mode.Triggers.Fivetran != nil {
+			fivetranMap := map[string]interface{}{
+				"job_id":   mode.Triggers.Fivetran.JobId,
+				"job_name": mode.Triggers.Fivetran.JobName,
+			}
+			triggersMap["fivetran"] = []interface{}{fivetranMap}
+		}
+
+		// Flatten sync_sequence trigger
+		if mode.Triggers.SyncSequence != nil {
+			seqMap := map[string]interface{}{
+				"sync_id": mode.Triggers.SyncSequence.SyncId,
+			}
+			triggersMap["sync_sequence"] = []interface{}{seqMap}
+		}
+
+		modeMap["triggers"] = []interface{}{triggersMap}
+	}
+
+	return []interface{}{modeMap}
 }
 
 func expandStringMap(m map[string]interface{}) map[string]interface{} {
@@ -1405,6 +1583,27 @@ func flattenStringMap(m map[string]interface{}) map[string]interface{} {
 	}
 	result := make(map[string]interface{})
 	for k, v := range m {
+		result[k] = v
+	}
+	return result
+}
+
+// cleanEmptyStrings removes empty string and zero values from a map
+// to avoid sending invalid data to the Census API
+func cleanEmptyStrings(m map[string]interface{}) map[string]interface{} {
+	if m == nil {
+		return nil
+	}
+	result := make(map[string]interface{})
+	for k, v := range m {
+		// Skip empty strings
+		if str, ok := v.(string); ok && str == "" {
+			continue
+		}
+		// Skip zero integers for cohort_id (default value from Terraform)
+		if num, ok := v.(int); ok && num == 0 && k == "cohort_id" {
+			continue
+		}
 		result[k] = v
 	}
 	return result
@@ -1867,9 +2066,15 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 
 		default:
 			// For all other types (model, topic, dataset, table), pass through as-is
-			result["object"] = objectMap
-			fmt.Printf("[DEBUG] expandSourceAttributes: Pass-through object for type %s: %+v\n", objectType, objectMap)
+			// But clean empty strings to avoid API errors
+			result["object"] = cleanEmptyStrings(objectMap)
+			fmt.Printf("[DEBUG] expandSourceAttributes: Pass-through object for type %s (cleaned): %+v\n", objectType, result["object"])
 		}
+	}
+
+	// Remove cohort_id if it's 0 (default value from Terraform, not actually set)
+	if cohortId, ok := result["cohort_id"].(int); ok && cohortId == 0 {
+		delete(result, "cohort_id")
 	}
 
 	return result

@@ -732,13 +732,25 @@ resource "census_sync" "preserve_example" {
     * For `StatusAlertConfiguration`:
       * `status_name` - Status to alert on: `"started"` or `"completed"`
   * `id` - (Computed) The alert configuration ID assigned by Census
-* `schedule` - (Optional) Scheduling configuration block:
-  * `frequency` - (Required) `"hourly"`, `"daily"`, `"weekly"`, or `"manual"`
-  * `minute` - (Optional) Minute of hour to run (0-59)
-  * `hour` - (Optional) Hour of day to run (0-23) for daily/weekly syncs
-  * `day_of_week` - (Optional) Day of week (0-6, Sunday=0) for weekly syncs
-  * `timezone` - (Optional) Timezone for scheduling. Defaults to "UTC"
-
+* `run_mode` - (Optional) Run mode configuration block for controlling how and when the sync runs. Conflicts with `schedule` (use one or the other, not both):
+  * `type` - (Required) Mode type:
+    * `"live"` - Continuous syncing for streaming sources (Kafka, Materialize)
+    * `"triggered"` - Event-based syncing with configured triggers
+  * `triggers` - (Optional) Trigger configurations (only for `triggered` mode). Multiple triggers can be configured simultaneously:
+    * `schedule` - (Optional) Schedule-based trigger configuration block:
+      * `frequency` - (Required) How often to run: `"never"`, `"continuous"`, `"quarter_hourly"`, `"hourly"`, `"daily"`, `"weekly"`, or `"expression"` (for cron)
+      * `day` - (Optional) Day of week for weekly schedules: `"Sunday"`, `"Monday"`, `"Tuesday"`, `"Wednesday"`, `"Thursday"`, `"Friday"`, or `"Saturday"`
+      * `hour` - (Optional) Hour to run (0-24) for daily/weekly schedules
+      * `minute` - (Optional) Minute to run (0-59)
+      * `cron_expression` - (Optional) Cron expression when `frequency` is `"expression"`. Mutually exclusive with hour/day settings
+    * `dbt_cloud` - (Optional) dbt Cloud job trigger configuration block:
+      * `project_id` - (Required) dbt Cloud project ID
+      * `job_id` - (Required) dbt Cloud job ID
+    * `fivetran` - (Optional) Fivetran connector trigger configuration block:
+      * `job_id` - (Required) Fivetran job ID
+      * `job_name` - (Required) Fivetran job name
+    * `sync_sequence` - (Optional) Sync dependency trigger configuration block (triggers after another sync completes):
+      * `sync_id` - (Required) ID of the sync to trigger after
 ## Attribute Reference
 
 In addition to all arguments above, the following attributes are exported:

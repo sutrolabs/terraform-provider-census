@@ -277,11 +277,16 @@ resource "census_sync" "marketing_contact_sync" {
     to   = "LastName"
   }
 
-  # Scheduling - run daily at 6 AM UTC
-  schedule {
-    frequency = "daily"
-    hour      = 6
-    timezone  = "UTC"
+  # Run mode - triggered on daily schedule at 6 AM UTC
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "daily"
+        hour      = 6
+        minute    = 0
+      }
+    }
   }
 
   # Alert configurations for production sync monitoring
@@ -368,11 +373,16 @@ resource "census_sync" "marketing_contact_sync_2" {
     to   = "LastName"
   }
 
-  # Scheduling - run daily at 6 AM UTC
-  schedule {
-    frequency = "daily"
-    hour      = 6
-    timezone  = "UTC"
+  # Run mode - triggered on daily schedule at 6 AM UTC
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "daily"
+        hour      = 6
+        minute    = 0
+      }
+    }
   }
 
   # Start paused until ready to go live
@@ -442,11 +452,16 @@ resource "census_sync" "marketing_contact_sync_3" {
   }
 
 
-  # Scheduling - run daily at 6 AM UTC
-  schedule {
-    frequency = "daily"
-    hour      = 6
-    timezone  = "UTC"
+  # Run mode - triggered on daily schedule at 6 AM UTC
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "daily"
+        hour      = 6
+        minute    = 0
+      }
+    }
   }
 
   # Start paused until ready to go live
@@ -514,7 +529,7 @@ resource "census_sync" "dataset_contact_sync" {
 
   field_mapping {
     type     = "constant"
-    constant = "HERE is my constant value 2"
+    constant = "HERE is my constant value"
     to       = "AssistantName"
   }
   field_mapping {
@@ -528,9 +543,15 @@ resource "census_sync" "dataset_contact_sync" {
     to   = "FirstName"
   }
 
-  schedule {
-    frequency = "hourly"
-    minute    = 10
+  # Run mode - triggered hourly at minute 10
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "hourly"
+        minute    = 8
+      }
+    }
   }
 
   # Comprehensive alerting for high-frequency sync
@@ -613,8 +634,13 @@ resource "census_sync" "dataset_contact_sync" {
 
 
 #   # Manual sync for testing
-#   schedule {
-#     frequency = "manual"
+#   run_mode {
+#     type = "triggered"
+#     triggers {
+#       schedule {
+#         frequency = "manual"
+#       }
+#     }
 #   }
 
 #   paused = false # Ready for testing
@@ -680,11 +706,16 @@ resource "census_sync" "dataset_contact_sync" {
 
 
 #   # Run weekly on Sundays at 2 AM
-#   schedule {
-#     frequency   = "weekly"
-#     day_of_week = 0 # Sunday
-#     hour        = 2
-#     timezone    = "UTC"
+#   run_mode {
+#     type = "triggered"
+#     triggers {
+#       schedule {
+#         frequency = "weekly"
+#         day       = "Sunday"
+#         hour      = 2
+#         minute    = 0
+#       }
+#     }
 #   }
 
 #   paused = true # Start paused for review
