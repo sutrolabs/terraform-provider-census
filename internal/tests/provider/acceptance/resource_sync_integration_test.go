@@ -116,7 +116,7 @@ func TestAccResourceSync_RunMode_Hourly(t *testing.T) {
 	})
 }
 
-// TestAccResourceSync_RunMode_Manual tests manual schedule configuration
+// TestAccResourceSync_RunMode_Manual tests never/manual schedule configuration (triggered manually)
 func TestAccResourceSync_RunMode_Manual(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
@@ -127,7 +127,7 @@ func TestAccResourceSync_RunMode_Manual(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Manual Schedule"),
 					resource.TestCheckResourceAttr("census_sync.test", "run_mode.0.type", "triggered"),
-					resource.TestCheckResourceAttr("census_sync.test", "run_mode.0.triggers.0.schedule.0.frequency", "manual"),
+					resource.TestCheckResourceAttr("census_sync.test", "run_mode.0.triggers.0.schedule.0.frequency", "never"),
 				),
 			},
 		},
@@ -160,10 +160,6 @@ func TestAccResourceSync_Alerts(t *testing.T) {
 // testAccIntegrationBaseConfig returns base configuration with workspace, source, and destination
 func testAccIntegrationBaseConfig() string {
 	return fmt.Sprintf(`
-provider "census" {
-  base_url = "%s"
-}
-
 resource "census_workspace" "test" {
   name = "Test Workspace - Sync Integration"
   notification_emails = ["test@example.com"]
@@ -175,10 +171,10 @@ resource "census_source" "test" {
   type = "redshift"
 
   connection_config = {
-    host     = "%s"
+    hostname = "%s"
     port     = "%s"
     database = "%s"
-    username = "%s"
+    user     = "%s"
     password = "%s"
   }
 }
@@ -189,23 +185,24 @@ resource "census_destination" "test" {
   type = "salesforce"
 
   connection_config = {
-    username       = "%s"
-    password       = "%s"
-    security_token = "%s"
-    sandbox        = "%s"
+    username        = "%s"
+    instance_url    = "%s"
+    client_id       = "%s"
+    jwt_signing_key = "%s"
+    domain          = "%s"
   }
 }
 `,
-		os.Getenv("CENSUS_BASE_URL"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_USERNAME"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_PASSWORD"),
 		os.Getenv("CENSUS_TEST_SALESFORCE_USERNAME"),
-		os.Getenv("CENSUS_TEST_SALESFORCE_PASSWORD"),
-		os.Getenv("CENSUS_TEST_SALESFORCE_SECURITY_TOKEN"),
-		getEnvOrDefault("CENSUS_TEST_SALESFORCE_SANDBOX", "true"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_INSTANCE_URL"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_CLIENT_ID"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_DOMAIN"),
 	)
 }
 
@@ -248,12 +245,32 @@ resource "census_sync" "test" {
     to   = "LastName"
   }
 
+  field_mapping {
+    from = "id"
+    to   = "Census_ID__c"
+  }
+
   run_mode {
     type = "triggered"
     triggers {
       schedule {
-        frequency = "manual"
+        frequency = "never"
       }
+    }
+  }
+
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
     }
   }
 
@@ -301,12 +318,32 @@ resource "census_sync" "test" {
     to   = "LastName"
   }
 
+  field_mapping {
+    from = "id"
+    to   = "Census_ID__c"
+  }
+
   run_mode {
     type = "triggered"
     triggers {
       schedule {
-        frequency = "manual"
+        frequency = "never"
       }
+    }
+  }
+
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
     }
   }
 
@@ -370,12 +407,32 @@ resource "census_sync" "test" {
     to              = "Description"
   }
 
+  field_mapping {
+    from = "id"
+    to   = "Census_ID__c"
+  }
+
   run_mode {
     type = "triggered"
     triggers {
       schedule {
-        frequency = "manual"
+        frequency = "never"
       }
+    }
+  }
+
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
     }
   }
 
@@ -418,6 +475,16 @@ resource "census_sync" "test" {
     to   = "FirstName"
   }
 
+  field_mapping {
+    from = "last_name"
+    to   = "LastName"
+  }
+
+  field_mapping {
+    from = "id"
+    to   = "Census_ID__c"
+  }
+
   run_mode {
     type = "triggered"
     triggers {
@@ -426,6 +493,21 @@ resource "census_sync" "test" {
         hour      = 6
         minute    = 0
       }
+    }
+  }
+
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
     }
   }
 
@@ -468,6 +550,16 @@ resource "census_sync" "test" {
     to   = "FirstName"
   }
 
+  field_mapping {
+    from = "last_name"
+    to   = "LastName"
+  }
+
+  field_mapping {
+    from = "id"
+    to   = "Census_ID__c"
+  }
+
   run_mode {
     type = "triggered"
     triggers {
@@ -475,6 +567,21 @@ resource "census_sync" "test" {
         frequency = "hourly"
         minute    = 30
       }
+    }
+  }
+
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
     }
   }
 
@@ -517,12 +624,37 @@ resource "census_sync" "test" {
     to   = "FirstName"
   }
 
+  field_mapping {
+    from = "last_name"
+    to   = "LastName"
+  }
+
+  field_mapping {
+    from = "id"
+    to   = "Census_ID__c"
+  }
+
   run_mode {
     type = "triggered"
     triggers {
       schedule {
-        frequency = "manual"
+        frequency = "never"
       }
+    }
+  }
+
+  alert {
+    type                 = "FailureAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+  }
+
+  alert {
+    type                 = "InvalidRecordPercentAlertConfiguration"
+    send_for             = "first_time"
+    should_send_recovery = true
+    options = {
+      threshold = "75"
     }
   }
 
@@ -565,11 +697,21 @@ resource "census_sync" "test" {
     to   = "FirstName"
   }
 
+  field_mapping {
+    from = "last_name"
+    to   = "LastName"
+  }
+
+  field_mapping {
+    from = "id"
+    to   = "Census_ID__c"
+  }
+
   run_mode {
     type = "triggered"
     triggers {
       schedule {
-        frequency = "manual"
+        frequency = "never"
       }
     }
   }

@@ -24,7 +24,7 @@ func dataSourceDestination() *schema.Resource {
 			},
 			"workspace_id": {
 				Type:        schema.TypeString,
-				Computed:    true,
+				Required:    true,
 				Description: "The ID of the workspace this destination belongs to.",
 			},
 			"name": {
@@ -74,10 +74,20 @@ func dataSourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("invalid destination ID: %s", d.Get("id").(string))
 	}
 
-	// Get the destination using WithToken method for PAT-only authentication
-	// Note: Data sources will need to be provided with workspace_id in the future
-	// or we can derive it from the destination itself
-	destination, err := apiClient.GetDestinationWithToken(ctx, id, "")
+	workspaceId := d.Get("workspace_id").(string)
+	workspaceIdInt, err := strconv.Atoi(workspaceId)
+	if err != nil {
+		return diag.Errorf("invalid workspace ID: %s", workspaceId)
+	}
+
+	// Get workspace token using personal access token
+	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
+	if err != nil {
+		return diag.Errorf("failed to get workspace API key for workspace %d: %v", workspaceIdInt, err)
+	}
+
+	// Get the destination using the workspace token
+	destination, err := apiClient.GetDestinationWithToken(ctx, id, workspaceToken)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -88,7 +98,7 @@ func dataSourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	d.SetId(strconv.Itoa(destination.ID))
-	d.Set("workspace_id", destination.WorkspaceID)
+	// Note: workspace_id is a Required input field, don't overwrite it with API response
 	d.Set("name", destination.Name)
 	d.Set("type", destination.Type)
 	d.Set("status", destination.Status)

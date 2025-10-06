@@ -42,7 +42,8 @@ func Provider() *schema.Provider {
 			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Base URL for Census API. If not provided, will be determined based on region.",
+				DefaultFunc: schema.EnvDefaultFunc("CENSUS_BASE_URL", ""),
+				Description: "Base URL for Census API. If not provided, will be determined based on region. Can also be set via CENSUS_BASE_URL environment variable.",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{

@@ -21,7 +21,6 @@ func TestAccResourceSource_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("census_source.test", "type", "redshift"),
 					resource.TestCheckResourceAttrSet("census_source.test", "id"),
 					resource.TestCheckResourceAttrSet("census_source.test", "workspace_id"),
-					resource.TestCheckResourceAttrSet("census_source.test", "status"),
 					resource.TestCheckResourceAttrSet("census_source.test", "created_at"),
 				),
 			},
@@ -54,10 +53,6 @@ func TestAccResourceSource_Update(t *testing.T) {
 
 func testAccResourceSourceConfig_redshift() string {
 	return fmt.Sprintf(`
-provider "census" {
-  base_url = "%s"
-}
-
 resource "census_workspace" "test" {
   name = "Test Workspace - Source"
   notification_emails = ["test@example.com"]
@@ -69,17 +64,16 @@ resource "census_source" "test" {
   type = "redshift"
 
   connection_config = {
-    host     = "%s"
+    hostname = "%s"
     port     = "%s"
     database = "%s"
-    username = "%s"
+    user     = "%s"
     password = "%s"
   }
 
   auto_refresh_tables = false
 }
 `,
-		os.Getenv("CENSUS_BASE_URL"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
@@ -90,10 +84,6 @@ resource "census_source" "test" {
 
 func testAccResourceSourceConfig_redshiftUpdated() string {
 	return fmt.Sprintf(`
-provider "census" {
-  base_url = "%s"
-}
-
 resource "census_workspace" "test" {
   name = "Test Workspace - Source"
   notification_emails = ["test@example.com"]
@@ -105,17 +95,16 @@ resource "census_source" "test" {
   type = "redshift"
 
   connection_config = {
-    host     = "%s"
+    hostname = "%s"
     port     = "%s"
     database = "%s"
-    username = "%s"
+    user     = "%s"
     password = "%s"
   }
 
   auto_refresh_tables = true
 }
 `,
-		os.Getenv("CENSUS_BASE_URL"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),

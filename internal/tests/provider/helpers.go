@@ -53,16 +53,18 @@ func TestAccPreCheckIntegration(t *testing.T) {
 		}
 	}
 
-	// Check for Salesforce credentials
+	// Check for Salesforce JWT OAuth credentials
 	requiredSalesforce := []string{
 		"CENSUS_TEST_SALESFORCE_USERNAME",
-		"CENSUS_TEST_SALESFORCE_PASSWORD",
-		"CENSUS_TEST_SALESFORCE_SECURITY_TOKEN",
+		"CENSUS_TEST_SALESFORCE_INSTANCE_URL",
+		"CENSUS_TEST_SALESFORCE_CLIENT_ID",
+		"CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY",
+		"CENSUS_TEST_SALESFORCE_DOMAIN",
 	}
 
 	for _, envVar := range requiredSalesforce {
 		if v := os.Getenv(envVar); v == "" {
-			t.Fatalf("%s must be set for integration tests. See .env.test.example for setup instructions.", envVar)
+			t.Fatalf("%s must be set for integration tests. See .env.test.example for JWT OAuth setup instructions.", envVar)
 		}
 	}
 }

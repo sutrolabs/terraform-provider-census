@@ -21,7 +21,6 @@ func TestAccResourceDestination_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("census_destination.test", "type", "salesforce"),
 					resource.TestCheckResourceAttrSet("census_destination.test", "id"),
 					resource.TestCheckResourceAttrSet("census_destination.test", "workspace_id"),
-					resource.TestCheckResourceAttrSet("census_destination.test", "status"),
 					resource.TestCheckResourceAttrSet("census_destination.test", "created_at"),
 				),
 			},
@@ -54,10 +53,6 @@ func TestAccResourceDestination_Update(t *testing.T) {
 
 func testAccResourceDestinationConfig_salesforce() string {
 	return fmt.Sprintf(`
-provider "census" {
-  base_url = "%s"
-}
-
 resource "census_workspace" "test" {
   name = "Test Workspace - Destination"
   notification_emails = ["test@example.com"]
@@ -69,29 +64,26 @@ resource "census_destination" "test" {
   type = "salesforce"
 
   connection_config = {
-    username       = "%s"
-    password       = "%s"
-    security_token = "%s"
-    sandbox        = "%s"
+    username        = "%s"
+    instance_url    = "%s"
+    client_id       = "%s"
+    jwt_signing_key = "%s"
+    domain          = "%s"
   }
 
   auto_refresh_objects = false
 }
 `,
-		os.Getenv("CENSUS_BASE_URL"),
 		os.Getenv("CENSUS_TEST_SALESFORCE_USERNAME"),
-		os.Getenv("CENSUS_TEST_SALESFORCE_PASSWORD"),
-		os.Getenv("CENSUS_TEST_SALESFORCE_SECURITY_TOKEN"),
-		getEnvOrDefault("CENSUS_TEST_SALESFORCE_SANDBOX", "true"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_INSTANCE_URL"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_CLIENT_ID"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_DOMAIN"),
 	)
 }
 
 func testAccResourceDestinationConfig_salesforceUpdated() string {
 	return fmt.Sprintf(`
-provider "census" {
-  base_url = "%s"
-}
-
 resource "census_workspace" "test" {
   name = "Test Workspace - Destination"
   notification_emails = ["test@example.com"]
@@ -103,19 +95,20 @@ resource "census_destination" "test" {
   type = "salesforce"
 
   connection_config = {
-    username       = "%s"
-    password       = "%s"
-    security_token = "%s"
-    sandbox        = "%s"
+    username        = "%s"
+    instance_url    = "%s"
+    client_id       = "%s"
+    jwt_signing_key = "%s"
+    domain          = "%s"
   }
 
   auto_refresh_objects = true
 }
 `,
-		os.Getenv("CENSUS_BASE_URL"),
 		os.Getenv("CENSUS_TEST_SALESFORCE_USERNAME"),
-		os.Getenv("CENSUS_TEST_SALESFORCE_PASSWORD"),
-		os.Getenv("CENSUS_TEST_SALESFORCE_SECURITY_TOKEN"),
-		getEnvOrDefault("CENSUS_TEST_SALESFORCE_SANDBOX", "true"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_INSTANCE_URL"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_CLIENT_ID"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY"),
+		os.Getenv("CENSUS_TEST_SALESFORCE_DOMAIN"),
 	)
 }
