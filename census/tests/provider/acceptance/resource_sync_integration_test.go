@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	provider_test "github.com/sutrolabs/terraform-provider-census/internal/tests/provider"
+	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 // TestAccResourceSync_Basic tests basic sync creation with minimal configuration

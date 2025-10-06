@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/sutrolabs/terraform-provider-census/internal/provider"
+	"github.com/sutrolabs/terraform-provider-census/census/provider"
 )
 
 // TestAccProviders is a shared map of providers used across all acceptance tests

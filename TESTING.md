@@ -13,8 +13,8 @@ Tests individual components without external dependencies.
 go test ./... -short -v
 
 # Run specific package tests
-go test ./internal/client -v
-go test ./internal/provider -v
+go test ./census/client -v
+go test ./census/provider -v
 ```
 
 **What's tested:**
@@ -34,7 +34,7 @@ go test ./... -short -v
 
 # To run integration tests (requires Census API access)
 export CENSUS_PERSONAL_ACCESS_TOKEN="your-token"
-go test ./internal/client -v -run TestWorkspaceIntegration
+go test ./census/client -v -run TestWorkspaceIntegration
 ```
 
 **What's tested:**
@@ -53,7 +53,7 @@ export CENSUS_PERSONAL_ACCESS_TOKEN="your-real-token"
 export TF_ACC=1
 
 # Run acceptance tests
-go test ./internal/provider -v -run TestResourceWorkspace
+go test ./census/provider -v -run TestResourceWorkspace
 ```
 
 **What's tested:**
@@ -68,28 +68,28 @@ go test ./internal/provider -v -run TestResourceWorkspace
 
 1. **Provider Configuration**
    ```bash
-   go test ./internal/provider -v -run TestProvider
+   go test ./census/provider -v -run TestProvider
    ```
 
 2. **Client Creation & Configuration**
    ```bash
-   go test ./internal/client -v -run TestNewClient
+   go test ./census/client -v -run TestNewClient
    ```
 
 3. **URL Building & Parameter Handling**
    ```bash
-   go test ./internal/client -v -run TestClient_buildURL
-   go test ./internal/client -v -run TestListOptions_ToParams
+   go test ./census/client -v -run TestClient_buildURL
+   go test ./census/client -v -run TestListOptions_ToParams
    ```
 
 4. **Error Handling**
    ```bash
-   go test ./internal/client -v -run TestAPIError_Error
+   go test ./census/client -v -run TestAPIError_Error
    ```
 
 5. **HTTP Request Formation**
    ```bash
-   go test ./internal/client -v -run TestClient_makeRequest
+   go test ./census/client -v -run TestClient_makeRequest
    ```
 
 ### 🧪 Testable with Mock Server
@@ -159,14 +159,14 @@ terraform plan
 go build .
 
 # Test provider schema validation
-go test ./internal/provider -run TestProvider -v
+go test ./census/provider -run TestProvider -v
 
 # Test client functionality
-go test ./internal/client -v
+go test ./census/client -v
 
 # Test integration (requires Census API token)
 export CENSUS_PERSONAL_ACCESS_TOKEN="your-token"
-go test ./internal/client -run TestWorkspaceIntegration -v
+go test ./census/client -run TestWorkspaceIntegration -v
 ```
 
 ## Test Data & Fixtures
@@ -205,8 +205,8 @@ The provider includes GitHub Actions workflows for:
 ## Adding New Tests
 
 ### For New Resources
-1. Add unit tests in `internal/provider/*_test.go`
-2. Add client tests in `internal/client/*_test.go`
+1. Add unit tests in `census/provider/*_test.go`
+2. Add client tests in `census/client/*_test.go`
 3. Add acceptance tests with `TF_ACC` flag
 4. Update example configurations in `examples/`
 

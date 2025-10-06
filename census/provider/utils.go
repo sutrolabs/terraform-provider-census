@@ -3,7 +3,7 @@ package provider
 import (
 	"encoding/json"
 
-	"github.com/sutrolabs/terraform-provider-census/internal/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
 
 // IsNotFoundError checks if an error is a 404 Not Found error

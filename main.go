@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 
-	"github.com/sutrolabs/terraform-provider-census/internal/provider"
+	"github.com/sutrolabs/terraform-provider-census/census/provider"
 )
 
 func main() {

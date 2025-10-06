@@ -19,7 +19,7 @@ test: ## Run tests
 
 test-unit: ## Run unit tests (no credentials needed)
 	@echo "Running unit tests (no credentials required)..."
-	@go test -v ./internal/tests/provider/unit ./internal/tests/client -short
+	@go test -v ./census/tests/provider/unit ./census/tests/client -short
 
 test-integration: ## Run integration tests (creates all resources in staging)
 	@echo "Running integration tests against Census staging API..."
@@ -29,7 +29,7 @@ test-integration: ## Run integration tests (creates all resources in staging)
 		echo "Error: .env.test not found. Copy .env.test.example and fill in your credentials."; \
 		exit 1; \
 	fi
-	@set -a && . ./.env.test && set +a && TF_ACC=1 go test -v ./internal/tests/provider/acceptance -timeout 60m
+	@set -a && . ./.env.test && set +a && TF_ACC=1 go test -v ./census/tests/provider/acceptance -timeout 60m
 
 test-acc: test-integration ## Alias for test-integration (Terraform convention)
 

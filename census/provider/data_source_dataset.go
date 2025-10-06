@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/internal/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
 
 func dataSourceDataset() *schema.Resource {

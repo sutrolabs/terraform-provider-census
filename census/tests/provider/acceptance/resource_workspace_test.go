@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	provider_test "github.com/sutrolabs/terraform-provider-census/internal/tests/provider"
+	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 func TestResourceWorkspace_basic(t *testing.T) {

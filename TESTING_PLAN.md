@@ -453,7 +453,7 @@ import (
     "testing"
 
     "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-    provider_test "github.com/sutrolabs/terraform-provider-census/internal/tests/provider"
+    provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 // Basic test - create and verify
@@ -608,7 +608,7 @@ make test-integration
 make test-acc
 
 # Specific resource tests
-go test ./internal/tests/provider/acceptance -run TestAccResourceSync -v
+go test ./census/tests/provider/acceptance -run TestAccResourceSync -v
 
 # Coverage report
 make test-coverage
@@ -628,7 +628,7 @@ test-integration: ## Run integration tests (creates all resources in staging)
 		echo "Error: .env.test not found. Copy .env.test.example and fill in your credentials."; \
 		exit 1; \
 	fi
-	@set -a && . ./.env.test && set +a && TF_ACC=1 go test -v ./internal/tests/provider/acceptance -timeout 60m
+	@set -a && . ./.env.test && set +a && TF_ACC=1 go test -v ./census/tests/provider/acceptance -timeout 60m
 
 test-acc: test-integration ## Alias for test-integration (Terraform convention)
 

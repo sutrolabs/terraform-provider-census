@@ -1,10 +1,10 @@
-package unit_test
+package provider_test
 
 import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/sutrolabs/terraform-provider-census/internal/provider"
+	"github.com/sutrolabs/terraform-provider-census/census/provider"
 )
 
 func TestProvider(t *testing.T) {

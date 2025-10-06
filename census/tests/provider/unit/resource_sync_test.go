@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sutrolabs/terraform-provider-census/internal/client"
-	"github.com/sutrolabs/terraform-provider-census/internal/provider"
+	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/provider"
 )
 
 // Unit tests for sync resource helper functions

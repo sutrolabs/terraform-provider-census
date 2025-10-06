@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sutrolabs/terraform-provider-census/internal/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
 
 func TestNewClient(t *testing.T) {

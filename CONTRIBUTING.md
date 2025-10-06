@@ -62,7 +62,7 @@ This installs the provider to `~/.terraform.d/plugins/` where Terraform can find
 make test
 
 # Run specific package tests
-go test ./internal/provider -v
+go test ./census/provider -v
 
 # Run with coverage
 go test ./... -cover
@@ -72,7 +72,7 @@ go test ./... -cover
 
 When adding a new Census resource:
 
-1. **Create API client methods** in `internal/client/`:
+1. **Create API client methods** in `census/client/`:
    ```go
    func (c *Client) CreateResource(ctx context.Context, req *CreateResourceRequest, token string) (*Resource, error)
    func (c *Client) GetResourceWithToken(ctx context.Context, id int, token string) (*Resource, error)
@@ -80,11 +80,11 @@ When adding a new Census resource:
    func (c *Client) DeleteResourceWithToken(ctx context.Context, id int, token string) error
    ```
 
-2. **Implement the resource** in `internal/provider/resource_*.go` with CRUD operations
+2. **Implement the resource** in `census/provider/resource_*.go` with CRUD operations
 
-3. **Add data source** in `internal/provider/data_source_*.go`
+3. **Add data source** in `census/provider/data_source_*.go`
 
-4. **Register** in `internal/provider/provider.go`:
+4. **Register** in `census/provider/provider.go`:
    ```go
    ResourcesMap: map[string]*schema.Resource{
        "census_your_resource": resourceYourResource(),
@@ -113,7 +113,7 @@ When adding a new Census resource:
 - Consult [Census API Documentation](https://developers.getcensus.com/api-reference/introduction/overview) for API structure
 - Check [OpenAPI specifications](https://developers.getcensus.com/openapi/compiled/workspace_management.yaml) for request/response formats
 - Use dynamic workspace token retrieval via PAT
-- Follow existing patterns in `internal/client/` for consistency
+- Follow existing patterns in `census/client/` for consistency
 
 ## Questions?
 
