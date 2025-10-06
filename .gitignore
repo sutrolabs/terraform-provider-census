@@ -51,6 +51,9 @@ terraform-provider-census*
 # Logs
 *.log
 
+# Test environment files (contain credentials)
+.env.test
+
 # Local API specifications (for development reference)
 census_api_*.yaml
 

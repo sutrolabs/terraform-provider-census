@@ -7,14 +7,11 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    name: Test
+  # Linting and formatting checks
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    strategy:
-      matrix:
-        go-version: ['1.21', '1.22']
+    timeout-minutes: 10
 
     steps:
       - name: Check out code
@@ -23,7 +20,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: '1.22'
 
       - name: Download dependencies
         run: go mod download
@@ -43,12 +40,77 @@ jobs:
             exit 1
           fi
 
-      - name: Run tests
-        run: go test ./... -v -race -short -coverprofile=coverage.out
+  # Unit tests (no external dependencies, fast)
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        go-version: ['1.21', '1.22']
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Generate coverage report
+        if: matrix.go-version == '1.22'
+        run: |
+          go test ./... -short -coverprofile=coverage.out -covermode=atomic
+          go tool cover -html=coverage.out -o coverage.html
 
       - name: Upload coverage to Codecov
+        if: matrix.go-version == '1.22'
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.out
           flags: unittests
           fail_ci_if_error: false
+
+      - name: Upload coverage artifact
+        if: matrix.go-version == '1.22'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.html
+
+  # Build verification
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build provider
+        run: make build
+
+      - name: Verify binary
+        run: |
+          if [ ! -f bin/terraform-provider-census ]; then
+            echo "Provider binary not found"
+            exit 1
+          fi
+          file bin/terraform-provider-census

@@ -17,20 +17,28 @@ test: ## Run tests
 	@echo "Running tests..."
 	@go test -v ./... -short
 
-test-integration: ## Run integration tests (requires mock server)
-	@echo "Running integration tests..."
-	@echo "Start mock server first: go run scripts/mock_server.go"
-	@go test -v ./internal/client -run TestWorkspaceIntegration
+test-unit: ## Run unit tests (no credentials needed)
+	@echo "Running unit tests (no credentials required)..."
+	@go test -v ./internal/tests/provider/unit ./internal/tests/client -short
 
-test-acc: ## Run acceptance tests
-	@echo "Running acceptance tests..."
-	@TF_ACC=1 go test -v ./... -timeout 30m
+test-integration: ## Run integration tests (creates all resources in staging)
+	@echo "Running integration tests against Census staging API..."
+	@echo "This will create workspaces, sources, destinations, and syncs in staging"
+	@echo "Requires: .env.test with staging credentials (see .env.test.example)"
+	@if [ ! -f .env.test ]; then \
+		echo "Error: .env.test not found. Copy .env.test.example and fill in your credentials."; \
+		exit 1; \
+	fi
+	@set -a && . ./.env.test && set +a && TF_ACC=1 go test -v ./internal/tests/provider/acceptance -timeout 60m
 
-test-all: test test-integration ## Run unit and integration tests
+test-acc: test-integration ## Alias for test-integration (Terraform convention)
 
-mock-server: ## Start mock Census API server
-	@echo "Starting mock Census API server on :8080..."
-	@go run scripts/mock_server.go
+test-coverage: ## Generate test coverage report
+	@echo "Generating test coverage report..."
+	@go test ./... -coverprofile=coverage.out
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+	@go tool cover -func=coverage.out | grep total:
 
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."

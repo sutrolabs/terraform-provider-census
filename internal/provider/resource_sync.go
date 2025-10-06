@@ -613,8 +613,8 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.Errorf("workspace API key is empty for workspace %d", workspaceIdInt)
 	}
 
-	destinationAttributes := expandDestinationAttributes(d.Get("destination_attributes").([]interface{}))
-	fieldMappings := expandFieldMappings(d.Get("field_mapping").([]interface{}))
+	destinationAttributes := ExpandDestinationAttributes(d.Get("destination_attributes").([]interface{}))
+	fieldMappings := ExpandFieldMappings(d.Get("field_mapping").([]interface{}))
 
 	// Validate exactly one primary identifier
 	if err := validatePrimaryIdentifier(fieldMappings); err != nil {
@@ -632,13 +632,13 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	runModeRaw := d.Get("run_mode").([]interface{})
 
 	if len(runModeRaw) > 0 {
-		mode = expandRunMode(runModeRaw)
+		mode = ExpandRunMode(runModeRaw)
 	}
 
 	req := &client.CreateSyncRequest{
 		// Required fields per OpenAPI spec
 		Operation:             operation,
-		SourceAttributes:      expandSourceAttributes(d.Get("source_attributes").([]interface{})),
+		SourceAttributes:      ExpandSourceAttributes(d.Get("source_attributes").([]interface{})),
 		DestinationAttributes: destinationAttributes,
 		Mappings:              mappings,
 
@@ -659,7 +659,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		SyncBehaviorFamily: d.Get("sync_behavior_family").(string),
 
 		// Advanced configuration
-		AdvancedConfiguration: expandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
+		AdvancedConfiguration: ExpandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
 
 		// High water mark attribute
 		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
@@ -671,7 +671,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		MirrorStrategy: d.Get("mirror_strategy").(string),
 
 		// Alert configuration
-		AlertAttributes: expandAlerts(d.Get("alert").(*schema.Set).List()),
+		AlertAttributes: ExpandAlerts(d.Get("alert").(*schema.Set).List()),
 	}
 
 	fmt.Printf("[DEBUG] Creating sync with request: %+v\n", req)
@@ -781,7 +781,7 @@ To fix this, add the missing workspace_id to terraform state:
 
 	// Set advanced configuration if present
 	if sync.AdvancedConfiguration != nil && len(sync.AdvancedConfiguration) > 0 {
-		if err := d.Set("advanced_configuration", flattenAdvancedConfiguration(sync.AdvancedConfiguration)); err != nil {
+		if err := d.Set("advanced_configuration", FlattenAdvancedConfiguration(sync.AdvancedConfiguration)); err != nil {
 			fmt.Printf("[DEBUG] Failed to set advanced_configuration: %v\n", err)
 			return diag.Errorf("failed to set advanced_configuration: %v", err)
 		}
@@ -804,7 +804,7 @@ To fix this, add the missing workspace_id to terraform state:
 
 	// Set alert attributes if present
 	if len(sync.AlertAttributes) > 0 {
-		if err := d.Set("alert", flattenAlerts(sync.AlertAttributes)); err != nil {
+		if err := d.Set("alert", FlattenAlerts(sync.AlertAttributes)); err != nil {
 			fmt.Printf("[DEBUG] Failed to set alert: %v\n", err)
 			return diag.Errorf("failed to set alert: %v", err)
 		}
@@ -831,7 +831,7 @@ To fix this, add the missing workspace_id to terraform state:
 	// Handle run_mode from API response
 	if sync.Mode != nil {
 		fmt.Printf("[DEBUG] Setting run_mode from API response\n")
-		if err := d.Set("run_mode", flattenRunMode(sync.Mode)); err != nil {
+		if err := d.Set("run_mode", FlattenRunMode(sync.Mode)); err != nil {
 			fmt.Printf("[DEBUG] Failed to set run_mode: %v\n", err)
 			return diag.Errorf("failed to set run_mode: %v", err)
 		}
@@ -843,13 +843,13 @@ To fix this, add the missing workspace_id to terraform state:
 
 	// Set complex attributes with nil checks
 	fmt.Printf("[DEBUG] Setting source_attributes\n")
-	if err := d.Set("source_attributes", flattenSourceAttributes(sync.SourceAttributes)); err != nil {
+	if err := d.Set("source_attributes", FlattenSourceAttributes(sync.SourceAttributes)); err != nil {
 		fmt.Printf("[DEBUG] Failed to set source_attributes: %v\n", err)
 		return diag.Errorf("failed to set source_attributes: %v", err)
 	}
 
 	fmt.Printf("[DEBUG] Setting destination_attributes\n")
-	if err := d.Set("destination_attributes", flattenDestinationAttributes(sync.DestinationAttributes)); err != nil {
+	if err := d.Set("destination_attributes", FlattenDestinationAttributes(sync.DestinationAttributes)); err != nil {
 		fmt.Printf("[DEBUG] Failed to set destination_attributes: %v\n", err)
 		return diag.Errorf("failed to set destination_attributes: %v", err)
 	}
@@ -869,7 +869,7 @@ To fix this, add the missing workspace_id to terraform state:
 	}
 
 	fmt.Printf("[DEBUG] Setting field_mapping\n")
-	if err := d.Set("field_mapping", flattenFieldMappings(fieldMappings)); err != nil {
+	if err := d.Set("field_mapping", FlattenFieldMappings(fieldMappings)); err != nil {
 		fmt.Printf("[DEBUG] Failed to set field_mapping: %v\n", err)
 		return diag.Errorf("failed to set field_mapping: %v", err)
 	}
@@ -929,7 +929,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	runModeRaw := d.Get("run_mode").([]interface{})
 
 	if len(runModeRaw) > 0 {
-		mode = expandRunMode(runModeRaw)
+		mode = ExpandRunMode(runModeRaw)
 		fmt.Printf("[DEBUG] Using run_mode: %+v\n", mode)
 	}
 
@@ -1047,9 +1047,9 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	req := &client.UpdateSyncRequest{
 		Label:                 label,
-		SourceAttributes:      expandSourceAttributes(d.Get("source_attributes").([]interface{})),
-		DestinationAttributes: expandStringMap(destAttrs),
-		FieldMappings:         expandFieldMappings(fieldMappings),
+		SourceAttributes:      ExpandSourceAttributes(d.Get("source_attributes").([]interface{})),
+		DestinationAttributes: ExpandStringMap(destAttrs),
+		FieldMappings:         ExpandFieldMappings(fieldMappings),
 		Paused:                paused,
 
 		// Mode - live vs triggered with trigger configurations
@@ -1064,7 +1064,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		SyncBehaviorFamily: syncBehaviorFamily,
 
 		// Advanced configuration
-		AdvancedConfiguration: expandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
+		AdvancedConfiguration: ExpandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
 
 		// High water mark attribute
 		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
@@ -1076,7 +1076,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		MirrorStrategy: d.Get("mirror_strategy").(string),
 
 		// Alert configuration
-		AlertAttributes: expandAlerts(alertSet.List()),
+		AlertAttributes: ExpandAlerts(alertSet.List()),
 	}
 
 	fmt.Printf("[DEBUG] Update request: %+v\n", req)
@@ -1124,13 +1124,13 @@ func resourceSyncDelete(ctx context.Context, d *schema.ResourceData, meta interf
 
 // Helper functions for expanding/flattening complex types
 
-func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
+func ExpandFieldMappings(mappings []interface{}) []client.FieldMapping {
 	result := make([]client.FieldMapping, 0, len(mappings))
 	for i, mapping := range mappings {
 		// Safe type assertion for mapping
 		m, ok := mapping.(map[string]interface{})
 		if !ok {
-			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d] is not a map[string]interface{}, type: %T, value: %+v\n", i, mapping, mapping)
+			fmt.Printf("[DEBUG] ExpandFieldMappings: mappings[%d] is not a map[string]interface{}, type: %T, value: %+v\n", i, mapping, mapping)
 			continue // Skip invalid entries
 		}
 
@@ -1142,13 +1142,13 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 		if from, ok := m["from"].(string); ok {
 			fieldMapping.From = from
 		} else {
-			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['from'] is not a string, type: %T, value: %+v\n", i, m["from"], m["from"])
+			fmt.Printf("[DEBUG] ExpandFieldMappings: mappings[%d]['from'] is not a string, type: %T, value: %+v\n", i, m["from"], m["from"])
 		}
 
 		if to, ok := m["to"].(string); ok {
 			fieldMapping.To = to
 		} else {
-			fmt.Printf("[DEBUG] expandFieldMappings: mappings[%d]['to'] is not a string, type: %T, value: %+v\n", i, m["to"], m["to"])
+			fmt.Printf("[DEBUG] ExpandFieldMappings: mappings[%d]['to'] is not a string, type: %T, value: %+v\n", i, m["to"], m["to"])
 		}
 
 		// Get type field (defaults to "direct" in schema)
@@ -1174,7 +1174,7 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 		// Validate: if constant is present, type must be "constant"
 		if fieldMapping.Constant != nil && fieldMapping.Constant != "" {
 			if mappingType != "constant" {
-				fmt.Printf("[ERROR] expandFieldMappings: field_mapping[%d] has a constant value but type is '%s'. When using constant, type must be 'constant'.\n", i, mappingType)
+				fmt.Printf("[ERROR] ExpandFieldMappings: field_mapping[%d] has a constant value but type is '%s'. When using constant, type must be 'constant'.\n", i, mappingType)
 				// Continue processing but log the error - validation should catch this
 			}
 		}
@@ -1222,7 +1222,7 @@ func expandFieldMappings(mappings []interface{}) []client.FieldMapping {
 	return result
 }
 
-func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
+func FlattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 	result := make([]interface{}, len(mappings))
 	for i, mapping := range mappings {
 		mappingMap := map[string]interface{}{
@@ -1256,7 +1256,7 @@ func flattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 	return result
 }
 
-func expandAlerts(alerts []interface{}) []client.AlertAttribute {
+func ExpandAlerts(alerts []interface{}) []client.AlertAttribute {
 	if len(alerts) == 0 {
 		return nil
 	}
@@ -1265,7 +1265,7 @@ func expandAlerts(alerts []interface{}) []client.AlertAttribute {
 	for i, alert := range alerts {
 		m, ok := alert.(map[string]interface{})
 		if !ok {
-			fmt.Printf("[DEBUG] expandAlerts: alerts[%d] is not a map[string]interface{}, type: %T, value: %+v\n", i, alert, alert)
+			fmt.Printf("[DEBUG] ExpandAlerts: alerts[%d] is not a map[string]interface{}, type: %T, value: %+v\n", i, alert, alert)
 			continue
 		}
 
@@ -1310,7 +1310,7 @@ func expandAlerts(alerts []interface{}) []client.AlertAttribute {
 	return result
 }
 
-func flattenAlerts(alerts []client.AlertAttribute) []interface{} {
+func FlattenAlerts(alerts []client.AlertAttribute) []interface{} {
 	if len(alerts) == 0 {
 		return []interface{}{}
 	}
@@ -1343,11 +1343,11 @@ func flattenAlerts(alerts []client.AlertAttribute) []interface{} {
 	return result
 }
 
-func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
-	fmt.Printf("[DEBUG] expandSyncSchedule called with: %+v\n", schedules)
+func ExpandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
+	fmt.Printf("[DEBUG] ExpandSyncSchedule called with: %+v\n", schedules)
 
 	if len(schedules) == 0 || schedules[0] == nil {
-		fmt.Printf("[DEBUG] expandSyncSchedule returning nil (empty or nil schedule)\n")
+		fmt.Printf("[DEBUG] ExpandSyncSchedule returning nil (empty or nil schedule)\n")
 		return nil
 	}
 
@@ -1355,7 +1355,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 	sInterface := schedules[0]
 	s, ok := sInterface.(map[string]interface{})
 	if !ok {
-		fmt.Printf("[DEBUG] expandSyncSchedule: schedules[0] is not a map[string]interface{}, type: %T, value: %+v\n", sInterface, sInterface)
+		fmt.Printf("[DEBUG] ExpandSyncSchedule: schedules[0] is not a map[string]interface{}, type: %T, value: %+v\n", sInterface, sInterface)
 		return nil
 	}
 	fmt.Printf("[DEBUG] schedule map: %+v\n", s)
@@ -1366,7 +1366,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 		if freqStr, ok := freq.(string); ok {
 			frequency = freqStr
 		} else {
-			fmt.Printf("[DEBUG] expandSyncSchedule: frequency is not a string, type: %T, value: %+v\n", freq, freq)
+			fmt.Printf("[DEBUG] ExpandSyncSchedule: frequency is not a string, type: %T, value: %+v\n", freq, freq)
 		}
 	}
 
@@ -1375,7 +1375,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 		if minuteInt, ok := m.(int); ok {
 			minute = minuteInt
 		} else {
-			fmt.Printf("[DEBUG] expandSyncSchedule: minute is not an int, type: %T, value: %+v\n", m, m)
+			fmt.Printf("[DEBUG] ExpandSyncSchedule: minute is not an int, type: %T, value: %+v\n", m, m)
 		}
 	}
 
@@ -1384,7 +1384,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 		if hourInt, ok := h.(int); ok {
 			hour = hourInt
 		} else {
-			fmt.Printf("[DEBUG] expandSyncSchedule: hour is not an int, type: %T, value: %+v\n", h, h)
+			fmt.Printf("[DEBUG] ExpandSyncSchedule: hour is not an int, type: %T, value: %+v\n", h, h)
 		}
 	}
 
@@ -1393,7 +1393,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 		if dowInt, ok := dow.(int); ok {
 			dayOfWeek = dowInt
 		} else {
-			fmt.Printf("[DEBUG] expandSyncSchedule: day_of_week is not an int, type: %T, value: %+v\n", dow, dow)
+			fmt.Printf("[DEBUG] ExpandSyncSchedule: day_of_week is not an int, type: %T, value: %+v\n", dow, dow)
 		}
 	}
 
@@ -1402,7 +1402,7 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 		if tzStr, ok := tz.(string); ok {
 			timezone = tzStr
 		} else {
-			fmt.Printf("[DEBUG] expandSyncSchedule: timezone is not a string, type: %T, value: %+v\n", tz, tz)
+			fmt.Printf("[DEBUG] ExpandSyncSchedule: timezone is not a string, type: %T, value: %+v\n", tz, tz)
 		}
 	}
 
@@ -1414,22 +1414,22 @@ func expandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 		Timezone:  timezone,
 	}
 
-	fmt.Printf("[DEBUG] expandSyncSchedule returning: %+v\n", result)
+	fmt.Printf("[DEBUG] ExpandSyncSchedule returning: %+v\n", result)
 	return result
 }
 
-// expandRunMode converts Terraform run_mode config to API SyncMode struct
-func expandRunMode(runModes []interface{}) *client.SyncMode {
-	fmt.Printf("[DEBUG] expandRunMode called with: %+v\n", runModes)
+// ExpandRunMode converts Terraform run_mode config to API SyncMode struct
+func ExpandRunMode(runModes []interface{}) *client.SyncMode {
+	fmt.Printf("[DEBUG] ExpandRunMode called with: %+v\n", runModes)
 
 	if len(runModes) == 0 || runModes[0] == nil {
-		fmt.Printf("[DEBUG] expandRunMode returning nil (empty or nil run_mode)\n")
+		fmt.Printf("[DEBUG] ExpandRunMode returning nil (empty or nil run_mode)\n")
 		return nil
 	}
 
 	runModeMap, ok := runModes[0].(map[string]interface{})
 	if !ok {
-		fmt.Printf("[DEBUG] expandRunMode: runModes[0] is not a map[string]interface{}, type: %T\n", runModes[0])
+		fmt.Printf("[DEBUG] ExpandRunMode: runModes[0] is not a map[string]interface{}, type: %T\n", runModes[0])
 		return nil
 	}
 
@@ -1519,12 +1519,12 @@ func expandRunMode(runModes []interface{}) *client.SyncMode {
 		}
 	}
 
-	fmt.Printf("[DEBUG] expandRunMode returning: %+v\n", mode)
+	fmt.Printf("[DEBUG] ExpandRunMode returning: %+v\n", mode)
 	return mode
 }
 
-// flattenRunMode converts API SyncMode struct to Terraform run_mode config
-func flattenRunMode(mode *client.SyncMode) []interface{} {
+// FlattenRunMode converts API SyncMode struct to Terraform run_mode config
+func FlattenRunMode(mode *client.SyncMode) []interface{} {
 	if mode == nil {
 		return []interface{}{}
 	}
@@ -1591,7 +1591,7 @@ func flattenRunMode(mode *client.SyncMode) []interface{} {
 	return []interface{}{modeMap}
 }
 
-func expandStringMap(m map[string]interface{}) map[string]interface{} {
+func ExpandStringMap(m map[string]interface{}) map[string]interface{} {
 	if m == nil {
 		return nil
 	}
@@ -1602,7 +1602,7 @@ func expandStringMap(m map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func flattenStringMap(m map[string]interface{}) map[string]interface{} {
+func FlattenStringMap(m map[string]interface{}) map[string]interface{} {
 	if m == nil {
 		return nil
 	}
@@ -1613,9 +1613,9 @@ func flattenStringMap(m map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-// cleanEmptyStrings removes empty string and zero values from a map
+// CleanEmptyStrings removes empty string and zero values from a map
 // to avoid sending invalid data to the Census API
-func cleanEmptyStrings(m map[string]interface{}) map[string]interface{} {
+func CleanEmptyStrings(m map[string]interface{}) map[string]interface{} {
 	if m == nil {
 		return nil
 	}
@@ -1634,7 +1634,7 @@ func cleanEmptyStrings(m map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func expandAdvancedConfiguration(jsonStr string) map[string]interface{} {
+func ExpandAdvancedConfiguration(jsonStr string) map[string]interface{} {
 	if jsonStr == "" {
 		return nil
 	}
@@ -1646,7 +1646,7 @@ func expandAdvancedConfiguration(jsonStr string) map[string]interface{} {
 	return result
 }
 
-func flattenAdvancedConfiguration(m map[string]interface{}) string {
+func FlattenAdvancedConfiguration(m map[string]interface{}) string {
 	if m == nil || len(m) == 0 {
 		return ""
 	}
@@ -1658,8 +1658,8 @@ func flattenAdvancedConfiguration(m map[string]interface{}) string {
 	return string(jsonBytes)
 }
 
-// flattenSourceAttributes converts API source_attributes map to Terraform list structure
-func flattenSourceAttributes(attrs map[string]interface{}) []map[string]interface{} {
+// FlattenSourceAttributes converts API source_attributes map to Terraform list structure
+func FlattenSourceAttributes(attrs map[string]interface{}) []map[string]interface{} {
 	if attrs == nil {
 		return nil
 	}
@@ -1776,14 +1776,14 @@ func flattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 	return []map[string]interface{}{result}
 }
 
-func expandStringList(list []interface{}) []string {
+func ExpandStringList(list []interface{}) []string {
 	result := make([]string, 0, len(list))
 	for i, v := range list {
 		// Safe type assertion
 		if str, ok := v.(string); ok {
 			result = append(result, str)
 		} else {
-			fmt.Printf("[DEBUG] expandStringList: list[%d] is not a string, type: %T, value: %+v\n", i, v, v)
+			fmt.Printf("[DEBUG] ExpandStringList: list[%d] is not a string, type: %T, value: %+v\n", i, v, v)
 			// Skip non-string values instead of panicking
 		}
 	}
@@ -2003,8 +2003,8 @@ func convertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 	return result
 }
 
-// expandSourceAttributes converts list-based source_attributes from Terraform to map format for API
-func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
+// ExpandSourceAttributes converts list-based source_attributes from Terraform to map format for API
+func ExpandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 	if len(sourceAttrs) == 0 {
 		return nil
 	}
@@ -2013,7 +2013,7 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 	attrInterface := sourceAttrs[0]
 	attr, ok := attrInterface.(map[string]interface{})
 	if !ok {
-		fmt.Printf("[DEBUG] expandSourceAttributes: sourceAttrs[0] is not a map[string]interface{}, type: %T, value: %+v\n", attrInterface, attrInterface)
+		fmt.Printf("[DEBUG] ExpandSourceAttributes: sourceAttrs[0] is not a map[string]interface{}, type: %T, value: %+v\n", attrInterface, attrInterface)
 		return nil
 	}
 
@@ -2037,19 +2037,19 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 			// Object stored as list in Terraform state
 			if len(v) > 0 {
 				if obj, ok := v[0].(map[string]interface{}); ok {
-					fmt.Printf("[DEBUG] expandSourceAttributes: object extracted from list: %+v\n", obj)
+					fmt.Printf("[DEBUG] ExpandSourceAttributes: object extracted from list: %+v\n", obj)
 					objectMap = obj
 				} else {
-					fmt.Printf("[DEBUG] expandSourceAttributes: objList[0] is not a map[string]interface{}, type: %T, value: %+v\n", v[0], v[0])
+					fmt.Printf("[DEBUG] ExpandSourceAttributes: objList[0] is not a map[string]interface{}, type: %T, value: %+v\n", v[0], v[0])
 					return result // Return partial result instead of nil
 				}
 			}
 		case map[string]interface{}:
 			// Object is directly a map (direct config)
-			fmt.Printf("[DEBUG] expandSourceAttributes: object is direct map: %+v\n", v)
+			fmt.Printf("[DEBUG] ExpandSourceAttributes: object is direct map: %+v\n", v)
 			objectMap = v
 		default:
-			fmt.Printf("[DEBUG] expandSourceAttributes: object is unexpected type: %T, value: %+v\n", objData, objData)
+			fmt.Printf("[DEBUG] ExpandSourceAttributes: object is unexpected type: %T, value: %+v\n", objData, objData)
 		}
 	}
 
@@ -2073,7 +2073,7 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 			if segmentId, ok := objectMap["id"]; ok && segmentId != "" {
 				result["filter_segment_id"] = segmentId
 			}
-			fmt.Printf("[DEBUG] expandSourceAttributes: Translated segment source - object: %+v, filter_segment_id: %+v\n", translatedObject, result["filter_segment_id"])
+			fmt.Printf("[DEBUG] ExpandSourceAttributes: Translated segment source - object: %+v, filter_segment_id: %+v\n", translatedObject, result["filter_segment_id"])
 
 		case "cohort":
 			// User provides: type="cohort", id=<cohort_id>, dataset_id=<dataset_id>
@@ -2087,13 +2087,13 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 			if cohortId, ok := objectMap["id"]; ok && cohortId != "" {
 				result["cohort_id"] = cohortId
 			}
-			fmt.Printf("[DEBUG] expandSourceAttributes: Translated cohort source - object: %+v, cohort_id: %+v\n", translatedObject, result["cohort_id"])
+			fmt.Printf("[DEBUG] ExpandSourceAttributes: Translated cohort source - object: %+v, cohort_id: %+v\n", translatedObject, result["cohort_id"])
 
 		default:
 			// For all other types (model, topic, dataset, table), pass through as-is
 			// But clean empty strings to avoid API errors
-			result["object"] = cleanEmptyStrings(objectMap)
-			fmt.Printf("[DEBUG] expandSourceAttributes: Pass-through object for type %s (cleaned): %+v\n", objectType, result["object"])
+			result["object"] = CleanEmptyStrings(objectMap)
+			fmt.Printf("[DEBUG] ExpandSourceAttributes: Pass-through object for type %s (cleaned): %+v\n", objectType, result["object"])
 		}
 	}
 
@@ -2105,8 +2105,8 @@ func expandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 	return result
 }
 
-// expandDestinationAttributes converts list-based destination_attributes from Terraform to map format for API
-func expandDestinationAttributes(destAttrs []interface{}) map[string]interface{} {
+// ExpandDestinationAttributes converts list-based destination_attributes from Terraform to map format for API
+func ExpandDestinationAttributes(destAttrs []interface{}) map[string]interface{} {
 	if len(destAttrs) == 0 {
 		return nil
 	}
@@ -2115,7 +2115,7 @@ func expandDestinationAttributes(destAttrs []interface{}) map[string]interface{}
 	attrInterface := destAttrs[0]
 	attr, ok := attrInterface.(map[string]interface{})
 	if !ok {
-		fmt.Printf("[DEBUG] expandDestinationAttributes: destAttrs[0] is not a map[string]interface{}, type: %T, value: %+v\n", attrInterface, attrInterface)
+		fmt.Printf("[DEBUG] ExpandDestinationAttributes: destAttrs[0] is not a map[string]interface{}, type: %T, value: %+v\n", attrInterface, attrInterface)
 		return nil
 	}
 
@@ -2135,8 +2135,8 @@ func expandDestinationAttributes(destAttrs []interface{}) map[string]interface{}
 	return result
 }
 
-// flattenDestinationAttributes converts API destination_attributes map to Terraform list structure
-func flattenDestinationAttributes(attrs map[string]interface{}) []map[string]interface{} {
+// FlattenDestinationAttributes converts API destination_attributes map to Terraform list structure
+func FlattenDestinationAttributes(attrs map[string]interface{}) []map[string]interface{} {
 	if attrs == nil {
 		return nil
 	}

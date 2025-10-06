@@ -287,20 +287,20 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	// Set complex attributes
-	if err := d.Set("source_attributes", flattenStringMap(sync.SourceAttributes)); err != nil {
+	if err := d.Set("source_attributes", FlattenStringMap(sync.SourceAttributes)); err != nil {
 		return diag.Errorf("failed to set source_attributes: %v", err)
 	}
-	if err := d.Set("destination_attributes", flattenStringMap(sync.DestinationAttributes)); err != nil {
+	if err := d.Set("destination_attributes", FlattenStringMap(sync.DestinationAttributes)); err != nil {
 		return diag.Errorf("failed to set destination_attributes: %v", err)
 	}
-	if err := d.Set("field_mapping", flattenFieldMappings(sync.FieldMappings)); err != nil {
+	if err := d.Set("field_mapping", FlattenFieldMappings(sync.FieldMappings)); err != nil {
 		return diag.Errorf("failed to set field_mapping: %v", err)
 	}
 	if err := d.Set("sync_key", sync.SyncKey); err != nil {
 		return diag.Errorf("failed to set sync_key: %v", err)
 	}
 	if sync.Mode != nil {
-		if err := d.Set("run_mode", flattenRunMode(sync.Mode)); err != nil {
+		if err := d.Set("run_mode", FlattenRunMode(sync.Mode)); err != nil {
 			return diag.Errorf("failed to set run_mode: %v", err)
 		}
 	}
