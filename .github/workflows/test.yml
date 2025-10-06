@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main ]
 
+# Prevent concurrent integration tests from conflicting
+# Queue commits to main, cancel in-progress PR runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   # Linting and formatting checks
   lint:
