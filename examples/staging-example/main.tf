@@ -21,39 +21,59 @@ resource "census_workspace" "staging_test" {
 # Create a data source (warehouse connection)
 resource "census_source" "warehouse" {
   workspace_id = census_workspace.staging_test.id
-  label        = var.source_label
+  name         = var.source_label
   type         = var.source_type
-  credentials  = var.source_credentials
+
+  connection_config = var.source_credentials
 }
 
 # Create a destination (e.g., Salesforce sandbox)
 resource "census_destination" "crm" {
   workspace_id = census_workspace.staging_test.id
-  label        = var.destination_label
+  name         = var.destination_label
   type         = var.destination_type
-  credentials  = var.destination_credentials
+
+  connection_config = var.destination_credentials
 }
 
 # Create a simple sync
 resource "census_sync" "test_sync" {
-  workspace_id   = census_workspace.staging_test.id
-  label          = var.sync_label
+  workspace_id = census_workspace.staging_test.id
+  label        = var.sync_label
 
-  source_type = "table"
-  source_attributes = {
-    connection_id  = census_source.warehouse.id
-    object         = var.source_table
-    full_sync_mode = "replace"
+  source_attributes {
+    connection_id = census_source.warehouse.id
+    object {
+      type       = "table"
+      table_name = var.source_table
+    }
   }
 
-  destination_object = var.destination_object
+  destination_attributes {
+    connection_id = census_destination.crm.id
+    object        = var.destination_object
+  }
 
-  field_mapping = var.field_mapping
+  operation = "upsert"
 
-  schedule = {
-    frequency = var.sync_frequency
-    hour      = var.sync_hour
-    minute    = var.sync_minute
+  dynamic "field_mapping" {
+    for_each = var.field_mapping
+    content {
+      from                  = field_mapping.value.from
+      to                    = field_mapping.value.to
+      is_primary_identifier = lookup(field_mapping.value, "is_primary_identifier", false)
+    }
+  }
+
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = var.sync_frequency
+        hour      = var.sync_hour
+        minute    = var.sync_minute
+      }
+    }
   }
 
   paused = var.sync_paused

@@ -12,7 +12,7 @@ resource "census_destination" "salesforce" {
   name         = "Production Salesforce"
   type         = "salesforce"
 
-  credentials = jsonencode({
+  connection_config = jsonencode({
     username      = "census@company.com"
     password      = var.salesforce_password
     security_token = var.salesforce_security_token
@@ -29,7 +29,7 @@ resource "census_destination" "hubspot" {
   name         = "Marketing HubSpot"
   type         = "hubspot"
 
-  credentials = jsonencode({
+  connection_config = jsonencode({
     access_token = var.hubspot_access_token
   })
 }
@@ -43,7 +43,7 @@ resource "census_destination" "intercom" {
   name         = "Customer Support"
   type         = "intercom"
 
-  credentials = jsonencode({
+  connection_config = jsonencode({
     access_token = var.intercom_access_token
   })
 }
@@ -61,7 +61,7 @@ resource "census_destination" "intercom" {
   - `marketo`
   - `braze`
   - And many more... (validated against Census API)
-* `credentials` - (Required, Sensitive) JSON-encoded credentials for connecting to the destination. The required fields vary by destination type and are validated against the Census API schema.
+* `connection_config` - (Required, Sensitive) JSON-encoded credentials for connecting to the destination. The required fields vary by destination type and are validated against the Census API schema.
 
 ## Attribute Reference
 

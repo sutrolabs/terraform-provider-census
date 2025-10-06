@@ -25,4 +25,7 @@ output "destination_status" {
 * `name` - The name of the destination.
 * `type` - The type of destination connector (e.g., "salesforce", "hubspot", "intercom").
 * `connection_status` - The current connection status of the destination.
-* `credentials` - The credentials for the destination connection (sensitive, not fully populated in reads).
+* `connection_config` - The connection configuration for the destination (sensitive, not fully populated in reads).
+* `status` - The current status of the destination.
+* `created_at` - When the destination was created.
+* `updated_at` - When the destination was last updated.

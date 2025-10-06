@@ -39,9 +39,14 @@ resource "census_sync" "user_sync" {
 
   operation = "upsert"
 
-  schedule {
-    frequency = "hourly"
-    minute    = 0
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "hourly"
+        minute    = 0
+      }
+    }
   }
 }
 ```
@@ -77,10 +82,15 @@ resource "census_sync" "high_value_sync" {
 
   operation = "upsert"
 
-  schedule {
-    frequency = "daily"
-    hour      = 8
-    minute    = 0
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "daily"
+        hour      = 8
+        minute    = 0
+      }
+    }
   }
 }
 ```
@@ -124,10 +134,15 @@ resource "census_sync" "vip_segment_sync" {
 
   operation = "upsert"
 
-  schedule {
-    frequency = "daily"
-    hour      = 2
-    minute    = 0
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "daily"
+        hour      = 2
+        minute    = 0
+      }
+    }
   }
 }
 ```
@@ -346,10 +361,15 @@ resource "census_sync" "auto_sync" {
 
   operation = "upsert"
 
-  schedule {
-    frequency = "daily"
-    hour      = 8
-    minute    = 0
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "daily"
+        hour      = 8
+        minute    = 0
+      }
+    }
   }
 }
 ```
@@ -390,9 +410,14 @@ resource "census_sync" "user_list_sync" {
 
   operation = "mirror"
 
-  schedule {
-    frequency = "hourly"
-    minute    = 10
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "hourly"
+        minute    = 10
+      }
+    }
   }
 }
 ```
@@ -432,9 +457,14 @@ resource "census_sync" "blob_storage_sync" {
     csv_include_header = true
   })
 
-  schedule {
-    frequency = "hourly"
-    minute    = 35
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "hourly"
+        minute    = 35
+      }
+    }
   }
 }
 ```
@@ -510,9 +540,14 @@ resource "census_sync" "monitored_sync" {
     },
   ]
 
-  schedule {
-    frequency = "hourly"
-    minute    = 0
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "hourly"
+        minute    = 0
+      }
+    }
   }
 }
 ```
@@ -548,10 +583,15 @@ resource "census_sync" "mirror_sync" {
 
   operation = "mirror"
 
-  schedule {
-    frequency = "daily"
-    hour      = 2
-    minute    = 0
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "daily"
+        hour      = 2
+        minute    = 0
+      }
+    }
   }
 }
 ```
@@ -595,9 +635,14 @@ resource "census_sync" "incremental_append" {
   # This is more efficient than Census's default diff engine for append operations
   high_water_mark_attribute = "updated_at"
 
-  schedule {
-    frequency = "hourly"
-    minute    = 15
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "hourly"
+        minute    = 15
+      }
+    }
   }
 }
 ```
@@ -646,10 +691,15 @@ resource "census_sync" "preserve_example" {
 
   operation = "upsert"
 
-  schedule {
-    frequency = "daily"
-    hour      = 9
-    minute    = 0
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "daily"
+        hour      = 9
+        minute    = 0
+      }
+    }
   }
 }
 ```
@@ -736,7 +786,7 @@ resource "census_sync" "preserve_example" {
     * For `StatusAlertConfiguration`:
       * `status_name` - Status to alert on: `"started"` or `"completed"`
   * `id` - (Computed) The alert configuration ID assigned by Census
-* `run_mode` - (Optional) Run mode configuration block for controlling how and when the sync runs. Conflicts with `schedule` (use one or the other, not both):
+* `run_mode` - (Optional) Run mode configuration block for controlling how and when the sync runs:
   * `type` - (Required) Mode type:
     * `"live"` - Continuous syncing for streaming sources (Kafka, Materialize)
     * `"triggered"` - Event-based syncing with configured triggers

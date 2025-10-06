@@ -30,5 +30,5 @@ The following attributes are exported:
 
 ## Notes
 
-- This data source requires either a personal access token or workspace access token in the provider configuration.
-- When using a workspace access token, you can only retrieve information about the workspace associated with that token.
+- This data source requires a personal access token in the provider configuration.
+- The provider automatically handles workspace-level authentication.

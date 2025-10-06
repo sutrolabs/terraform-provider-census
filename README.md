@@ -55,7 +55,6 @@ resource "census_sync" "users_to_crm" {
   workspace_id = census_workspace.data_team.id
   label        = "Users to CRM"
 
-
   source_attributes {
     connection_id = census_source.warehouse.id
     object {
@@ -71,18 +70,27 @@ resource "census_sync" "users_to_crm" {
   }
 
   operation = "upsert"
-  sync_key  = ["email"]
 
   field_mapping {
-    from      = "email"
-    to        = "Email"
-    operation = "direct"
+    from                  = "email"
+    to                    = "Email"
+    is_primary_identifier = true
   }
 
-  schedule {
-    frequency = "daily"
-    hour      = 8
-    timezone  = "UTC"
+  field_mapping {
+    from = "first_name"
+    to   = "FirstName"
+  }
+
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "daily"
+        hour      = 8
+        minute    = 0
+      }
+    }
   }
 }
 ```

@@ -12,7 +12,7 @@ resource "census_source" "warehouse" {
   name         = "Production Warehouse"
   type         = "snowflake"
 
-  credentials = jsonencode({
+  connection_config = jsonencode({
     account        = "abc12345.us-east-1"
     warehouse      = "COMPUTE_WH"
     database       = "PRODUCTION"
@@ -31,7 +31,7 @@ resource "census_source" "bigquery" {
   name         = "Analytics BigQuery"
   type         = "big_query"
 
-  credentials = jsonencode({
+  connection_config = jsonencode({
     project_id = "my-gcp-project"
     dataset_id = "analytics"
     private_key = var.gcp_service_account_key
@@ -47,7 +47,7 @@ resource "census_source" "postgres" {
   name         = "Production Database"
   type         = "postgres"
 
-  credentials = jsonencode({
+  connection_config = jsonencode({
     host     = "postgres.example.com"
     port     = 5432
     database = "production"
@@ -69,7 +69,7 @@ resource "census_source" "postgres" {
   - `databricks`
   - `mysql`
   - And many more... (validated against Census API)
-* `credentials` - (Required, Sensitive) JSON-encoded credentials for connecting to the source. The required fields vary by source type and are validated against the Census API schema.
+* `connection_config` - (Required, Sensitive) JSON-encoded credentials for connecting to the source. The required fields vary by source type and are validated against the Census API schema.
 
 ## Attribute Reference
 

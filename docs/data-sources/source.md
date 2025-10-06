@@ -25,4 +25,7 @@ output "source_status" {
 * `name` - The name of the source.
 * `type` - The type of data source connector (e.g., "snowflake", "big_query", "postgres").
 * `connection_status` - The current connection status of the source.
-* `credentials` - The credentials for the source connection (sensitive, not fully populated in reads).
+* `connection_config` - The connection configuration for the source (sensitive, not fully populated in reads).
+* `status` - The current status of the source.
+* `created_at` - When the source was created.
+* `updated_at` - When the source was last updated.

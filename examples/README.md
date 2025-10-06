@@ -5,22 +5,19 @@ This directory contains practical examples that you can use to test the Census T
 ## Prerequisites
 
 1. **Census Account**: You need access to a Census organization
-2. **API Tokens**: Generate the appropriate tokens from your Census account:
-   - **Personal Access Token**: For organization-level operations (creating/managing workspaces)
-   - **Workspace Access Token**: For workspace-level operations (syncs, destinations, etc.)
+2. **API Token**: Generate a Personal Access Token from your Census account:
+   - **Personal Access Token**: Used for all operations (workspace management and workspace-scoped resources)
+   - The provider automatically retrieves workspace-specific tokens as needed
 
-## Getting Your Tokens
+## Getting Your Token
 
-### Personal Access Token (Organization-level)
+### Personal Access Token
 1. Go to your Census dashboard
 2. Navigate to Settings → Developer → Personal Access Tokens
 3. Generate a new token
 4. Copy the token value
 
-### Workspace Access Token (Workspace-level)  
-1. Go to your specific workspace in Census
-2. Navigate to Settings → API
-3. Generate or copy your workspace API token
+**Note**: You only need the Personal Access Token. The provider automatically handles workspace-level authentication by retrieving workspace API keys dynamically using your Personal Access Token.
 
 ## Examples Available
 
