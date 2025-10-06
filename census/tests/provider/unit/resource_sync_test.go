@@ -312,10 +312,10 @@ func TestExpandAlerts_Basic(t *testing.T) {
 			name: "basic alert",
 			input: []interface{}{
 				map[string]interface{}{
-					"type":                  "email",
-					"send_for":              "failure",
-					"should_send_recovery":  true,
-					"emails":                []interface{}{"admin@example.com"},
+					"type":                 "email",
+					"send_for":             "failure",
+					"should_send_recovery": true,
+					"emails":               []interface{}{"admin@example.com"},
 				},
 			},
 			expected: 1,

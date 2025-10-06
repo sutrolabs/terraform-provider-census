@@ -114,3 +114,41 @@ jobs:
             exit 1
           fi
           file bin/terraform-provider-census
+
+  # Integration tests (requires Census staging + external services)
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [lint, unit-tests, build]
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run integration tests
+        env:
+          TF_ACC: "1"
+          CENSUS_BASE_URL: ${{ secrets.CENSUS_BASE_URL }}
+          CENSUS_PERSONAL_ACCESS_TOKEN: ${{ secrets.CENSUS_PERSONAL_ACCESS_TOKEN }}
+          CENSUS_TEST_REDSHIFT_HOST: ${{ secrets.CENSUS_TEST_REDSHIFT_HOST }}
+          CENSUS_TEST_REDSHIFT_PORT: ${{ secrets.CENSUS_TEST_REDSHIFT_PORT }}
+          CENSUS_TEST_REDSHIFT_DATABASE: ${{ secrets.CENSUS_TEST_REDSHIFT_DATABASE }}
+          CENSUS_TEST_REDSHIFT_USERNAME: ${{ secrets.CENSUS_TEST_REDSHIFT_USERNAME }}
+          CENSUS_TEST_REDSHIFT_PASSWORD: ${{ secrets.CENSUS_TEST_REDSHIFT_PASSWORD }}
+          CENSUS_TEST_SALESFORCE_USERNAME: ${{ secrets.CENSUS_TEST_SALESFORCE_USERNAME }}
+          CENSUS_TEST_SALESFORCE_INSTANCE_URL: ${{ secrets.CENSUS_TEST_SALESFORCE_INSTANCE_URL }}
+          CENSUS_TEST_SALESFORCE_CLIENT_ID: ${{ secrets.CENSUS_TEST_SALESFORCE_CLIENT_ID }}
+          CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY: ${{ secrets.CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY }}
+          CENSUS_TEST_SALESFORCE_DOMAIN: ${{ secrets.CENSUS_TEST_SALESFORCE_DOMAIN }}
+        run: |
+          echo "Running integration tests against Census staging environment..."
+          go test -v ./census/tests/provider/acceptance -timeout 60m

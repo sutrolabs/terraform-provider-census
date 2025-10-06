@@ -12,16 +12,20 @@
 This plan provides a systematic approach to achieving comprehensive test coverage for the Census Terraform Provider, following HashiCorp's testing best practices and patterns used in production providers like Fivetran.
 
 **Current Status:**
-- ✅ Basic acceptance tests exist for: workspace, source, destination
-- ✅ Integration tests created for: sync resource (7 comprehensive test scenarios)
-- ✅ Data source tests exist for: source, destination
-- ❌ **NO tests** for: dataset resource
-- ❌ **NO tests** for: dataset data source, workspace data source, sync data source
-- ❌ Limited test scenarios (mostly basic CRUD)
-- ❌ No unit tests for helper functions
-- ❌ No integration tests for client methods
 
-**Goal:** Achieve production-ready test coverage that validates all functionality and prevents regressions.
+- ✅ **Unit tests**: 17 tests covering provider schema, client logic, and sync helper functions
+- ✅ **Acceptance tests**: 19 tests (all resources covered, 1 sync test has simplified field mappings due to staging API limitations)
+  - Workspace: 3 tests (basic, update, API key retrieval)
+  - Source: 2 resource tests + 1 data source test (Redshift)
+  - Destination: 2 resource tests + 1 data source test (Salesforce JWT OAuth)
+  - Dataset: 3 tests (basic, update, dataset-as-source in sync)
+  - Sync: 7 tests (basic CRUD, field mappings with constant values, schedules, alerts, run modes)
+- ❌ **Missing data source tests for**: workspace, sync, dataset
+- ❌ **No import tests**: Import functionality exists but lacks test coverage
+
+**Test Coverage:** High acceptance test coverage across all resource types
+
+**Goal:** Achieve 100% acceptance test pass rate and add missing test coverage for untested resources.
 
 ---
 
@@ -34,6 +38,7 @@ We use a **2-phase testing approach** for simplicity and maintainability:
 **Purpose:** Test individual functions, validation logic, schema definitions
 
 **What's Tested:**
+
 - Schema validation (field types, required fields, defaults)
 - Helper function logic (expand/flatten functions)
 - Input validation
@@ -54,6 +59,7 @@ We use a **2-phase testing approach** for simplicity and maintainability:
 **Purpose:** Full Terraform lifecycle testing with real Census staging API
 
 **What's Tested:**
+
 - Resource create/read/update/delete with real API
 - Import existing resources
 - Plan/apply/refresh/destroy cycles
@@ -64,6 +70,7 @@ We use a **2-phase testing approach** for simplicity and maintainability:
 **Runs:** On-demand, before releases, in CI
 **Speed:** Minutes (creates real resources)
 **Dependencies:**
+
 - Census staging environment (`app.staging.getcensus.com`)
 - Real Redshift database credentials
 - Real Salesforce sandbox credentials
@@ -71,26 +78,30 @@ We use a **2-phase testing approach** for simplicity and maintainability:
 **Command:** `make test-integration` (alias: `make test-acc`)
 
 **Environment Variables Required:**
+
 ```bash
 # Copy .env.test.example to .env.test and fill in:
 CENSUS_BASE_URL=https://app.staging.getcensus.com/api/v1
 CENSUS_PERSONAL_ACCESS_TOKEN=your-staging-personal-access-token
 
-# Redshift credentials
+# Redshift credentials (5 variables)
 CENSUS_TEST_REDSHIFT_HOST=your-cluster.region.redshift.amazonaws.com
 CENSUS_TEST_REDSHIFT_PORT=5439
 CENSUS_TEST_REDSHIFT_DATABASE=dev
 CENSUS_TEST_REDSHIFT_USERNAME=testuser
 CENSUS_TEST_REDSHIFT_PASSWORD=your-password
 
-# Salesforce sandbox credentials
-CENSUS_TEST_SALESFORCE_USERNAME=test@example.com.staging
-CENSUS_TEST_SALESFORCE_PASSWORD=your-sandbox-password
-CENSUS_TEST_SALESFORCE_SECURITY_TOKEN=your-security-token
-CENSUS_TEST_SALESFORCE_SANDBOX=true
+# Salesforce JWT OAuth credentials (5 variables)
+# IMPORTANT: Use JWT-based auth, not password-based
+CENSUS_TEST_SALESFORCE_USERNAME=test@example.com
+CENSUS_TEST_SALESFORCE_INSTANCE_URL=https://your-sandbox.develop.my.salesforce.com
+CENSUS_TEST_SALESFORCE_CLIENT_ID=3MVG9...your-consumer-key...
+CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY='-----BEGIN RSA PRIVATE KEY-----\nMIIEpQIBAAK...\n-----END RSA PRIVATE KEY-----\n'
+CENSUS_TEST_SALESFORCE_DOMAIN=test.salesforce.com
 ```
 
 **Test Flow:**
+
 1. Each test creates a complete stack from scratch:
    - Create workspace
    - Create Redshift source
@@ -100,6 +111,7 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 3. Clean up resources (CheckDestroy)
 
 **Why This Approach:**
+
 - Tests the actual user workflow (creating everything from scratch)
 - Validates full resource creation lifecycle
 - No dependency on pre-created resources that could drift or break
@@ -112,14 +124,15 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 
 ### ✅ Resources WITH Tests
 
-| Resource | File | Test File | Status | Coverage |
-|----------|------|-----------|--------|----------|
-| `census_workspace` | `resource_workspace.go` | `resource_workspace_test.go` | ✅ Partial | ~40% |
-| `census_source` | `resource_source.go` | `resource_source_test.go` | ✅ Partial | ~30% |
-| `census_destination` | `resource_destination.go` | `resource_destination_test.go` | ✅ Partial | ~30% |
-| `census_sync` | `resource_sync.go` | `resource_sync_integration_test.go` | ✅ Good | ~60% |
+| Resource             | File                      | Test File                           | Status     | Coverage |
+| -------------------- | ------------------------- | ----------------------------------- | ---------- | -------- |
+| `census_workspace`   | `resource_workspace.go`   | `resource_workspace_test.go`        | ✅ Partial | ~40%     |
+| `census_source`      | `resource_source.go`      | `resource_source_test.go`           | ✅ Partial | ~30%     |
+| `census_destination` | `resource_destination.go` | `resource_destination_test.go`      | ✅ Partial | ~30%     |
+| `census_sync`        | `resource_sync.go`        | `resource_sync_integration_test.go` | ✅ Good    | ~60%     |
 
 **What's tested:**
+
 - Basic resource creation with real Redshift and Salesforce
 - Resource updates
 - Workspace management
@@ -129,40 +142,30 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 - Sync: alerts (failure, invalid record percent)
 
 **What's NOT tested:**
+
 - Import functionality
 - Complex validation scenarios
 - Error handling edge cases
 - State migration
-- Dataset resource (missing entirely)
-
-### ❌ Resources WITHOUT Tests
-
-| Resource | File | Test File | Status | Priority |
-|----------|------|-----------|--------|----------|
-| `census_dataset` | `resource_dataset.go` | ❌ `resource_dataset_test.go` | **MISSING** | 🟡 HIGH |
-
-**Impact:**
-- **Dataset** is essential for data transformation workflows
-- No regression protection for this resource
 
 ### ❌ Data Sources WITHOUT Tests
 
-| Data Source | File | Test File | Status | Priority |
-|-------------|------|-----------|--------|----------|
-| `census_sync` | `data_source_sync.go` | ❌ `data_source_sync_test.go` | **MISSING** | 🔴 CRITICAL |
-| `census_dataset` | `data_source_dataset.go` | ❌ `data_source_dataset_test.go` | **MISSING** | 🟡 HIGH |
-| `census_workspace` | `data_source_workspace.go` | ❌ `data_source_workspace_test.go` | **MISSING** | 🟡 MEDIUM |
-| `census_source` | `data_source_source.go` | `data_source_source_test.go` | ✅ Complete | 🟢 DONE |
-| `census_destination` | `data_source_destination.go` | `data_source_destination_test.go` | ✅ Complete | 🟢 DONE |
+| Data Source          | File                         | Test File                          | Status      | Priority    |
+| -------------------- | ---------------------------- | ---------------------------------- | ----------- | ----------- |
+| `census_sync`        | `data_source_sync.go`        | ❌ `data_source_sync_test.go`      | **MISSING** | 🔴 CRITICAL |
+| `census_dataset`     | `data_source_dataset.go`     | ❌ `data_source_dataset_test.go`   | **MISSING** | 🟡 HIGH     |
+| `census_workspace`   | `data_source_workspace.go`   | ❌ `data_source_workspace_test.go` | **MISSING** | 🟡 MEDIUM   |
+| `census_source`      | `data_source_source.go`      | `data_source_source_test.go`       | ✅ Complete | 🟢 DONE     |
+| `census_destination` | `data_source_destination.go` | `data_source_destination_test.go`  | ✅ Complete | 🟢 DONE     |
 
 ### ❌ Client Methods WITHOUT Tests
 
-| Client | File | Test File | Status | Priority |
-|--------|------|-----------|--------|----------|
-| Sync Client | `client/sync.go` | ❌ Missing | **MISSING** | 🔴 CRITICAL |
-| Dataset Client | `client/dataset.go` | ❌ Missing | **MISSING** | 🟡 HIGH |
-| Source Client | `client/source.go` | ⚠️ Minimal | **INCOMPLETE** | 🟡 MEDIUM |
-| Destination Client | `client/destination.go` | ⚠️ Minimal | **INCOMPLETE** | 🟡 MEDIUM |
+| Client             | File                    | Test File  | Status         | Priority    |
+| ------------------ | ----------------------- | ---------- | -------------- | ----------- |
+| Sync Client        | `client/sync.go`        | ❌ Missing | **MISSING**    | 🔴 CRITICAL |
+| Dataset Client     | `client/dataset.go`     | ❌ Missing | **MISSING**    | 🟡 HIGH     |
+| Source Client      | `client/source.go`      | ⚠️ Minimal | **INCOMPLETE** | 🟡 MEDIUM   |
+| Destination Client | `client/destination.go` | ⚠️ Minimal | **INCOMPLETE** | 🟡 MEDIUM   |
 
 ---
 
@@ -173,20 +176,24 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 **Goal:** Add integration tests for all missing resources and data sources
 
 #### Task 1.1: `resource_dataset_test.go` ✅ Create File
+
 **Priority:** HIGH
 **Estimated Time:** 3-4 hours
 
 **Test Scenarios:**
 
 1. **TestAccResourceDataset_basic**
+
    - Create SQL dataset
    - Verify query and source_id
 
 2. **TestAccResourceDataset_update**
+
    - Update query
    - Update description
 
 3. **TestAccResourceDataset_import**
+
    - Test import functionality
 
 4. **TestAccResourceDataset_validation**
@@ -194,12 +201,14 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
    - Test source_id validation
 
 #### Task 1.2: `data_source_sync_test.go` ✅ Create File
+
 **Priority:** CRITICAL
 **Estimated Time:** 2-3 hours
 
 **Test Scenarios:**
 
 1. **TestAccDataSourceSync_basic**
+
    - Create sync first
    - Read sync by ID
    - Verify all attributes
@@ -210,6 +219,7 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
    - Verify alert configurations
 
 #### Task 1.3: `data_source_dataset_test.go` ✅ Create File
+
 **Priority:** HIGH
 **Estimated Time:** 2 hours
 
@@ -221,6 +231,7 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
    - Verify query and columns
 
 #### Task 1.4: `data_source_workspace_test.go` ✅ Create File
+
 **Priority:** MEDIUM
 **Estimated Time:** 1-2 hours
 
@@ -238,6 +249,7 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 **Goal:** Add missing test scenarios to existing test files
 
 #### Task 2.1: Enhance `resource_workspace_test.go`
+
 **Estimated Time:** 2-3 hours
 
 **Add Missing Scenarios:**
@@ -248,6 +260,7 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 - [ ] TestAccResourceWorkspace_concurrent_updates
 
 #### Task 2.2: Enhance `resource_source_test.go`
+
 **Estimated Time:** 3-4 hours
 
 **Add Missing Scenarios:**
@@ -259,6 +272,7 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 - [ ] TestAccResourceSource_update_credentials
 
 #### Task 2.3: Enhance `resource_destination_test.go`
+
 **Estimated Time:** 3-4 hours
 
 **Add Missing Scenarios:**
@@ -270,6 +284,7 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 - [ ] TestAccResourceDestination_update_credentials
 
 #### Task 2.4: Enhance `resource_sync_integration_test.go`
+
 **Estimated Time:** 3-4 hours
 
 **Add Missing Scenarios:**
@@ -288,6 +303,7 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 **Goal:** Add unit tests for all expand/flatten helper functions
 
 #### Task 3.1: Sync Helper Functions
+
 **File:** Create `resource_sync_unit_test.go`
 **Estimated Time:** 4-5 hours
 
@@ -305,6 +321,7 @@ CENSUS_TEST_SALESFORCE_SANDBOX=true
 - [ ] `cleanEmptyStrings()` - edge cases
 
 **Test Pattern:**
+
 ```go
 func TestExpandFieldMappings(t *testing.T) {
     tests := []struct {
@@ -344,6 +361,7 @@ func TestExpandFieldMappings(t *testing.T) {
 ```
 
 #### Task 3.2: Source/Destination Helper Functions
+
 **Files:** Unit test files for each resource
 **Estimated Time:** 2-3 hours
 
@@ -354,6 +372,7 @@ func TestExpandFieldMappings(t *testing.T) {
 - [ ] Connection validation helpers
 
 #### Task 3.3: Dataset Helper Functions
+
 **Estimated Time:** 1-2 hours
 
 **Functions to Test:**
@@ -368,6 +387,7 @@ func TestExpandFieldMappings(t *testing.T) {
 **Goal:** Add integration tests using httptest mock server
 
 #### Task 4.1: Sync Client Integration Tests
+
 **File:** Create `client/sync_integration_test.go`
 **Estimated Time:** 4-5 hours
 
@@ -380,6 +400,7 @@ func TestExpandFieldMappings(t *testing.T) {
 - [ ] `ListSyncs()` - test pagination
 
 **Test Pattern:**
+
 ```go
 func TestSyncClient_CreateSync(t *testing.T) {
     server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -416,6 +437,7 @@ func TestSyncClient_CreateSync(t *testing.T) {
 ```
 
 #### Task 4.2: Dataset Client Integration Tests
+
 **File:** Create `client/dataset_integration_test.go`
 **Estimated Time:** 2-3 hours
 
@@ -428,6 +450,7 @@ func TestSyncClient_CreateSync(t *testing.T) {
 - [ ] `ListDatasets()`
 
 #### Task 4.3: Enhanced Client Base Tests
+
 **File:** Enhance `client/client_test.go`
 **Estimated Time:** 2-3 hours
 
@@ -645,6 +668,7 @@ test-coverage: ## Generate test coverage report
 ### ✅ Completed Integration Tests
 
 **Resources:**
+
 - ✅ resource_workspace_test.go - Basic CRUD
 - ✅ resource_source_test.go - Redshift connection
 - ✅ resource_destination_test.go - Salesforce connection
@@ -656,15 +680,18 @@ test-coverage: ## Generate test coverage report
   - Alerts (failure, invalid record percent)
 
 **Data Sources:**
+
 - ✅ data_source_source_test.go - Complete
 - ✅ data_source_destination_test.go - Complete
 
 ### ❌ Missing Integration Tests
 
 **Resources:**
+
 - [ ] resource_dataset_test.go - MISSING
 
 **Data Sources:**
+
 - [ ] data_source_sync_test.go - MISSING
 - [ ] data_source_dataset_test.go - MISSING
 - [ ] data_source_workspace_test.go - MISSING
@@ -683,17 +710,17 @@ test-coverage: ## Generate test coverage report
 
 ### Target Coverage by Component
 
-| Component | Current | Target | Priority |
-|-----------|---------|--------|----------|
-| resource_sync.go | ~60% | 80% | 🟡 Medium |
-| resource_dataset.go | 0% | 70% | 🟡 High |
-| resource_workspace.go | ~40% | 80% | 🟢 Medium |
-| resource_source.go | ~30% | 75% | 🟢 Medium |
-| resource_destination.go | ~30% | 75% | 🟢 Medium |
-| data_source_*.go | ~30% | 70% | 🟡 High |
-| client/sync.go | 0% | 70% | 🔴 Critical |
-| client/dataset.go | 0% | 70% | 🟡 High |
-| **Overall Provider** | **~35%** | **70%+** | 🔴 Critical |
+| Component               | Current  | Target   | Priority    |
+| ----------------------- | -------- | -------- | ----------- |
+| resource_sync.go        | ~60%     | 80%      | 🟡 Medium   |
+| resource_dataset.go     | 0%       | 70%      | 🟡 High     |
+| resource_workspace.go   | ~40%     | 80%      | 🟢 Medium   |
+| resource_source.go      | ~30%     | 75%      | 🟢 Medium   |
+| resource_destination.go | ~30%     | 75%      | 🟢 Medium   |
+| data*source*\*.go       | ~30%     | 70%      | 🟡 High     |
+| client/sync.go          | 0%       | 70%      | 🔴 Critical |
+| client/dataset.go       | 0%       | 70%      | 🟡 High     |
+| **Overall Provider**    | **~35%** | **70%+** | 🔴 Critical |
 
 ### Success Metrics
 
@@ -725,7 +752,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: "1.21"
       - name: Run unit tests
         run: make test
 
@@ -736,7 +763,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: "1.21"
       - name: Run integration tests
         env:
           CENSUS_BASE_URL: ${{ secrets.CENSUS_STAGING_URL }}
@@ -756,7 +783,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: "1.21"
       - name: Generate coverage
         run: make test-coverage
       - name: Upload coverage
@@ -783,7 +810,7 @@ jobs:
 ✅ **Do:** Create all resources from scratch in each test
 ✅ **Do:** Use table-driven tests for unit tests
 ✅ **Do:** Test both success and error cases
-✅ **Do:** Use meaningful test names (TestAcc{Resource}_{scenario})
+✅ **Do:** Use meaningful test names (TestAcc{Resource}\_{scenario})
 ✅ **Do:** Use test fixtures and helpers (testAccIntegrationBaseConfig)
 ✅ **Do:** Run tests in parallel when possible
 ✅ **Do:** Document complex test scenarios
@@ -807,12 +834,14 @@ jobs:
 ## Timeline & Milestones
 
 ### Week 1-2: Complete Integration Test Coverage
+
 - ✅ Complete resource_sync_integration_test.go (7 test scenarios)
 - [ ] Complete resource_dataset_test.go (4 test scenarios)
 - [ ] Complete all missing data source tests (3 files)
 - **Deliverable:** All resources and data sources have integration tests
 
 ### Week 3: Expand Coverage
+
 - [ ] Add import tests for all resources
 - [ ] Add validation tests
 - [ ] Add update scenarios
@@ -820,17 +849,20 @@ jobs:
 - **Deliverable:** 70%+ coverage on existing resources
 
 ### Week 4: Unit Tests
+
 - [ ] Test all expand/flatten helpers
 - [ ] Test validation logic
 - [ ] Test edge cases
 - **Deliverable:** 80%+ coverage on helper functions
 
 ### Week 5: Client Integration Tests
+
 - [ ] Mock HTTP tests for all client methods
 - [ ] Error handling tests
 - **Deliverable:** All client methods tested with mocks
 
 ### Week 6: Polish & Documentation
+
 - [ ] Review coverage reports
 - [ ] Add missing tests
 - [ ] Update documentation

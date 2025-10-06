@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
@@ -111,4 +112,41 @@ resource "census_destination" "test" {
 		os.Getenv("CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY"),
 		os.Getenv("CENSUS_TEST_SALESFORCE_DOMAIN"),
 	)
+}
+
+func TestAccResourceDestination_Import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
+		Providers: provider_test.TestAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceDestinationConfig_salesforce(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("census_destination.test", "name", "Test Salesforce Destination"),
+					resource.TestCheckResourceAttr("census_destination.test", "type", "salesforce"),
+				),
+			},
+			{
+				ResourceName:            "census_destination.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdFunc:       testAccDestinationImportStateIdFunc("census_destination.test"),
+				ImportStateVerifyIgnore: []string{"connection_config", "auto_refresh_objects"},
+			},
+		},
+	})
+}
+
+// Helper to construct composite ID for import (workspace_id:destination_id)
+func testAccDestinationImportStateIdFunc(resourceName string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return "", fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		return fmt.Sprintf("%s:%s",
+			rs.Primary.Attributes["workspace_id"],
+			rs.Primary.ID), nil
+	}
 }

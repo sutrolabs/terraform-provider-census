@@ -1608,7 +1608,25 @@ func FlattenStringMap(m map[string]interface{}) map[string]interface{} {
 	}
 	result := make(map[string]interface{})
 	for k, v := range m {
-		result[k] = v
+		// Convert numeric types to strings for Terraform TypeMap with TypeString elements
+		switch val := v.(type) {
+		case float64:
+			result[k] = strconv.FormatFloat(val, 'f', -1, 64)
+		case int:
+			result[k] = strconv.Itoa(val)
+		case int64:
+			result[k] = strconv.FormatInt(val, 10)
+		case map[string]interface{}:
+			// For nested maps (like source_attributes.object), serialize to JSON
+			jsonBytes, err := json.Marshal(val)
+			if err != nil {
+				result[k] = fmt.Sprintf("%v", val) // Fallback to string representation
+			} else {
+				result[k] = string(jsonBytes)
+			}
+		default:
+			result[k] = v
+		}
 	}
 	return result
 }

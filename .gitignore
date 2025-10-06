@@ -62,3 +62,6 @@ CLAUDE.md
 .claude/
 
 SYNC_ATTRIBUTES_AUDIT.md
+
+# Internal testing planning (not for public repo)
+TESTING_PLAN.md

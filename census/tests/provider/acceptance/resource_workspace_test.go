@@ -72,6 +72,30 @@ func TestResourceWorkspace_withAPIKey(t *testing.T) {
 	})
 }
 
+func TestResourceWorkspace_Import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { provider_test.TestAccPreCheckIntegration(t) },
+		Providers:    provider_test.TestAccProviders,
+		CheckDestroy: testAccCheckWorkspaceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWorkspaceConfig_basic("test-workspace-import"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckWorkspaceExists("census_workspace.test"),
+					resource.TestCheckResourceAttr("census_workspace.test", "name", "test-workspace-import"),
+				),
+			},
+			{
+				ResourceName:      "census_workspace.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				// api_key is only available during creation with return_workspace_api_key=true
+				ImportStateVerifyIgnore: []string{"api_key", "return_workspace_api_key"},
+			},
+		},
+	})
+}
+
 func testAccCheckWorkspaceDestroy(s *terraform.State) error {
 	// This would normally check that the workspace has been destroyed
 	// For now, we'll just return nil since we don't have a real API to test against

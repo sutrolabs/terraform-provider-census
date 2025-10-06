@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
@@ -400,13 +401,6 @@ resource "census_sync" "test" {
     to       = "LeadSource"
   }
 
-  # Liquid template mapping
-  field_mapping {
-    type            = "liquid_template"
-    liquid_template = "{{ first_name }} {{ last_name }}"
-    to              = "Description"
-  }
-
   field_mapping {
     from = "id"
     to   = "Census_ID__c"
@@ -735,4 +729,40 @@ resource "census_sync" "test" {
   paused = true
 }
 `
+}
+
+func TestAccResourceSync_Import(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
+		Providers: provider_test.TestAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceSyncConfig_basic(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Basic Sync"),
+					resource.TestCheckResourceAttr("census_sync.test", "operation", "upsert"),
+				),
+			},
+			{
+				ResourceName:      "census_sync.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: testAccSyncImportStateIdFunc("census_sync.test"),
+			},
+		},
+	})
+}
+
+// Helper to construct composite ID for import (workspace_id:sync_id)
+func testAccSyncImportStateIdFunc(resourceName string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return "", fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		return fmt.Sprintf("%s:%s",
+			rs.Primary.Attributes["workspace_id"],
+			rs.Primary.ID), nil
+	}
 }

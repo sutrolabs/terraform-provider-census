@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -32,10 +34,23 @@ func dataSourceSync() *schema.Resource {
 				Description: "The name/label of the sync.",
 			},
 			"source_attributes": {
-				Type:        schema.TypeMap,
+				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "Source-specific configuration (e.g., SQL query, table selection).",
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"connection_id": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The ID of the source connection.",
+						},
+						"object": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Source object configuration (JSON string for complex objects like table/dataset).",
+						},
+					},
+				},
 			},
 			"destination_attributes": {
 				Type:        schema.TypeList,
@@ -44,7 +59,7 @@ func dataSourceSync() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"connection_id": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The ID of the destination connection.",
 						},
@@ -287,17 +302,14 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	// Set complex attributes
-	if err := d.Set("source_attributes", FlattenStringMap(sync.SourceAttributes)); err != nil {
+	if err := d.Set("source_attributes", flattenSourceAttributesForDataSource(sync.SourceAttributes)); err != nil {
 		return diag.Errorf("failed to set source_attributes: %v", err)
 	}
-	if err := d.Set("destination_attributes", FlattenStringMap(sync.DestinationAttributes)); err != nil {
+	if err := d.Set("destination_attributes", flattenDestinationAttributesForDataSource(sync.DestinationAttributes)); err != nil {
 		return diag.Errorf("failed to set destination_attributes: %v", err)
 	}
 	if err := d.Set("field_mapping", FlattenFieldMappings(sync.FieldMappings)); err != nil {
 		return diag.Errorf("failed to set field_mapping: %v", err)
-	}
-	if err := d.Set("sync_key", sync.SyncKey); err != nil {
-		return diag.Errorf("failed to set sync_key: %v", err)
 	}
 	if sync.Mode != nil {
 		if err := d.Set("run_mode", FlattenRunMode(sync.Mode)); err != nil {
@@ -306,4 +318,67 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	return nil
+}
+
+// flattenSourceAttributesForDataSource converts API source_attributes map to Terraform TypeList format
+func flattenSourceAttributesForDataSource(attrs map[string]interface{}) []interface{} {
+	if attrs == nil {
+		return nil
+	}
+
+	result := make(map[string]interface{})
+
+	// Convert connection_id to string
+	if connID, ok := attrs["connection_id"]; ok {
+		switch v := connID.(type) {
+		case float64:
+			result["connection_id"] = strconv.FormatFloat(v, 'f', -1, 64)
+		case int:
+			result["connection_id"] = strconv.Itoa(v)
+		case string:
+			result["connection_id"] = v
+		}
+	}
+
+	// Serialize object as JSON string
+	if obj, ok := attrs["object"]; ok {
+		if objMap, isMap := obj.(map[string]interface{}); isMap {
+			jsonBytes, err := json.Marshal(objMap)
+			if err == nil {
+				result["object"] = string(jsonBytes)
+			}
+		} else {
+			result["object"] = fmt.Sprintf("%v", obj)
+		}
+	}
+
+	return []interface{}{result}
+}
+
+// flattenDestinationAttributesForDataSource converts API destination_attributes map to Terraform TypeList format
+func flattenDestinationAttributesForDataSource(attrs map[string]interface{}) []interface{} {
+	if attrs == nil {
+		return nil
+	}
+
+	result := make(map[string]interface{})
+
+	// Convert connection_id to string
+	if connID, ok := attrs["connection_id"]; ok {
+		switch v := connID.(type) {
+		case float64:
+			result["connection_id"] = strconv.FormatFloat(v, 'f', -1, 64)
+		case int:
+			result["connection_id"] = strconv.Itoa(v)
+		case string:
+			result["connection_id"] = v
+		}
+	}
+
+	// Set object as string
+	if obj, ok := attrs["object"]; ok {
+		result["object"] = fmt.Sprintf("%v", obj)
+	}
+
+	return []interface{}{result}
 }
