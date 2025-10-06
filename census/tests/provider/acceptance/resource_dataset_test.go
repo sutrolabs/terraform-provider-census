@@ -209,11 +209,11 @@ resource "census_destination" "test" {
   type         = "salesforce"
 
   connection_config = {
-    username     = "%s"
-    instance_url = "%s"
-    client_id    = "%s"
-    signing_key  = "%s"
-    domain       = "%s"
+    username        = "%s"
+    instance_url    = "%s"
+    client_id       = "%s"
+    jwt_signing_key = "%s"
+    domain          = "%s"
   }
 }
 
@@ -226,7 +226,7 @@ resource "census_dataset" "test" {
 
   query = <<-SQL
     SELECT
-      id,
+      user_id,
       email,
       first_name,
       last_name
@@ -273,7 +273,7 @@ resource "census_sync" "dataset_sync" {
   }
 
   field_mapping {
-    from = "id"
+    from = "user_id"
     to   = "Census_ID__c"
   }
 
