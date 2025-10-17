@@ -117,7 +117,7 @@ All resources have corresponding data sources for read-only operations. See [doc
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+At this time we are not accepting external contributions to the provider. Please contact Census Support with feature requests or bug reports.
 
 ## Support
 
