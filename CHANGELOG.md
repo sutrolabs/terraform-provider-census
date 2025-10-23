@@ -5,63 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - 2025-09-29
+## [0.2.0] - 2025-10-23 - Initial Public Release
 
-### Added
+This is the first official release of the Census Terraform Provider on the [Terraform Registry](https://registry.terraform.io/providers/sutrolabs/census/latest).
 
-- Initial release of the Census Terraform provider
-- Complete Census data pipeline management from sources to syncs
-- PAT-only authentication with dynamic workspace token retrieval
-- Multi-region support (US and EU)
-- Comprehensive resource and data source support
+### Provider Features
 
-### Resources
+Complete Census data pipeline management from sources to syncs with infrastructure-as-code.
 
-#### Core Resources
-- **census_workspace**: Create, read, update, and delete Census workspaces
+#### Resources
+
+- **`census_workspace`** - Manage Census workspaces
   - Notification emails configuration
   - API key retrieval on creation
-  - Import support for existing workspaces
+  - Full CRUD operations with import support
 
-- **census_source**: Manage data source connections
+- **`census_source`** - Data warehouse connections
   - Support for all Census-supported databases (Snowflake, BigQuery, Postgres, Redshift, etc.)
   - Connection credential management with validation
   - Auto table refresh functionality
-  - OpenAPI schema validation
 
-- **census_destination**: Configure sync destinations
+- **`census_destination`** - Business tool integrations
   - Support for all Census-supported destinations (Salesforce, HubSpot, etc.)
   - Dynamic connector type validation via Census API
   - Connection testing and credential management
-  - Auto-refresh metadata after creation
 
-- **census_dataset**: SQL dataset management for data transformation
+- **`census_dataset`** - SQL datasets for data transformation
   - Multi-line SQL query support with heredoc syntax
   - Column schema discovery (computed fields)
   - Source connection reference and validation
-  - Resource identifier generation
 
-- **census_sync**: Manage data syncs between sources and destinations
+- **`census_sync`** - Data syncs between sources and destinations
   - Field mapping configuration (direct, hash, constant operations)
   - Sync scheduling (hourly, daily, weekly, manual modes)
   - Sync mode support (upsert, append, mirror)
   - Support for all source types (table, dataset, model, topic, segment, cohort)
-  - OpenAPI-compliant source attributes
 
 #### Data Sources
-- All resources have corresponding data sources for read-only operations
-- **census_workspace**, **census_source**, **census_destination**, **census_dataset**, **census_sync**
 
-### Provider Configuration
+All resources have corresponding data sources for read-only operations: `census_workspace`, `census_source`, `census_destination`, `census_dataset`, `census_sync`
 
-#### Authentication
-- PAT-only authentication model
-- Automatic workspace token retrieval for workspace-scoped operations
-- Region selection (US/EU) with automatic endpoint configuration
-- Environment variable support: `CENSUS_PERSONAL_ACCESS_TOKEN`
-- Custom base URL configuration
+#### Authentication & Configuration
 
-### Technical Highlights
+- **PAT-only authentication** with dynamic workspace token retrieval
+- **Multi-region support**: US, EU, and AU regions with automatic endpoint configuration
+- **Environment variable support**: `CENSUS_PERSONAL_ACCESS_TOKEN`, `CENSUS_REGION`, `CENSUS_BASE_URL`
+- **Staging environment support**: Custom base URL configuration for testing
+
+#### Import Support
+
+- All resources support Terraform import
+- Composite import format for workspace-scoped resources: `workspace_id:resource_id`
+- Example: `terraform import census_source.example 69962:828`
+
+### Technical Details
 
 - Built with terraform-plugin-sdk/v2 for modern Terraform compatibility
 - Go 1.21+ support
@@ -70,60 +67,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive error handling with helpful messages
 - Pagination support for list operations
 - TypeSet-based field mappings to prevent order-based drift
-- Import support for all resources
 
----
+### Getting Started
 
-## [0.1.1] - 2025-09-30
+Install the provider from the Terraform Registry:
 
-### Fixed
+```hcl
+terraform {
+  required_providers {
+    census = {
+      source  = "sutrolabs/census"
+      version = "~> 0.2.0"
+    }
+  }
+}
 
-- **Import format**: All workspace-scoped resources now require composite import format `workspace_id:resource_id`
-  - Updated resources: census_source, census_destination, census_dataset, census_sync
-  - Provides helpful error messages when legacy format is used
-  - Example: `terraform import census_source.example 69962:828`
+provider "census" {
+  personal_access_token = var.census_personal_token
+  region                = "us"  # or "eu", "au"
+}
+```
 
-- **Dataset source sync**: Fixed API translation for dataset-based syncs
-  - Correctly handles Census API returning `business_object_source` type
-  - Translates to `dataset` type in Terraform state
-  - Uses `dataset_id` field instead of `id` for proper state tracking
-  - Eliminates perpetual drift on dataset source syncs
-
-- **Source attributes filtering**: Prevents API extra fields from causing errors
-  - Changed from blocklist to allowlist approach in `flattenSourceAttributes`
-  - Only includes schema-defined fields to avoid "Invalid address to set" errors
-  - Properly handles type-specific fields (table identifiers, dataset IDs)
-
-### Added
-
-- **Staging environment example**: New `examples/staging-example/` directory
-  - Demonstrates custom `base_url` configuration for staging environments
-  - Complete pipeline example with all resource types
-  - Comprehensive documentation for staging vs production usage
-
-### Changed
-
-- **Documentation cleanup**: Removed outdated file references
-  - Updated README.md to reflect current examples and make targets
-  - Updated TESTING.md to remove references to deleted scripts
-  - Removed obsolete test-with-census.sh script
-  - Removed scripts/ directory (check-security.sh, test_manual.sh, mock_server.go)
-  - Cleaned up .DS_Store and other development artifacts
-
-- **Complete example enhancement**: Added dataset source sync demonstration
-  - New `census_dataset.all_users` with SQL query
-  - New `census_sync.dataset_contact_sync` using dataset as source
-  - Shows proper usage of source_attributes with dataset type
-
----
-
-## Unreleased
-
-### Planned Features
-
-- **Sync run operations**: Execute and monitor sync runs
-- **Webhook management**: Event notifications and integrations
-- **Advanced testing**: Comprehensive integration and acceptance tests
-- **Performance improvements**: Request batching, caching strategies
-- **Enhanced documentation**: Video tutorials, migration guides
-- **Terraform Registry publication**: Official registry listing
+For detailed documentation and examples, visit the [Terraform Registry](https://registry.terraform.io/providers/sutrolabs/census/latest/docs).
