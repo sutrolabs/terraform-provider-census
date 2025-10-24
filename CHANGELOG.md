@@ -58,16 +58,6 @@ All resources have corresponding data sources for read-only operations: `census_
 - Composite import format for workspace-scoped resources: `workspace_id:resource_id`
 - Example: `terraform import census_source.example 69962:828`
 
-### Technical Details
-
-- Built with terraform-plugin-sdk/v2 for modern Terraform compatibility
-- Go 1.21+ support
-- Dynamic API schema validation against Census OpenAPI specifications
-- Robust state management with workspace_id persistence
-- Comprehensive error handling with helpful messages
-- Pagination support for list operations
-- TypeSet-based field mappings to prevent order-based drift
-
 ### Getting Started
 
 Install the provider from the Terraform Registry:
