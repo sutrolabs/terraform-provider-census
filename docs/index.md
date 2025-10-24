@@ -34,7 +34,7 @@ The Census provider uses Personal Access Tokens (PAT) for authentication. The pr
 To obtain a Personal Access Token:
 
 1. Log in to your Census account
-2. Navigate to Settings > API
+2. Navigate to Organization Settings > User Settings > Personal Access Tokens
 3. Generate a new Personal Access Token
 4. Store it securely (e.g., in environment variables or a secret manager)
 
