@@ -127,7 +127,3 @@ At this time we are not accepting external contributions to the provider. Please
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
----
-
-**Note**: This provider is not officially maintained by Census. It is a community project designed to provide Terraform integration with Census services.
