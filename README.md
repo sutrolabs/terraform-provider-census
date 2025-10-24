@@ -17,14 +17,14 @@ terraform {
   required_providers {
     census = {
       source  = "sutrolabs/census"
-      version = "~> 0.1.1"
+      version = "~> 0.2.0"
     }
   }
 }
 
 provider "census" {
   personal_access_token = var.census_personal_token
-  region                = "us"  # or "eu"
+  region                = "us"  # or "eu", "au"
 }
 ```
 

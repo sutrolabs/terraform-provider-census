@@ -1,250 +1,156 @@
 # Testing Guide
 
-This document describes how to test the Census Terraform Provider at different levels.
+This document describes how to test the Census Terraform Provider.
 
-## Testing Strategy
+## Test Types
 
-The Census Terraform Provider uses a **2-phase testing approach**:
+### Unit Tests
 
-### Phase 1: Unit Tests ✅ (Fast, No Dependencies)
-
-Tests individual components without external dependencies. These tests validate business logic, data transformations, and helper functions.
+Tests individual components without external dependencies. Fast and require no credentials.
 
 ```bash
-# Run all unit tests
 make test
-
-# Or use go test directly
-go test ./... -short -v
-
-# Run specific package tests
-go test ./census/tests/client -v
-go test ./census/tests/provider/unit -v
 ```
 
 **What's tested:**
-- Client configuration validation
-- URL building and parameter handling
-- Error message formatting
+- Client configuration and URL building
 - Provider schema validation
-- Field mapping expand/flatten logic
-- Alert and schedule configuration helpers
-- Data type conversions
+- Field mapping logic
+- Alert and schedule helpers
+- Data transformations
 
-**Speed:** < 1 second
-**Requirements:** None (no API access needed)
+### Integration Tests
 
----
-
-### Phase 2: Acceptance Tests 🔒 (Real API, Full Lifecycle)
-
-Tests the complete Terraform lifecycle against the real Census staging API. These create actual resources and verify full CRUD operations.
+Tests against the real Census staging API. Creates actual resources to verify full CRUD operations.
 
 ```bash
-# IMPORTANT: Requires .env.test file with credentials
-# Copy .env.test.example and fill in your staging credentials
-cp .env.test.example .env.test
-# Edit .env.test with your credentials
-
-# Run all acceptance tests
+# Requires .env.test file with credentials
 make test-integration
-
-# Run specific test
-TF_ACC=1 go test ./census/tests/provider/acceptance -v -run TestAccResourceSync_Basic
 ```
 
 **What's tested:**
-- Full Terraform resource lifecycle (create → read → update → delete)
-- Real API authentication with Census staging environment
-- Workspace creation and management
-- Source connections (Redshift)
-- Destination connections (Salesforce with JWT OAuth)
-- Sync configuration (field mappings, schedules, alerts, run modes)
-- Data source lookups
+- Complete resource lifecycle (create, read, update, delete)
+- Workspaces, sources, destinations, datasets, and syncs
+- Field mappings, schedules, and alerts
 - Resource import
-- State management
 - Multi-resource dependencies
 
-**Speed:** 5-10 minutes (creates real resources)
-**Requirements:**
-- Census staging account and personal access token
-- Redshift test database credentials
-- Salesforce sandbox with JWT OAuth configured
-- See `.env.test.example` for complete setup guide
+## Running Tests
 
-**Current Status:** 15 of 16 acceptance tests passing (93.75%)
+### Quick Start
 
-## Test Coverage
-
-### Unit Tests (17 tests)
-
-Located in `census/tests/provider/unit/` and `census/tests/client/`:
-
-**Provider Tests:**
-- Provider schema validation
-- Provider implementation interface check
-
-**Client Tests:**
-- Client creation & configuration (`TestNewClient`)
-- API error handling (`TestAPIError_Error`)
-- URL parameter building (`TestListOptions_ToParams`)
-
-**Sync Resource Helper Tests:**
-- Field mapping expand/flatten (6 tests)
-- Alert configuration (2 tests)
-- Schedule configuration (3 tests)
-- String list/map helpers (3 tests)
-
-### Acceptance Tests (16 tests, 15 passing)
-
-Located in `census/tests/provider/acceptance/`:
-
-**Workspace Tests (3 tests):**
-- Basic workspace creation
-- Workspace updates
-- Workspace with API key retrieval
-
-**Source Tests (2 tests + 1 data source):**
-- Redshift source creation
-- Redshift source updates
-- Source data source lookup
-
-**Destination Tests (2 tests + 1 data source):**
-- Salesforce destination creation with JWT OAuth
-- Salesforce destination updates
-- Destination data source lookup
-
-**Sync Tests (7 tests):**
-- Basic sync creation with field mappings
-- Sync updates (label, paused state)
-- Field mappings (constant, liquid template) ⚠️ 1 failing - API issue
-- RunMode - Daily schedule
-- RunMode - Hourly schedule
-- RunMode - Manual (never) schedule
-- Alert configurations
-
-## Quick Test Commands
-
-### Run Tests
 ```bash
-# Unit tests only (fast, no credentials needed)
+# Unit tests (no setup required)
 make test
 
-# Acceptance tests (requires .env.test with credentials)
+# Integration tests (requires setup)
+cp .env.test.example .env.test
+# Edit .env.test with your credentials
 make test-integration
-# Or: make test-acc (alias)
 
-# Run with coverage report
+# Generate coverage report
 make test-coverage
-
-# Run specific acceptance test
-TF_ACC=1 go test ./census/tests/provider/acceptance -v -run TestAccResourceSync_Alerts
 ```
 
-### Manual Testing with Examples
-```bash
-# Use the complete example to test all resource types
-cd examples/complete-census-setup/
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your credentials
-terraform init
-terraform plan
-terraform apply
-
-# Test basic workspace only
-cd examples/basic-workspace/
-terraform init
-terraform apply
-```
-
-## Test Data & Fixtures
-
-### Test Configurations
-Example test configurations in `examples/`:
-- `complete-census-setup/` - Full workflow demonstrating all 5 resource types (workspace, source, destination, sync, dataset)
-- `basic-workspace/` - Simple workspace creation and management
-- `staging-example/` - Configuration for Census staging environment testing
-
-## Coverage Analysis
+### Run Specific Tests
 
 ```bash
-# Generate test coverage report
-go test ./... -coverprofile=coverage.out
-go tool cover -html=coverage.out -o coverage.html
+# Run a specific test
+go test ./census/tests/provider/acceptance -v -run TestAccResourceSync_Basic
 
-# View coverage by package
-go test ./... -cover
+# Run with verbose output
+go test ./... -v -short
 ```
 
-## CI/CD Testing
+## Integration Test Setup
 
-The provider includes GitHub Actions workflows for:
-- **Unit tests** (no external dependencies) - runs on every push
-- **Code quality** (go vet, go fmt) - runs on every push
-- **Integration tests** - skipped in CI using `-short` flag
-- **Acceptance tests** - requires Census API credentials (not run in CI)
+Integration tests require:
 
-## What's NOT Tested Yet
+1. **Census Staging Account**
+   - Sign up at https://app.staging.getcensus.com
+   - Generate a personal access token from Settings → Developer
 
-1. **Dataset Resource**: No acceptance tests for dataset resource (code exists but untested)
-2. **Data Sources**: Missing tests for workspace, sync, and dataset data sources
-3. **Import Functionality**: Import is implemented but lacks dedicated test coverage
-4. **Advanced Field Mappings**: Constant and liquid template mappings (failing due to API issue in staging)
-5. **Multi-region Testing**: EU region endpoint testing
-6. **Error Edge Cases**: Some API-specific error scenarios and validation edge cases
+2. **Redshift Test Database**
+   - Use a dev/test cluster (not production)
+   - Create read-only test user
+   - Allow connections from your IP
 
-## Adding New Tests
+3. **Salesforce Sandbox**
+   - Use a sandbox (not production)
+   - Configure Connected App with JWT OAuth
+   - Generate RSA key pair for JWT signing
 
-### For New Resources
-1. Add unit tests in `census/provider/*_test.go`
-2. Add client tests in `census/client/*_test.go`
-3. Add acceptance tests with `TF_ACC` flag
-4. Update example configurations in `examples/`
+### Salesforce JWT OAuth Setup
 
-### For New Features
-1. Start with unit tests for business logic
-2. Add integration tests for API interactions
-3. Add acceptance tests for end-to-end validation
+```bash
+# Generate RSA key pair
+openssl genrsa -out server.key 2048
+openssl req -new -x509 -key server.key -out server.crt -days 365
+```
 
-## Test Environment Setup
-
-### Prerequisites
-- Go 1.21+
-- Valid Census account (for acceptance tests)
-- Network access for integration tests
+In Salesforce (Setup → App Manager → New Connected App):
+- Enable OAuth Settings
+- Select scopes: `api`, `refresh_token`, `offline_access`
+- Enable "Use digital signatures"
+- Upload `server.crt` certificate
+- Get Consumer Key (Client ID)
 
 ### Environment Variables
 
-**For Unit Tests:**
-- None required
+Create `.env.test` from `.env.test.example` and fill in:
 
-**For Acceptance Tests:**
-Create a `.env.test` file based on `.env.test.example`:
 ```bash
-# Required
+# Census
 CENSUS_BASE_URL=https://app.staging.getcensus.com/api/v1
-CENSUS_PERSONAL_ACCESS_TOKEN=your-staging-token
+CENSUS_PERSONAL_ACCESS_TOKEN=your-token
 
-# Redshift credentials (5 variables)
+# Redshift
 CENSUS_TEST_REDSHIFT_HOST=your-cluster.region.redshift.amazonaws.com
 CENSUS_TEST_REDSHIFT_PORT=5439
 CENSUS_TEST_REDSHIFT_DATABASE=dev
 CENSUS_TEST_REDSHIFT_USERNAME=testuser
 CENSUS_TEST_REDSHIFT_PASSWORD=your-password
 
-# Salesforce JWT OAuth (5 variables)
+# Salesforce
 CENSUS_TEST_SALESFORCE_USERNAME=test@example.com
-CENSUS_TEST_SALESFORCE_INSTANCE_URL=https://your-sandbox.develop.my.salesforce.com
+CENSUS_TEST_SALESFORCE_INSTANCE_URL=https://your-sandbox.my.salesforce.com
 CENSUS_TEST_SALESFORCE_CLIENT_ID=3MVG9...
-CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY='-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----\n'
+CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY='-----BEGIN RSA PRIVATE KEY-----\n...'
 CENSUS_TEST_SALESFORCE_DOMAIN=test.salesforce.com
-
-# For debugging
-TF_LOG=TRACE
 ```
 
-See `.env.test.example` for detailed setup instructions.
+## Manual Testing
 
----
+Use the examples directory to test manually:
 
-This 2-phase testing strategy ensures reliability while providing flexibility for different testing scenarios.
+```bash
+cd examples/complete-census-setup/
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+```
+
+## Troubleshooting
+
+**Connection errors:**
+- Verify network access (security groups, firewall)
+- Check credentials are correct
+- Ensure using staging environment, not production
+
+**Salesforce errors:**
+- Confirm using sandbox (domain: test.salesforce.com)
+- Verify Connected App OAuth scopes
+- Check JWT key format includes `\n` for newlines
+- Ensure user has API access
+
+**Test failures:**
+- Verify `.env.test` exists and is formatted correctly
+- Check `TF_ACC=1` is set
+- Review test output for specific errors
+- Increase timeout if needed: `-timeout 120m`
+
+## CI/CD
+
+The provider includes GitHub Actions workflows for automated testing. See `.github/workflows/test.yml` for configuration.
