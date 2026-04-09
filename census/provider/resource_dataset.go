@@ -250,14 +250,14 @@ func resourceDatasetRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 	var dataset *client.Dataset
 	if workspaceId != "" {
-		workspaceIdInt, err := strconv.Atoi(workspaceId)
-		if err != nil {
+		workspaceIdInt, convErr := strconv.Atoi(workspaceId)
+		if convErr != nil {
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
 
-		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if err != nil {
-			return diag.FromErr(err)
+		workspaceToken, tokenErr := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
+		if tokenErr != nil {
+			return diag.FromErr(tokenErr)
 		}
 
 		dataset, err = apiClient.GetDatasetWithToken(ctx, id, workspaceToken)

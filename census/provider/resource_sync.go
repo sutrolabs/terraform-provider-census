@@ -699,16 +699,16 @@ func resourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	var sync *client.Sync
 	if workspaceId != "" {
-		workspaceIdInt, err := strconv.Atoi(workspaceId)
-		if err != nil {
+		workspaceIdInt, convErr := strconv.Atoi(workspaceId)
+		if convErr != nil {
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
 
 		fmt.Printf("[DEBUG] Getting workspace token for workspace %d\n", workspaceIdInt)
-		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if err != nil {
-			fmt.Printf("[DEBUG] Failed to get workspace API key: %v\n", err)
-			return diag.FromErr(err)
+		workspaceToken, tokenErr := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
+		if tokenErr != nil {
+			fmt.Printf("[DEBUG] Failed to get workspace API key: %v\n", tokenErr)
+			return diag.FromErr(tokenErr)
 		}
 
 		fmt.Printf("[DEBUG] Successfully got workspace token, calling GetSyncWithToken for sync %d\n", id)
