@@ -23,6 +23,26 @@ resource "census_source" "warehouse" {
 }
 ```
 
+### Snowflake Source (Explicit Basic Sync Engine)
+
+```hcl
+resource "census_source" "warehouse_basic" {
+  workspace_id = census_workspace.main.id
+  name         = "Warehouse Source (Basic Engine)"
+  type         = "snowflake"
+  sync_engine  = "basic"
+
+  connection_config = {
+    account   = "abc12345.us-east-1"
+    warehouse = "COMPUTE_WH"
+    database  = "PRODUCTION"
+    username  = "census_user"
+    password  = var.snowflake_password
+    role      = "CENSUS_ROLE"
+  }
+}
+```
+
 ### Snowflake Source (Keypair Authentication)
 
 ```hcl
@@ -90,6 +110,7 @@ resource "census_source" "postgres" {
   - `databricks`
   - `mysql`
   - And many more... (validated against Census API)
+* `sync_engine` - (Optional, Forces new resource) The sync engine to use when the source is created. Defaults to `advanced` to match the Census UI. Set this to `basic` only when you explicitly need the basic engine.
 * `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema.
 
 ## Attribute Reference
@@ -99,6 +120,7 @@ In addition to all arguments above, the following attributes are exported:
 * `id` - The ID of the source.
 * `status` - The current status of the source.
 * `test_status` - The test status of the source connection.
+* `sync_engine` - The sync engine configured for the source when it is returned by the Census API.
 
 ## Import
 
@@ -119,3 +141,5 @@ terraform import census_source.warehouse "12345:67890"
 * The `connection_config` field is marked as sensitive and will not be displayed in Terraform output.
 * Source types and required credential fields are validated against the Census API's `/source_types` endpoint.
 * After creation, the provider automatically triggers a table refresh to discover available tables.
+* `sync_engine` is a create-time setting. The Census API rejects in-place sync engine changes with a 4xx response, so Terraform recreates the source when this field changes.
+* Leaving `sync_engine` unset now creates sources with the advanced engine by default, which is the recommended path for newer workflows like Warehouse Writeback.
