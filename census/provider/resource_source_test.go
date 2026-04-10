@@ -48,6 +48,23 @@ func TestResourceSourceCreate_UsesConfiguredSyncEngine(t *testing.T) {
 	}
 }
 
+func TestResourceSourceCreate_UsesBasicSyncEngineWhenConfigured(t *testing.T) {
+	t.Parallel()
+
+	capturedSyncEngine, diags, d := runSourceCreateTest(t, "basic")
+	if diags.HasError() {
+		t.Fatalf("expected source creation to succeed, got diagnostics: %#v", diags)
+	}
+
+	if capturedSyncEngine != "basic" {
+		t.Fatalf("expected create request to use basic sync engine, got %q", capturedSyncEngine)
+	}
+
+	if got := d.Get("sync_engine").(string); got != "basic" {
+		t.Fatalf("expected state to retain basic sync engine, got %q", got)
+	}
+}
+
 func TestResourceSourceRead_UpdatesSyncEngineFromAPI(t *testing.T) {
 	t.Parallel()
 
