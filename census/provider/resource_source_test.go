@@ -14,7 +14,7 @@ import (
 	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
 
-func TestResourceSourceCreate_DefaultsSyncEngineToBasic(t *testing.T) {
+func TestResourceSourceCreate_DefaultsSyncEngineToAdvanced(t *testing.T) {
 	t.Parallel()
 
 	capturedSyncEngine, diags, d := runSourceCreateTest(t, "")
@@ -22,12 +22,12 @@ func TestResourceSourceCreate_DefaultsSyncEngineToBasic(t *testing.T) {
 		t.Fatalf("expected source creation to succeed, got diagnostics: %#v", diags)
 	}
 
-	if capturedSyncEngine != "basic" {
-		t.Fatalf("expected create request to use basic sync engine, got %q", capturedSyncEngine)
+	if capturedSyncEngine != "advanced" {
+		t.Fatalf("expected create request to default to advanced sync engine, got %q", capturedSyncEngine)
 	}
 
-	if got := d.Get("sync_engine").(string); got != "basic" {
-		t.Fatalf("expected state to keep default basic sync engine, got %q", got)
+	if got := d.Get("sync_engine").(string); got != "advanced" {
+		t.Fatalf("expected state to keep default advanced sync engine, got %q", got)
 	}
 }
 

@@ -59,9 +59,9 @@ func resourceSource() *schema.Resource {
 			"sync_engine": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "basic",
+				Default:     "advanced",
 				ForceNew:    true,
-				Description: "The sync engine to use for the source. Set to `advanced` for features like Warehouse Writeback when supported by the source type.",
+				Description: "The sync engine to use for the source. Defaults to `advanced` to match the Census UI. Set to `basic` when a source type or workflow requires it.",
 			},
 			"connection_config": {
 				Type:        schema.TypeMap,

@@ -23,14 +23,14 @@ resource "census_source" "warehouse" {
 }
 ```
 
-### Snowflake Source (Advanced Sync Engine)
+### Snowflake Source (Explicit Basic Sync Engine)
 
 ```hcl
-resource "census_source" "warehouse_writeback" {
+resource "census_source" "warehouse_basic" {
   workspace_id = census_workspace.main.id
-  name         = "Warehouse Writeback Source"
+  name         = "Warehouse Source (Basic Engine)"
   type         = "snowflake"
-  sync_engine  = "advanced"
+  sync_engine  = "basic"
 
   connection_config = {
     account   = "abc12345.us-east-1"
@@ -110,7 +110,7 @@ resource "census_source" "postgres" {
   - `databricks`
   - `mysql`
   - And many more... (validated against Census API)
-* `sync_engine` - (Optional, Forces new resource) The sync engine to use when the source is created. Defaults to `basic`. Set this to `advanced` for features like Warehouse Writeback when the selected source type supports it.
+* `sync_engine` - (Optional, Forces new resource) The sync engine to use when the source is created. Defaults to `advanced` to match the Census UI. Set this to `basic` only when you explicitly need the basic engine.
 * `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema.
 
 ## Attribute Reference
@@ -142,3 +142,4 @@ terraform import census_source.warehouse "12345:67890"
 * Source types and required credential fields are validated against the Census API's `/source_types` endpoint.
 * After creation, the provider automatically triggers a table refresh to discover available tables.
 * `sync_engine` is a create-time setting. Changing it in Terraform recreates the source so the Census API can provision the requested engine cleanly.
+* Leaving `sync_engine` unset now creates sources with the advanced engine by default, which is the recommended path for newer workflows like Warehouse Writeback.
