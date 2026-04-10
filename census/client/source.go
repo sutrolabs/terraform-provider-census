@@ -13,6 +13,7 @@ type Source struct {
 	WorkspaceID string                 `json:"workspace_id,omitempty"`
 	Name        string                 `json:"name"`
 	Type        string                 `json:"type"`
+	SyncEngine  string                 `json:"sync_engine,omitempty"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
 	Connection  map[string]interface{} `json:"connection"`

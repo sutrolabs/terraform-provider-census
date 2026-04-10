@@ -56,6 +56,13 @@ func resourceSource() *schema.Resource {
 				ForceNew:    true,
 				Description: "The type of source (e.g., snowflake, bigquery, postgres).",
 			},
+			"sync_engine": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "basic",
+				ForceNew:    true,
+				Description: "The sync engine to use for the source. Set to `advanced` for features like Warehouse Writeback when supported by the source type.",
+			},
 			"connection_config": {
 				Type:        schema.TypeMap,
 				Required:    true,
@@ -104,6 +111,7 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	workspaceId := d.Get("workspace_id").(string)
 	name := d.Get("name").(string)
 	sourceType := d.Get("type").(string)
+	syncEngine := d.Get("sync_engine").(string)
 	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
 
 	// Get the workspace API key dynamically using the personal access token
@@ -129,7 +137,7 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		Connection: client.SourceConnection{
 			Name:        name, // Set name inside connection per API requirements
 			Type:        sourceType,
-			SyncEngine:  "basic", // Default sync engine
+			SyncEngine:  syncEngine,
 			Credentials: connectionConfig,
 		},
 	}
@@ -211,6 +219,9 @@ Where 69962 is the workspace_id for marketing_prod workspace.`)
 	if source.WorkspaceID != "" {
 		d.Set("workspace_id", source.WorkspaceID)
 	}
+	if syncEngine := getSourceSyncEngine(source); syncEngine != "" {
+		d.Set("sync_engine", syncEngine)
+	}
 	d.Set("name", source.Name)
 	d.Set("type", source.Type)
 	d.Set("status", source.Status)
@@ -227,6 +238,27 @@ Where 69962 is the workspace_id for marketing_prod workspace.`)
 	// Terraform will maintain the connection config from the configuration
 
 	return nil
+}
+
+func getSourceSyncEngine(source *client.Source) string {
+	if source == nil {
+		return ""
+	}
+
+	if source.SyncEngine != "" {
+		return source.SyncEngine
+	}
+
+	if source.Connection == nil {
+		return ""
+	}
+
+	syncEngine, ok := source.Connection["sync_engine"].(string)
+	if !ok {
+		return ""
+	}
+
+	return syncEngine
 }
 
 func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
