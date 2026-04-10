@@ -78,19 +78,58 @@ func TestResourceReads_GatewayTimeoutPreservesState(t *testing.T) {
 	}
 }
 
-func TestResourceDestinationRead_NotFoundClearsState(t *testing.T) {
+func TestResourceReads_NotFoundClearsState(t *testing.T) {
 	t.Parallel()
 
-	apiClient := newReadTestClient(t, "/destinations/2311185", http.StatusNotFound)
-	d := testDestinationResourceData(t)
-
-	diags := resourceDestinationRead(context.Background(), d, apiClient)
-	if diags.HasError() {
-		t.Fatalf("expected no diagnostics for a missing destination, got %#v", diags)
+	testCases := []struct {
+		name         string
+		resourcePath string
+		buildData    func(t *testing.T) *schema.ResourceData
+		read         func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
+	}{
+		{
+			name:         "destination",
+			resourcePath: "/destinations/2311185",
+			buildData:    testDestinationResourceData,
+			read:         resourceDestinationRead,
+		},
+		{
+			name:         "source",
+			resourcePath: "/sources/2280673",
+			buildData:    testSourceResourceData,
+			read:         resourceSourceRead,
+		},
+		{
+			name:         "dataset",
+			resourcePath: "/datasets/44001",
+			buildData:    testDatasetResourceData,
+			read:         resourceDatasetRead,
+		},
+		{
+			name:         "sync",
+			resourcePath: "/syncs/3503053",
+			buildData:    testSyncResourceData,
+			read:         resourceSyncRead,
+		},
 	}
 
-	if d.Id() != "" {
-		t.Fatalf("expected destination ID to be cleared after 404, got %q", d.Id())
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			apiClient := newReadTestClient(t, tc.resourcePath, http.StatusNotFound)
+			d := tc.buildData(t)
+
+			diags := tc.read(context.Background(), d, apiClient)
+			if diags.HasError() {
+				t.Fatalf("expected no diagnostics for a missing %s, got %#v", tc.name, diags)
+			}
+
+			if d.Id() != "" {
+				t.Fatalf("expected %s ID to be cleared after 404, got %q", tc.name, d.Id())
+			}
+		})
 	}
 }
 
