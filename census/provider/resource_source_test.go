@@ -88,6 +88,19 @@ func TestResourceSourceRead_UpdatesSyncEngineFromAPI(t *testing.T) {
 	}
 }
 
+func TestResourceSourceSchema_SyncEngineIsForceNew(t *testing.T) {
+	t.Parallel()
+
+	syncEngineField := resourceSource().Schema["sync_engine"]
+	if syncEngineField == nil {
+		t.Fatal("expected sync_engine field to exist on census_source")
+	}
+
+	if !syncEngineField.ForceNew {
+		t.Fatal("expected sync_engine to be ForceNew because the Census API does not allow in-place sync engine changes")
+	}
+}
+
 func runSourceCreateTest(t *testing.T, syncEngine string) (string, diag.Diagnostics, *schema.ResourceData) {
 	t.Helper()
 

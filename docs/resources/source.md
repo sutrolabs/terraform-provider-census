@@ -141,5 +141,5 @@ terraform import census_source.warehouse "12345:67890"
 * The `connection_config` field is marked as sensitive and will not be displayed in Terraform output.
 * Source types and required credential fields are validated against the Census API's `/source_types` endpoint.
 * After creation, the provider automatically triggers a table refresh to discover available tables.
-* `sync_engine` is a create-time setting. Changing it in Terraform recreates the source so the Census API can provision the requested engine cleanly.
+* `sync_engine` is a create-time setting. The Census API rejects in-place sync engine changes with a 4xx response, so Terraform recreates the source when this field changes.
 * Leaving `sync_engine` unset now creates sources with the advanced engine by default, which is the recommended path for newer workflows like Warehouse Writeback.

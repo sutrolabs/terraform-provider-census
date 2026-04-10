@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configurable Source Sync Engine**: Added a `sync_engine` argument to `census_source`, allowing Terraform users to request either engine explicitly for supported source types such as Snowflake Warehouse Writeback.
 
 ### Changed
-- **Advanced Source Engine by Default**: `census_source` now defaults `sync_engine` to `advanced` to match the Census UI. The field is stored in state when returned by the Census API and still forces source recreation when changed.
+- **Advanced Source Engine by Default**: `census_source` now defaults `sync_engine` to `advanced` to match the Census UI. The field is stored in state when returned by the Census API and still forces source recreation when changed, because the Census API rejects in-place sync engine updates.
 
 ## [0.2.11] - 2026-03-06
 
