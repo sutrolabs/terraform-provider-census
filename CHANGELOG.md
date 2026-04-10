@@ -21,9 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Workspace Token Caching**: Workspace API keys are now cached in-memory for the duration of a Terraform run, eliminating redundant API calls to fetch the same workspace token before every resource operation. This significantly reduces API overhead when managing multiple resources in the same workspace.
 
-### Fixed
-- **Resource Read Error Handling**: Fixed `census_destination`, `census_source`, `census_dataset`, and `census_sync` read paths to preserve API read errors instead of silently clearing Terraform state. A shadowed `err` variable in the workspace-token lookup block caused `504` and timeout-style read failures to fall through to the `nil` resource branch, which could make Terraform treat an existing resource as missing and attempt to recreate it. The provider now correctly hard-fails on read errors while still clearing state for confirmed `404` responses.
-
 ## [0.2.10] - 2026-01-30
 
 ### Added
