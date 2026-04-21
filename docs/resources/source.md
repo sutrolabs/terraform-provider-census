@@ -2,6 +2,8 @@
 
 Manages a Census data source connection. Sources connect to data warehouses like Snowflake, BigQuery, Postgres, and others.
 
+> Warning: Avoid provider version `0.2.12` if this resource omits `sync_engine`. `0.2.12` can plan replacement of existing `census_source` resources that were created before `sync_engine` support was added, which may affect downstream sync history. Upgrade to `0.2.13` instead, or pin to `0.2.11` until you can upgrade safely.
+
 ## Example Usage
 
 ### Snowflake Source (Password Authentication)
@@ -110,7 +112,7 @@ resource "census_source" "postgres" {
   - `databricks`
   - `mysql`
   - And many more... (validated against Census API)
-* `sync_engine` - (Optional, Forces new resource) The sync engine to use when the source is created. Defaults to `advanced` to match the Census UI. Set this to `basic` only when you explicitly need the basic engine.
+* `sync_engine` - (Optional, Computed, Forces new resource) The sync engine to use when the source is created. New sources default to `advanced` to match the Census UI. Leave this unset to preserve the current engine on existing sources, or set it explicitly to `basic` only when you need the basic engine.
 * `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema.
 
 ## Attribute Reference
@@ -142,4 +144,5 @@ terraform import census_source.warehouse "12345:67890"
 * Source types and required credential fields are validated against the Census API's `/source_types` endpoint.
 * After creation, the provider automatically triggers a table refresh to discover available tables.
 * `sync_engine` is a create-time setting. The Census API rejects in-place sync engine changes with a 4xx response, so Terraform recreates the source when this field changes.
-* Leaving `sync_engine` unset now creates sources with the advanced engine by default, which is the recommended path for newer workflows like Warehouse Writeback.
+* Leaving `sync_engine` unset creates new sources with the advanced engine by default, but preserves the current engine for existing managed sources to avoid unexpected replacements during provider upgrades.
+* If you already use `sync_engine`, set it explicitly in configuration so future provider upgrades cannot infer a different value from a changing default.

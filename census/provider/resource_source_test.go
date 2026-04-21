@@ -17,6 +17,10 @@ import (
 func TestResourceSourceCreate_DefaultsSyncEngineToAdvanced(t *testing.T) {
 	t.Parallel()
 
+	if got := resourceSource().Schema["sync_engine"].Default; got != nil {
+		t.Fatalf("expected sync_engine schema default to be unset, got %#v", got)
+	}
+
 	capturedSyncEngine, diags, d := runSourceCreateTest(t, "")
 	if diags.HasError() {
 		t.Fatalf("expected source creation to succeed, got diagnostics: %#v", diags)
@@ -115,6 +119,57 @@ func TestResourceSourceSchema_SyncEngineIsForceNew(t *testing.T) {
 
 	if !syncEngineField.ForceNew {
 		t.Fatal("expected sync_engine to be ForceNew because the Census API does not allow in-place sync engine changes")
+	}
+
+	if !syncEngineField.Computed {
+		t.Fatal("expected sync_engine to be Computed so existing sources can preserve their current engine when the argument is omitted")
+	}
+}
+
+func TestGetConfiguredSourceSyncEngine(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		configured interface{}
+		want       string
+	}{
+		{
+			name: "omitted defaults to advanced on create",
+			want: "advanced",
+		},
+		{
+			name:       "explicit basic is preserved",
+			configured: "basic",
+			want:       "basic",
+		},
+		{
+			name:       "explicit advanced is preserved",
+			configured: "advanced",
+			want:       "advanced",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			raw := map[string]interface{}{
+				"workspace_id":      "69962",
+				"name":              "Warehouse Source",
+				"type":              "snowflake",
+				"connection_config": map[string]interface{}{"account": "acct"},
+			}
+			if tc.configured != nil {
+				raw["sync_engine"] = tc.configured
+			}
+
+			d := schema.TestResourceDataRaw(t, resourceSource().Schema, raw)
+			if got := getConfiguredSourceSyncEngine(d); got != tc.want {
+				t.Fatalf("expected configured sync engine %q, got %q", tc.want, got)
+			}
+		})
 	}
 }
 

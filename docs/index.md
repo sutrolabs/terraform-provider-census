@@ -9,6 +9,8 @@ description: |-
 
 The Census provider allows you to manage [Census](https://getcensus.com) resources using Terraform. Census enables you to sync data from your warehouse to all your operational tools, and this provider allows you to manage Census infrastructure as code.
 
+> Warning: Avoid `0.2.12` if you manage any existing `census_source` resources with `sync_engine` omitted from configuration. `0.2.12` can plan source replacement for those resources, which may affect downstream sync history. Upgrade to `0.2.13` instead, or pin to `0.2.11` until you can upgrade safely.
+
 ## Example Usage
 
 ```terraform
@@ -16,7 +18,7 @@ terraform {
   required_providers {
     census = {
       source  = "sutrolabs/census"
-      version = "~> 0.2.0"
+      version = "!= 0.2.12, ~> 0.2.0"
     }
   }
 }

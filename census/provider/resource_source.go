@@ -59,9 +59,9 @@ func resourceSource() *schema.Resource {
 			"sync_engine": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "advanced",
+				Computed:    true,
 				ForceNew:    true,
-				Description: "The sync engine to use for the source. Defaults to `advanced` to match the Census UI. Set to `basic` when a source type or workflow requires it.",
+				Description: "The sync engine to use for the source. New sources default to `advanced` to match the Census UI. Leave this unset to preserve the current engine on existing sources, or set it explicitly to `basic` or `advanced` to manage it in Terraform.",
 			},
 			"connection_config": {
 				Type:        schema.TypeMap,
@@ -111,7 +111,7 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	workspaceId := d.Get("workspace_id").(string)
 	name := d.Get("name").(string)
 	sourceType := d.Get("type").(string)
-	syncEngine := d.Get("sync_engine").(string)
+	syncEngine := getConfiguredSourceSyncEngine(d)
 	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
 
 	// Get the workspace API key dynamically using the personal access token
@@ -259,6 +259,16 @@ func getSourceSyncEngine(source *client.Source) string {
 	}
 
 	return syncEngine
+}
+
+func getConfiguredSourceSyncEngine(d *schema.ResourceData) string {
+	if syncEngine, ok := d.GetOk("sync_engine"); ok {
+		if configuredSyncEngine := syncEngine.(string); configuredSyncEngine != "" {
+			return configuredSyncEngine
+		}
+	}
+
+	return "advanced"
 }
 
 func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
