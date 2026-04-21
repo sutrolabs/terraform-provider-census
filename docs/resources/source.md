@@ -2,8 +2,6 @@
 
 Manages a Census data source connection. Sources connect to data warehouses like Snowflake, BigQuery, Postgres, and others.
 
-> Warning: Avoid provider version `0.2.12` if this resource omits `sync_engine`. `0.2.12` can plan replacement of existing `census_source` resources that were created before `sync_engine` support was added, which may affect downstream sync history. Upgrade to `0.2.13` instead, or pin to `0.2.11` until you can upgrade safely.
-
 ## Example Usage
 
 ### Snowflake Source (Password Authentication)

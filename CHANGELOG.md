@@ -7,24 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.13] - 2026-04-21
 
-### Fixed
-- **Existing Source Sync Engine Preservation**: `census_source` no longer treats an omitted `sync_engine` argument as an instruction to replace existing sources during provider upgrades. New sources still default to `advanced`, but existing managed sources now keep their current engine unless `sync_engine` is set explicitly in configuration.
-
-### Upgrade Guidance
-- If you are on `0.2.12`, upgrade directly to `0.2.13`.
-- Avoid applying `0.2.12` when `census_source.sync_engine` is omitted from configuration.
-- If you need time before upgrading, pin to `0.2.11`.
-
-## [0.2.12] - 2026-04-10
-
-### Warning
-- **Known Issue**: `0.2.12` can plan replacement of existing `census_source` resources when `sync_engine` is omitted from configuration. Because `sync_engine` is immutable and forces source recreation, this can affect downstream sync history. Upgrade to `0.2.13` instead.
-
 ### Added
-- **Configurable Source Sync Engine**: Added a `sync_engine` argument to `census_source`, allowing Terraform users to request either engine explicitly for supported source types such as Snowflake Warehouse Writeback.
-
-### Changed
-- **Advanced Source Engine by Default**: `census_source` now defaults `sync_engine` to `advanced` to match the Census UI. The field is stored in state when returned by the Census API and still forces source recreation when changed, because the Census API rejects in-place sync engine updates.
+- **Configurable Source Sync Engine**: Added a `sync_engine` argument to `census_source`, allowing Terraform users to request either engine explicitly for supported source types such as Snowflake Warehouse Writeback. New sources default to `advanced` to match the Census UI. Existing managed sources preserve their current engine when `sync_engine` is omitted from configuration, so upgrading the provider does not plan source replacement.
 
 ### Fixed
 - **Resource Read Error Handling**: Fixed `census_destination`, `census_source`, `census_dataset`, and `census_sync` read paths to preserve API read errors instead of silently clearing Terraform state. A shadowed `err` variable in the workspace-token lookup block caused `504` and timeout-style read failures to fall through to the `nil` resource branch, which could make Terraform treat an existing resource as missing and attempt to recreate it. The provider now correctly hard-fails on read errors while still clearing state for confirmed `404` responses.
@@ -186,7 +170,7 @@ terraform {
   required_providers {
     census = {
       source  = "sutrolabs/census"
-      version = "!= 0.2.12, ~> 0.2.0"
+      version = "~> 0.2.0"
     }
   }
 }
