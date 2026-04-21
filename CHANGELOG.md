@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Avoid applying `0.2.12` when `census_source.sync_engine` is omitted from configuration.
 - If you need time before upgrading, pin to `0.2.11`.
 
-## [0.2.12] - 2026-04-15
+## [0.2.12] - 2026-04-10
 
 ### Warning
 - **Known Issue**: `0.2.12` can plan replacement of existing `census_source` resources when `sync_engine` is omitted from configuration. Because `sync_engine` is immutable and forces source recreation, this can affect downstream sync history. Upgrade to `0.2.13` instead.

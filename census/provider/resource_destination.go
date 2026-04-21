@@ -167,14 +167,14 @@ func resourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta i
 	workspaceId := d.Get("workspace_id").(string)
 	var destination *client.Destination
 	if workspaceId != "" {
-		workspaceIdInt, err := strconv.Atoi(workspaceId)
-		if err != nil {
+		workspaceIdInt, convErr := strconv.Atoi(workspaceId)
+		if convErr != nil {
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
 
-		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if err != nil {
-			return diag.FromErr(err)
+		workspaceToken, tokenErr := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
+		if tokenErr != nil {
+			return diag.FromErr(tokenErr)
 		}
 
 		destination, err = apiClient.GetDestinationWithToken(ctx, id, workspaceToken)
@@ -184,7 +184,6 @@ func resourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	if err != nil {
-		// Check if destination was not found
 		if IsNotFoundError(err) {
 			d.SetId("")
 			return nil
@@ -192,7 +191,6 @@ func resourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
-	// Check if destination is nil (API returned successfully but with nil data)
 	if destination == nil {
 		d.SetId("")
 		return nil

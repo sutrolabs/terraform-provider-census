@@ -2,13 +2,15 @@ package provider
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
 
 // IsNotFoundError checks if an error is a 404 Not Found error
 func IsNotFoundError(err error) bool {
-	if apiErr, ok := err.(*client.APIError); ok {
+	var apiErr *client.APIError
+	if errors.As(err, &apiErr) {
 		return apiErr.StatusCode == 404
 	}
 	return false
