@@ -12,14 +12,12 @@ A Terraform provider for managing [Census](https://getcensus.com) resources. Cen
 
 ## Installation
 
-> Warning: Avoid `0.2.12` if you manage any existing `census_source` resources with `sync_engine` omitted from configuration. `0.2.12` can plan source replacement for those resources, which may affect downstream sync history. Upgrade to `0.2.13` instead, or pin to `0.2.11` until you can upgrade safely.
-
 ```hcl
 terraform {
   required_providers {
     census = {
       source  = "sutrolabs/census"
-      version = "!= 0.2.12, ~> 0.2.0"
+      version = "~> 0.2.0"
     }
   }
 }
