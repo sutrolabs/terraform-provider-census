@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Advanced Source Engine by Default**: `census_source` now defaults `sync_engine` to `advanced` to match the Census UI. The field is stored in state when returned by the Census API and still forces source recreation when changed, because the Census API rejects in-place sync engine updates.
 
+### Fixed
+- **Resource Read Error Handling**: Fixed `census_destination`, `census_source`, `census_dataset`, and `census_sync` read paths to preserve API read errors instead of silently clearing Terraform state. A shadowed `err` variable in the workspace-token lookup block caused `504` and timeout-style read failures to fall through to the `nil` resource branch, which could make Terraform treat an existing resource as missing and attempt to recreate it. The provider now correctly hard-fails on read errors while still clearing state for confirmed `404` responses.
+
 ## [0.2.11] - 2026-03-06
 
 ### Changed
