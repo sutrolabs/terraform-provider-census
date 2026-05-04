@@ -63,6 +63,12 @@ func resourceSource() *schema.Resource {
 				ForceNew:    true,
 				Description: "The sync engine to use for the source. New sources default to `advanced` to match the Census UI. Leave this unset to preserve the current engine on existing sources, or set it explicitly to `basic` or `advanced` to manage it in Terraform.",
 			},
+			"warehouse_writeback_retention_in_days": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: "Enables Warehouse Writeback for the source and sets the sync log retention period (in days). Only supported on the advanced sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). Setting this enables Warehouse Writeback. Once enabled, the Census API does not currently support disabling it via this attribute; remove the attribute in Terraform to stop managing the value, in which case Terraform will preserve whatever value the API reports.",
+			},
 			"connection_config": {
 				Type:        schema.TypeMap,
 				Required:    true,
@@ -135,10 +141,11 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 
 	req := &client.CreateSourceRequest{
 		Connection: client.SourceConnection{
-			Name:        name, // Set name inside connection per API requirements
-			Type:        sourceType,
-			SyncEngine:  syncEngine,
-			Credentials: connectionConfig,
+			Name:                              name, // Set name inside connection per API requirements
+			Type:                              sourceType,
+			SyncEngine:                        syncEngine,
+			WarehouseWritebackRetentionInDays: getConfiguredWarehouseWritebackRetention(d),
+			Credentials:                       connectionConfig,
 		},
 	}
 
@@ -222,6 +229,9 @@ Where 69962 is the workspace_id for marketing_prod workspace.`)
 	if syncEngine := getSourceSyncEngine(source); syncEngine != "" {
 		d.Set("sync_engine", syncEngine)
 	}
+	if source.WarehouseWritebackRetentionInDays != nil {
+		d.Set("warehouse_writeback_retention_in_days", *source.WarehouseWritebackRetentionInDays)
+	}
 	d.Set("name", source.Name)
 	d.Set("type", source.Type)
 	d.Set("status", source.Status)
@@ -271,6 +281,20 @@ func getConfiguredSourceSyncEngine(d *schema.ResourceData) string {
 	return "advanced"
 }
 
+func getConfiguredWarehouseWritebackRetention(d *schema.ResourceData) *int {
+	raw, ok := d.GetOk("warehouse_writeback_retention_in_days")
+	if !ok {
+		return nil
+	}
+
+	retention, ok := raw.(int)
+	if !ok || retention <= 0 {
+		return nil
+	}
+
+	return &retention
+}
+
 func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	apiClient := meta.(*client.Client)
 
@@ -306,7 +330,8 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		Connection: client.SourceConnection{
 			Name: name, // Set name in connection structure per API requirements
 			// Note: Type and SyncEngine cannot be modified after creation per Census API
-			Credentials: connectionConfig,
+			WarehouseWritebackRetentionInDays: getConfiguredWarehouseWritebackRetention(d),
+			Credentials:                       connectionConfig,
 		},
 	}
 
