@@ -66,7 +66,8 @@ func resourceSource() *schema.Resource {
 			"warehouse_writeback_retention_in_days": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Description: "Enables Warehouse Writeback for the source and sets the sync log retention period (in days). Only supported on the advanced sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). Setting this enables Warehouse Writeback. Once enabled, the Census API does not currently support disabling it via this attribute; remove the attribute in Terraform to stop managing the value.",
+				Computed:    true,
+				Description: "Enables Warehouse Writeback for the source and sets the sync log retention period (in days). Only supported on the advanced sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). Setting this enables Warehouse Writeback. Once enabled, the Census API does not currently support disabling it via this attribute; remove the attribute in Terraform to stop managing the value, in which case Terraform will preserve whatever value the API reports.",
 			},
 			"connection_config": {
 				Type:        schema.TypeMap,

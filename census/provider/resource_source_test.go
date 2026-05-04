@@ -221,6 +221,61 @@ func TestResourceSourceSchema_WarehouseWritebackIsUpdateable(t *testing.T) {
 	if field.Type != schema.TypeInt {
 		t.Fatalf("expected warehouse_writeback_retention_in_days to be TypeInt, got %v", field.Type)
 	}
+	if !field.Computed {
+		t.Fatal("expected warehouse_writeback_retention_in_days to be Computed so existing sources with writeback enabled outside Terraform do not show perpetual drift when the argument is omitted from configuration")
+	}
+}
+
+// Regression: a source that already has Warehouse Writeback enabled outside
+// Terraform (e.g. set via the Census UI before being imported) must not show
+// drift when the user has not added warehouse_writeback_retention_in_days to
+// their .tf. Without Computed:true on the schema this would loop forever as
+// the read populates state, then plan diffs state vs zero-value config, then
+// apply no-ops the API but refresh re-populates state, ad infinitum.
+func TestResourceSourceRead_NoDriftWhenWritebackPresentInAPIButAbsentFromConfig(t *testing.T) {
+	t.Parallel()
+
+	const (
+		workspaceID = 69962
+		sourceID    = 2280673
+		retention   = 30
+	)
+
+	apiClient := newSourceTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/workspaces/69962/api_key":
+			writeJSON(t, w, http.StatusOK, map[string]string{"api_key": "workspace-token"})
+		case "/sources/2280673":
+			if r.Method != http.MethodGet {
+				t.Fatalf("unexpected method for %s: %s", r.URL.Path, r.Method)
+			}
+			resp := buildSourceResponse(sourceID, "advanced")
+			data := resp["data"].(map[string]interface{})
+			data["warehouse_writeback_retention_in_days"] = retention
+			writeJSON(t, w, http.StatusOK, resp)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	// Simulate a source already in state from a previous apply, with the
+	// warehouse_writeback_retention_in_days argument NOT in the .tf.
+	d := schema.TestResourceDataRaw(t, resourceSource().Schema, map[string]interface{}{
+		"workspace_id":      strconv.Itoa(workspaceID),
+		"name":              "Warehouse Source",
+		"type":              "snowflake",
+		"connection_config": map[string]interface{}{"account": "acct"},
+	})
+	d.SetId(strconv.Itoa(sourceID))
+
+	diags := resourceSourceRead(context.Background(), d, apiClient)
+	if diags.HasError() {
+		t.Fatalf("expected source read to succeed, got diagnostics: %#v", diags)
+	}
+
+	if got := d.Get("warehouse_writeback_retention_in_days").(int); got != retention {
+		t.Fatalf("expected read to populate warehouse_writeback_retention_in_days from the API even when the argument is absent from configuration, got %d", got)
+	}
 }
 
 func TestGetConfiguredWarehouseWritebackRetention(t *testing.T) {
