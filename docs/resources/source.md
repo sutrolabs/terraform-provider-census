@@ -43,6 +43,28 @@ resource "census_source" "warehouse_basic" {
 }
 ```
 
+### Snowflake Source (Warehouse Writeback Enabled)
+
+```hcl
+resource "census_source" "warehouse_with_writeback" {
+  workspace_id = census_workspace.main.id
+  name         = "Production Warehouse"
+  type         = "snowflake"
+  sync_engine  = "advanced"
+
+  warehouse_writeback_retention_in_days = 30
+
+  connection_config = {
+    account   = "abc12345.us-east-1"
+    warehouse = "COMPUTE_WH"
+    database  = "PRODUCTION"
+    username  = "census_user"
+    password  = var.snowflake_password
+    role      = "CENSUS_ROLE"
+  }
+}
+```
+
 ### Snowflake Source (Keypair Authentication)
 
 ```hcl
@@ -111,6 +133,7 @@ resource "census_source" "postgres" {
   - `mysql`
   - And many more... (validated against Census API)
 * `sync_engine` - (Optional, Computed, Forces new resource) The sync engine to use when the source is created. New sources default to `advanced` to match the Census UI. Leave this unset to preserve the current engine on existing sources, or set it explicitly to `basic` only when you need the basic engine.
+* `warehouse_writeback_retention_in_days` - (Optional) Enables Warehouse Writeback for the source and sets the sync log retention period (in days). Setting this attribute enables the feature; omit it to leave Warehouse Writeback unconfigured. Only supported on the `advanced` sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). The Census API rejects requests that set this on unsupported source types or basic-engine sources.
 * `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema.
 
 ## Attribute Reference
@@ -144,3 +167,4 @@ terraform import census_source.warehouse "12345:67890"
 * `sync_engine` is a create-time setting. The Census API rejects in-place sync engine changes with a 4xx response, so Terraform recreates the source when this field changes.
 * Leaving `sync_engine` unset creates new sources with the advanced engine by default, but preserves the current engine for existing managed sources to avoid unexpected replacements during provider upgrades.
 * If you already use `sync_engine`, set it explicitly in configuration so future provider upgrades cannot infer a different value from a changing default.
+* `warehouse_writeback_retention_in_days` can be increased or decreased on an existing managed source by changing the value in configuration; the provider issues a PATCH on the next apply. The Census API does not currently expose a way to disable Warehouse Writeback once enabled, so removing this attribute from configuration stops Terraform from managing the value but does not turn the feature off in Census. Use the Census UI if you need to disable it.
