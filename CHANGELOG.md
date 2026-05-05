@@ -5,10 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.14] - 2026-05-04
 
 ### Added
-- **Configurable Warehouse Writeback**: Added a `warehouse_writeback_retention_in_days` argument to `census_source`. Setting this enables Warehouse Writeback on the source and configures the sync log retention period in days. Supported on the advanced sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). The retention period can be updated in place; the Census API does not currently expose a way to disable Warehouse Writeback once enabled.
+- **Configurable Warehouse Writeback**: Added a `warehouse_writeback_retention_in_days` argument to `census_source`. Setting this enables Warehouse Writeback on the source and configures the sync log retention period in days. Supported on the advanced sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). The retention period can be updated in place; the Census API does not currently expose a way to disable Warehouse Writeback once enabled. The argument is `Optional + Computed` so existing sources with Warehouse Writeback enabled outside Terraform do not show drift when the argument is omitted from configuration.
 
 ## [0.2.13] - 2026-04-21
 
