@@ -20,7 +20,12 @@ const (
 
 // Provider returns the Census Terraform provider
 func Provider() *schema.Provider {
-	return &schema.Provider{
+	return ProviderWithVersion("")
+}
+
+// ProviderWithVersion returns the Census Terraform provider with a version string included in the User-Agent header
+func ProviderWithVersion(version string) *schema.Provider {
+	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"personal_access_token": {
 				Type:        schema.TypeString,
@@ -60,45 +65,49 @@ func Provider() *schema.Provider {
 			"census_sync":        dataSourceSync(),
 			"census_dataset":     dataSourceDataset(),
 		},
-		ConfigureContextFunc: configure,
+		ConfigureContextFunc: configure(version),
 	}
+	return p
 }
 
-func configure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func configure(version string) schema.ConfigureContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		var diags diag.Diagnostics
 
-	personalToken := d.Get("personal_access_token").(string)
-	region := d.Get("region").(string)
-	baseURL := d.Get("base_url").(string)
+		personalToken := d.Get("personal_access_token").(string)
+		region := d.Get("region").(string)
+		baseURL := d.Get("base_url").(string)
 
-	// Validate that personal access token is provided
-	if personalToken == "" {
-		return nil, diag.Errorf("personal_access_token is required")
-	}
-
-	// Determine base URL if not explicitly provided
-	if baseURL == "" {
-		switch region {
-		case "us":
-			baseURL = "https://app.getcensus.com/api/v1"
-		case "eu":
-			baseURL = "https://app-eu.getcensus.com/api/v1"
-		default:
-			return nil, diag.Errorf("unsupported region: %s", region)
+		// Validate that personal access token is provided
+		if personalToken == "" {
+			return nil, diag.Errorf("personal_access_token is required")
 		}
-	}
 
-	config := &client.Config{
-		PersonalAccessToken:  personalToken,
-		WorkspaceAccessToken: "", // No longer used - workspace tokens are fetched dynamically
-		BaseURL:              baseURL,
-		Region:               region,
-	}
+		// Determine base URL if not explicitly provided
+		if baseURL == "" {
+			switch region {
+			case "us":
+				baseURL = "https://app.getcensus.com/api/v1"
+			case "eu":
+				baseURL = "https://app-eu.getcensus.com/api/v1"
+			default:
+				return nil, diag.Errorf("unsupported region: %s", region)
+			}
+		}
 
-	client, err := client.NewClient(config)
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
+		config := &client.Config{
+			PersonalAccessToken:  personalToken,
+			WorkspaceAccessToken: "", // No longer used - workspace tokens are fetched dynamically
+			BaseURL:              baseURL,
+			Region:               region,
+			Version:              version,
+		}
 
-	return client, diags
+		client, err := client.NewClient(config)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
+		return client, diags
+	}
 }

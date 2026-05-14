@@ -31,6 +31,7 @@ type Config struct {
 	WorkspaceAccessToken string
 	BaseURL              string
 	Region               string
+	Version              string
 	HTTPClient           *http.Client
 }
 
@@ -127,7 +128,11 @@ func (c *Client) makeRequestWithToken(ctx context.Context, method, path string, 
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "terraform-provider-census")
+	userAgent := "terraform-provider-census"
+	if c.config.Version != "" {
+		userAgent += "/" + c.config.Version
+	}
+	req.Header.Set("User-Agent", userAgent)
 
 	// Set authentication based on token type and availability
 	token := ""
