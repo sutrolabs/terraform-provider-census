@@ -13,13 +13,17 @@ resource "census_source" "warehouse" {
   type         = "snowflake"
 
   connection_config = {
-    account        = "abc12345.us-east-1"
-    warehouse      = "COMPUTE_WH"
-    database       = "PRODUCTION"
-    username       = "census_user"
-    password       = var.snowflake_password
-    role           = "CENSUS_ROLE"
+    account   = "abc12345.us-east-1"
+    warehouse = "COMPUTE_WH"
+    database  = "PRODUCTION"
+    username  = "census_user"
+    role      = "CENSUS_ROLE"
   }
+
+  connection_config_wo = jsonencode({
+    password = var.snowflake_password
+  })
+  connection_config_wo_version = "snowflake-password-v1"
 }
 ```
 
@@ -37,9 +41,13 @@ resource "census_source" "warehouse_basic" {
     warehouse = "COMPUTE_WH"
     database  = "PRODUCTION"
     username  = "census_user"
-    password  = var.snowflake_password
     role      = "CENSUS_ROLE"
   }
+
+  connection_config_wo = jsonencode({
+    password = var.snowflake_password
+  })
+  connection_config_wo_version = "snowflake-password-v1"
 }
 ```
 
@@ -59,9 +67,13 @@ resource "census_source" "warehouse_with_writeback" {
     warehouse = "COMPUTE_WH"
     database  = "PRODUCTION"
     username  = "census_user"
-    password  = var.snowflake_password
     role      = "CENSUS_ROLE"
   }
+
+  connection_config_wo = jsonencode({
+    password = var.snowflake_password
+  })
+  connection_config_wo_version = "snowflake-password-v1"
 }
 ```
 
@@ -80,9 +92,13 @@ resource "census_source" "warehouse_keypair" {
     username               = "census_user"
     role                   = "CENSUS_ROLE"
     use_keypair            = true  # Boolean works directly!
+  }
+
+  connection_config_wo = jsonencode({
     private_key_pkcs8      = var.snowflake_private_key
     private_key_passphrase = var.snowflake_key_passphrase  # Optional, omit if key is not encrypted
-  }
+  })
+  connection_config_wo_version = "snowflake-keypair-v1"
 }
 ```
 
@@ -97,8 +113,12 @@ resource "census_source" "bigquery" {
   connection_config = {
     project_id = "my-gcp-project"
     dataset_id = "analytics"
-    private_key = var.gcp_service_account_key
   }
+
+  connection_config_wo = jsonencode({
+    private_key = var.gcp_service_account_key
+  })
+  connection_config_wo_version = "bigquery-key-v1"
 }
 ```
 
@@ -115,8 +135,12 @@ resource "census_source" "postgres" {
     port     = 5432  # Numbers work directly
     database = "production"
     username = "census"
-    password = var.postgres_password
   }
+
+  connection_config_wo = jsonencode({
+    password = var.postgres_password
+  })
+  connection_config_wo_version = "postgres-password-v1"
 }
 ```
 
@@ -135,6 +159,8 @@ resource "census_source" "postgres" {
 * `sync_engine` - (Optional, Computed, Forces new resource) The sync engine to use when the source is created. New sources default to `advanced` to match the Census UI. Leave this unset to preserve the current engine on existing sources, or set it explicitly to `basic` only when you need the basic engine.
 * `warehouse_writeback_retention_in_days` - (Optional, Computed) Enables Warehouse Writeback for the source and sets the sync log retention period (in days). Setting this attribute enables the feature; omit it to leave the value to whatever the Census API reports for this source. Only supported on the `advanced` sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). The Census API rejects requests that set this on unsupported source types or basic-engine sources.
 * `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema.
+* `connection_config_wo` - (Optional, Write-only) JSON object of secret source connection configuration values. These values are merged into `connection_config` during create and update requests and are not stored in Terraform plan or state. Requires Terraform 1.11 or later.
+* `connection_config_wo_version` - (Optional) Non-secret version marker for `connection_config_wo`. Change this value when rotating write-only source connection secrets so Terraform detects and applies the update.
 
 ## Attribute Reference
 
@@ -161,7 +187,8 @@ terraform import census_source.warehouse "12345:67890"
 
 ## Notes
 
-* The `connection_config` field is marked as sensitive and will not be displayed in Terraform output.
+* The `connection_config` field is marked as sensitive and will not be displayed in Terraform output, but its values can still be stored in Terraform plan and state.
+* Store secret source connection values in `connection_config_wo` where possible. Keep non-secret values in `connection_config`, and update `connection_config_wo_version` whenever a write-only secret changes. Terraform cannot detect changes to write-only values unless this version marker changes too.
 * Source types and required credential fields are validated against the Census API's `/source_types` endpoint.
 * After creation, the provider automatically triggers a table refresh to discover available tables.
 * `sync_engine` is a create-time setting. The Census API rejects in-place sync engine changes with a 4xx response, so Terraform recreates the source when this field changes.

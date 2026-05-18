@@ -226,6 +226,75 @@ func TestResourceSourceSchema_WarehouseWritebackIsUpdateable(t *testing.T) {
 	}
 }
 
+func TestResourceSourceSchema_ConnectionConfigWriteOnly(t *testing.T) {
+	t.Parallel()
+
+	connectionConfigWO := resourceSource().Schema["connection_config_wo"]
+	if connectionConfigWO == nil {
+		t.Fatal("expected connection_config_wo field to exist on census_source")
+	}
+	if connectionConfigWO.Type != schema.TypeString {
+		t.Fatalf("expected connection_config_wo to be TypeString, got %v", connectionConfigWO.Type)
+	}
+	if !connectionConfigWO.Optional {
+		t.Fatal("expected connection_config_wo to be optional")
+	}
+	if !connectionConfigWO.WriteOnly {
+		t.Fatal("expected connection_config_wo to be write-only so Terraform does not store secret values in plan or state")
+	}
+
+	version := resourceSource().Schema["connection_config_wo_version"]
+	if version == nil {
+		t.Fatal("expected connection_config_wo_version field to exist on census_source")
+	}
+	if version.Type != schema.TypeString {
+		t.Fatalf("expected connection_config_wo_version to be TypeString, got %v", version.Type)
+	}
+	if !version.Optional {
+		t.Fatal("expected connection_config_wo_version to be optional")
+	}
+	if version.WriteOnly {
+		t.Fatal("expected connection_config_wo_version to be stored so Terraform can detect rotations")
+	}
+}
+
+func TestMergeConnectionConfig_PrefersWriteOnlyConfig(t *testing.T) {
+	t.Parallel()
+
+	base := map[string]interface{}{
+		"account":  "acct",
+		"password": "state-password",
+	}
+	writeOnly := map[string]interface{}{
+		"password":               "write-only-password",
+		"private_key_pkcs8":      "key",
+		"private_key_passphrase": "passphrase",
+	}
+
+	got := mergeConnectionConfig(base, writeOnly)
+
+	if got["account"] != "acct" {
+		t.Fatalf("expected non-secret connection config to be preserved, got %#v", got["account"])
+	}
+	if got["password"] != "write-only-password" {
+		t.Fatalf("expected write-only password to override connection_config password, got %#v", got["password"])
+	}
+	if got["private_key_pkcs8"] != "key" {
+		t.Fatalf("expected write-only private_key_pkcs8 to be merged, got %#v", got["private_key_pkcs8"])
+	}
+	if got["private_key_passphrase"] != "passphrase" {
+		t.Fatalf("expected write-only private_key_passphrase to be merged, got %#v", got["private_key_passphrase"])
+	}
+}
+
+func TestExpandConnectionConfigWriteOnlyJSONRejectsNonObject(t *testing.T) {
+	t.Parallel()
+
+	if _, err := expandConnectionConfigWriteOnlyJSON(`["not", "an", "object"]`); err == nil {
+		t.Fatal("expected non-object connection_config_wo JSON to return an error")
+	}
+}
+
 // Regression: a source that already has Warehouse Writeback enabled outside
 // Terraform (e.g. set via the Census UI before being imported) must not show
 // drift when the user has not added warehouse_writeback_retention_in_days to

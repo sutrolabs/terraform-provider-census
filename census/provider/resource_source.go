@@ -2,10 +2,12 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -27,7 +29,7 @@ func resourceSource() *schema.Resource {
 
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
 			// Force diff detection for sensitive connection_config changes
-			if d.HasChange("connection_config") {
+			if sourceConnectionConfigChanged(d) {
 				d.SetNewComputed("updated_at")
 			}
 			return nil
@@ -76,6 +78,17 @@ func resourceSource() *schema.Resource {
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Description: "Connection configuration for the source. Contents vary by source type.",
 			},
+			"connection_config_wo": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				WriteOnly:   true,
+				Description: "Write-only JSON object of secret source connection configuration values. Values are merged into connection_config during create and update requests and are not stored in Terraform plan or state. Requires Terraform 1.11 or later.",
+			},
+			"connection_config_wo_version": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Non-secret version marker for connection_config_wo. Change this value when rotating write-only source connection secrets so Terraform can detect and apply the update.",
+			},
 			"status": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -118,7 +131,10 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	name := d.Get("name").(string)
 	sourceType := d.Get("type").(string)
 	syncEngine := getConfiguredSourceSyncEngine(d)
-	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+	connectionConfig, diags := getSourceConnectionConfig(d)
+	if diags.HasError() {
+		return diags
+	}
 
 	// Get the workspace API key dynamically using the personal access token
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
@@ -295,6 +311,89 @@ func getConfiguredWarehouseWritebackRetention(d *schema.ResourceData) *int {
 	return &retention
 }
 
+type sourceConnectionConfigDiff interface {
+	HasChange(string) bool
+}
+
+func sourceConnectionConfigChanged(d sourceConnectionConfigDiff) bool {
+	return d.HasChange("connection_config") || d.HasChange("connection_config_wo_version")
+}
+
+func getSourceConnectionConfig(d *schema.ResourceData) (map[string]interface{}, diag.Diagnostics) {
+	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+
+	writeOnlyConfig, diags := getSourceConnectionConfigWriteOnly(d)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return mergeConnectionConfig(connectionConfig, writeOnlyConfig), nil
+}
+
+func getSourceConnectionConfigWriteOnly(d *schema.ResourceData) (map[string]interface{}, diag.Diagnostics) {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() {
+		return nil, nil
+	}
+
+	if !rawConfig.IsKnown() {
+		return nil, diag.Errorf("connection_config_wo must be known during apply")
+	}
+
+	if !rawConfig.Type().IsObjectType() || !rawConfig.Type().HasAttribute("connection_config_wo") {
+		return nil, nil
+	}
+
+	writeOnlyValue, diags := d.GetRawConfigAt(cty.GetAttrPath("connection_config_wo"))
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	if writeOnlyValue.IsNull() {
+		return nil, nil
+	}
+
+	if !writeOnlyValue.IsKnown() {
+		return nil, diag.Errorf("connection_config_wo must be known during apply")
+	}
+
+	if writeOnlyValue.Type() != cty.String {
+		return nil, diag.Errorf("connection_config_wo must be a JSON object encoded as a string")
+	}
+
+	writeOnlyConfig, err := expandConnectionConfigWriteOnlyJSON(writeOnlyValue.AsString())
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	return expandConnectionConfig(writeOnlyConfig), nil
+}
+
+func expandConnectionConfigWriteOnlyJSON(raw string) (map[string]interface{}, error) {
+	var writeOnlyConfig map[string]interface{}
+	if err := json.Unmarshal([]byte(raw), &writeOnlyConfig); err != nil {
+		return nil, fmt.Errorf("connection_config_wo must be valid JSON: %w", err)
+	}
+
+	if writeOnlyConfig == nil {
+		return nil, fmt.Errorf("connection_config_wo must be a JSON object")
+	}
+
+	return writeOnlyConfig, nil
+}
+
+func mergeConnectionConfig(base map[string]interface{}, writeOnly map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{}, len(base)+len(writeOnly))
+	for key, value := range base {
+		result[key] = value
+	}
+	for key, value := range writeOnly {
+		result[key] = value
+	}
+
+	return result
+}
+
 func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	apiClient := meta.(*client.Client)
 
@@ -306,7 +405,10 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	// Get current values for structured update
 	name := d.Get("name").(string)
 	sourceType := d.Get("type").(string)
-	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+	connectionConfig, diags := getSourceConnectionConfig(d)
+	if diags.HasError() {
+		return diags
+	}
 	workspaceId := d.Get("workspace_id").(string)
 
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
@@ -320,7 +422,7 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	// Always build complete connection structure for updates
-	if d.HasChange("connection_config") {
+	if sourceConnectionConfigChanged(d) {
 		if err := apiClient.ValidateSourceCredentials(ctx, sourceType, connectionConfig, workspaceToken); err != nil {
 			return diag.Errorf("source credential validation failed: %v", err)
 		}
@@ -342,7 +444,7 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	// Refresh tables if requested and connection changed
-	if d.HasChange("connection_config") && d.Get("auto_refresh_tables").(bool) {
+	if sourceConnectionConfigChanged(d) && d.Get("auto_refresh_tables").(bool) {
 		if err := apiClient.RefreshSourceTablesWithToken(ctx, id, workspaceToken); err != nil {
 			// Log the error but don't fail the update
 			return diag.Errorf("source updated successfully but table refresh failed: %v", err)
