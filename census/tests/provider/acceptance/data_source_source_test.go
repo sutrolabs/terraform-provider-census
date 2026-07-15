@@ -17,7 +17,7 @@ func TestAccDataSourceSource_Basic(t *testing.T) {
 			{
 				Config: testAccDataSourceSourceConfig_basic(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.census_source.test", "name", "Test Redshift Source"),
+					resource.TestCheckResourceAttr("data.census_source.test", "name", "Test_Redshift_Source"),
 					resource.TestCheckResourceAttr("data.census_source.test", "type", "redshift"),
 					resource.TestCheckResourceAttrSet("data.census_source.test", "id"),
 					resource.TestCheckResourceAttrSet("data.census_source.test", "created_at"),
@@ -37,7 +37,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source"
+  name = "Test_Redshift_Source"
   type = "redshift"
 
   connection_config = {

@@ -18,7 +18,7 @@ func TestAccResourceSource_Basic(t *testing.T) {
 			{
 				Config: testAccResourceSourceConfig_redshift(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("census_source.test", "name", "Test Redshift Source"),
+					resource.TestCheckResourceAttr("census_source.test", "name", "Test_Redshift_Source"),
 					resource.TestCheckResourceAttr("census_source.test", "type", "redshift"),
 					resource.TestCheckResourceAttrSet("census_source.test", "id"),
 					resource.TestCheckResourceAttrSet("census_source.test", "workspace_id"),
@@ -37,14 +37,14 @@ func TestAccResourceSource_Update(t *testing.T) {
 			{
 				Config: testAccResourceSourceConfig_redshift(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("census_source.test", "name", "Test Redshift Source"),
+					resource.TestCheckResourceAttr("census_source.test", "name", "Test_Redshift_Source"),
 					resource.TestCheckResourceAttr("census_source.test", "auto_refresh_tables", "false"),
 				),
 			},
 			{
 				Config: testAccResourceSourceConfig_redshiftUpdated(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("census_source.test", "name", "Updated Redshift Source"),
+					resource.TestCheckResourceAttr("census_source.test", "name", "Updated_Redshift_Source"),
 					resource.TestCheckResourceAttr("census_source.test", "auto_refresh_tables", "true"),
 				),
 			},
@@ -60,7 +60,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source"
+  name = "Test_Redshift_Source"
   type = "redshift"
 
   connection_config = {
@@ -90,7 +90,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Updated Redshift Source"
+  name = "Updated_Redshift_Source"
   type = "redshift"
 
   connection_config = {
@@ -120,7 +120,7 @@ func TestAccResourceSource_Import(t *testing.T) {
 			{
 				Config: testAccResourceSourceConfig_redshift(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("census_source.test", "name", "Test Redshift Source"),
+					resource.TestCheckResourceAttr("census_source.test", "name", "Test_Redshift_Source"),
 					resource.TestCheckResourceAttr("census_source.test", "type", "redshift"),
 				),
 			},

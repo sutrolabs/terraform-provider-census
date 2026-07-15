@@ -87,7 +87,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source"
+  name = "Test_Redshift_Source"
   type = "redshift"
 
   connection_config = {
@@ -136,7 +136,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source"
+  name = "Test_Redshift_Source"
   type = "redshift"
 
   connection_config = {
@@ -186,7 +186,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source"
+  name = "Test_Redshift_Source"
   type = "redshift"
 
   connection_config = {
@@ -432,7 +432,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source - Metadata Wait"
+  name = "Test_Redshift_Source_Metadata_Wait"
   type = "redshift"
 
   connection_config = {
@@ -481,7 +481,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source - Sync"
+  name = "Test_Redshift_Source_Sync"
   type = "redshift"
 
   connection_config = {
@@ -690,7 +690,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source - Update"
+  name = "Test_Redshift_Source_Update"
   type = "redshift"
 
   connection_config = {
@@ -740,7 +740,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source - Update"
+  name = "Test_Redshift_Source_Update"
   type = "redshift"
 
   connection_config = {
