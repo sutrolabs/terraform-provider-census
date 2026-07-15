@@ -1054,6 +1054,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	req := &client.UpdateSyncRequest{
 		Label:                 label,
+		Operation:             d.Get("operation").(string),
 		SourceAttributes:      ExpandSourceAttributes(d.Get("source_attributes").([]interface{})),
 		DestinationAttributes: ExpandStringMap(destAttrs),
 		Mappings:              ConvertFieldMappingsToMappingAttributes(ExpandFieldMappings(fieldMappings)),

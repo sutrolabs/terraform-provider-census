@@ -223,6 +223,7 @@ type CreateSyncRequest struct {
 // UpdateSyncRequest represents the request to update a sync
 type UpdateSyncRequest struct {
 	Label                 string                 `json:"label,omitempty"`
+	Operation             string                 `json:"operation,omitempty"`
 	SourceAttributes      map[string]interface{} `json:"source_attributes,omitempty"`
 	DestinationAttributes map[string]interface{} `json:"destination_attributes,omitempty"`
 	Mappings              []MappingAttributes    `json:"mappings,omitempty"` // Use OpenAPI-compliant format like CreateSyncRequest
