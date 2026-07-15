@@ -50,7 +50,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test Redshift Source"
+  name = "Test_Redshift_Source"
   type = "redshift"
 
   connection_config = {
