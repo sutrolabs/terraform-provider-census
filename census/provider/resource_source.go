@@ -49,6 +49,9 @@ func resourceSource() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the source connection.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return strings.ReplaceAll(old, " ", "_") == strings.ReplaceAll(new, " ", "_")
+				},
 			},
 			"type": {
 				Type:        schema.TypeString,
