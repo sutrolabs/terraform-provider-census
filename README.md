@@ -1,6 +1,6 @@
 # Terraform Provider for Census
 
-A Terraform provider for managing [Census](https://getcensus.com) resources. Census enables you to sync data from your warehouse to all your operational tools, and this provider allows you to manage Census infrastructure as code.
+A Terraform provider for managing [Census](https://www.fivetran.com/data-movement/activations) resources. Census enables you to sync data from your warehouse to all your operational tools, and this provider allows you to manage Census infrastructure as code.
 
 ## Features
 
@@ -113,7 +113,7 @@ All resources have corresponding data sources for read-only operations. See [doc
 - [Data Source Documentation](docs/data-sources/) - Read-only data source documentation
 - [Examples](examples/) - Complete working examples
 - [CHANGELOG](CHANGELOG.md) - Version history and changes
-- [Census API Documentation](https://developers.getcensus.com/api-reference/introduction/overview)
+- [Census API Documentation](https://fivetran.com/docs/activations/rest-api)
 
 ## Troubleshooting
 
@@ -200,16 +200,15 @@ When reporting issues, please include:
 
 5. **Steps to reproduce**
 
-Submit issues to: [GitHub Issues](https://github.com/sutrolabs/terraform-provider-census/issues)
+Submit issues to: [Activations Support](mailto:activation-support@fivetran.com)
 
 ## Contributing
 
-At this time we are not accepting external contributions to the provider. Please contact Census Support with feature requests or bug reports.
+At this time we are not accepting external contributions to the provider. Please contact [Activations Support](mailto:activation-support@fivetran.com) with feature requests or bug reports.
 
 ## Support
 
-- [GitHub Issues](https://github.com/sutrolabs/terraform-provider-census/issues)
-- [Census Documentation](https://docs.getcensus.com/)
+To ensure quickest responses and prioritization of requests, please submit all feature requests and bug reports to [Activations Support](mailto:activation-support@fivetran.com). Github issues are not actively monitored.
 
 ## License
 
