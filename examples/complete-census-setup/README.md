@@ -335,8 +335,8 @@ After successful deployment, you'll see outputs with:
 
 ## Support
 
-- **Provider Issues**: [GitHub Issues](https://github.com/sutrolabs/terraform-provider-census/issues)
-- **Census Documentation**: [Census Docs](https://docs.getcensus.com/)
+- **Provider Issues**: [Activations Support](mailto:activation-support@fivetran.com)
+- **Census Documentation**: [Census Docs](https://fivetran.com/docs/activations)
 - **Terraform Documentation**: [Terraform Docs](https://www.terraform.io/docs/)
 
 ## License

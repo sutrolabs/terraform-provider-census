@@ -2,12 +2,11 @@
 
 Thank you for your interest in contributing!
 
-At this time we are not accepting external contributions to the provider. Please contact Census Support with feature requests or bug reports.
+At this time we are not accepting external contributions to the provider. Please contact [Activations Support](mailto:activation-support@fivetran.com) with feature requests or bug reports.
 
 ## Support
 
-- [GitHub Issues](https://github.com/sutrolabs/terraform-provider-census/issues)
-- [Census Documentation](https://docs.getcensus.com/)
+To ensure quickest responses and prioritization of requests, please submit all feature requests and bug reports to [Activations Support](mailto:activation-support@fivetran.com). Github issues are not actively monitored.
 
 ## License
 
