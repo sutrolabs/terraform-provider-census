@@ -6,7 +6,7 @@ At this time we are not accepting external contributions to the provider. Please
 
 ## Support
 
-To ensure quickest responses and prioritization of requests, please submit all feature requests and bug reports to [Activations Support](mailto:activation-support@fivetran.com). Github issues are not actively monitored.
+To ensure timely responses and updates from our incredible support team, please submit all feature requests and bug reports to [Activations Support](mailto:activation-support@fivetran.com). Github issues are not actively monitored.
 
 ## License
 
