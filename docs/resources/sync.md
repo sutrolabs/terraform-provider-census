@@ -580,6 +580,8 @@ resource "census_sync" "blob_storage_sync" {
 
 ### Mirror sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with specific properties
 
+Mirror syncs to file system destinations do not support primary identifier mappings.
+
 ```hcl
 resource "census_sync" "s3_mirror_sync_specific_properties" {
   label          = "Sync to S3 - sync specific properties"
@@ -613,6 +615,8 @@ resource "census_sync" "s3_mirror_sync_specific_properties" {
 
 ### Mirror sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync all properties
 
+Mirror syncs to file system destinations do not support primary identifier mappings.
+
 ```hcl
 resource "census_sync" "s3_mirror_sync_specific_properties" {
   label          = "Sync to S3 - sync specific properties"
@@ -645,6 +649,8 @@ resource "census_sync" "s3_mirror_sync_specific_properties" {
 ```
 
 ### Upsert sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync specific properties
+
+Upsert syncs to file system destinations require primary identifier mappings to uniquely identify rows in the source between sync runs.
 
 ```hcl
 resource "census_sync" "s3_sync_upsert" {
@@ -684,6 +690,8 @@ resource "census_sync" "s3_sync_upsert" {
 ```
 
 ### Upsert sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync all properties
+
+Upsert syncs to file system destinations require primary identifier mappings to uniquely identify rows in the source between sync runs.
 
 ```hcl
 resource "census_sync" "s3_sync_upsert" {
