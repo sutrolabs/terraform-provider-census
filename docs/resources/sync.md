@@ -584,10 +584,10 @@ Mirror syncs to file system destinations do not support primary identifier mappi
 
 ```hcl
 resource "census_sync" "s3_mirror_sync_specific_properties" {
-  label          = "Sync to S3 - sync specific properties"
+  label          = "Mirror syncs to S3 - sync specific properties"
   workspace_id   = census_workspace.main.id
   operation      = "mirror"
-  field_behavior = "sync_all_properties"
+  field_behavior = "specifc_properties"
 
   source_attributes {
     connection_id = census_source.warehouse.id
@@ -618,8 +618,8 @@ resource "census_sync" "s3_mirror_sync_specific_properties" {
 Mirror syncs to file system destinations do not support primary identifier mappings.
 
 ```hcl
-resource "census_sync" "s3_mirror_sync_specific_properties" {
-  label          = "Sync to S3 - sync specific properties"
+resource "census_sync" "s3_mirror_sync_all_properties" {
+  label          = "Mirror to S3 - sync all properties"
   workspace_id   = census_workspace.main.id
   operation      = "mirror"
 
@@ -653,11 +653,11 @@ resource "census_sync" "s3_mirror_sync_specific_properties" {
 Upsert syncs to file system destinations require primary identifier mappings to uniquely identify rows in the source between sync runs.
 
 ```hcl
-resource "census_sync" "s3_sync_upsert" {
-    label          = "Sync to S3 - sync specific properties"
+resource "census_sync" "s3_upsert_sync_specific_properties" {
+  label          = "Upsert sync to S3 - sync specific properties"
   workspace_id   = census_workspace.main.id
   operation      = "mirror"
-  field_behavior = "sync_all_properties"
+  field_behavior = "specific_properties"
 
   source_attributes {
     connection_id = census_source.warehouse.id
@@ -694,11 +694,10 @@ resource "census_sync" "s3_sync_upsert" {
 Upsert syncs to file system destinations require primary identifier mappings to uniquely identify rows in the source between sync runs.
 
 ```hcl
-resource "census_sync" "s3_sync_upsert" {
-    label          = "Sync to S3 - sync specific properties"
+resource "census_sync" "s3_upsert_sync_all_properties" {
+  label          = "Upsert sync to S3 - sync all properties"
   workspace_id   = census_workspace.main.id
   operation      = "mirror"
-  field_behavior = "sync_all_properties"
 
   source_attributes {
     connection_id = census_source.warehouse.id
