@@ -578,6 +578,72 @@ resource "census_sync" "blob_storage_sync" {
 }
 ```
 
+### Mirror sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with specific properties
+
+```hcl
+resource "census_sync" "s3_mirror_sync_specific_properties" {
+  label          = "Sync to S3 - sync specific properties"
+  workspace_id   = census_workspace.main.id
+  operation      = "mirror"
+  field_behavior = "sync_all_properties"
+
+  source_attributes {
+    connection_id = census_source.warehouse.id
+    object {
+      type = "dataset"
+      id   = 134586
+    }
+  }
+
+  destination_attributes {
+    connection_id = census_destination.s3.id
+    object = "path/test_%m-%d-%y.csv"
+  }
+
+  # Mirror syncs to file system destinations do not support
+  # primary identifier mappings.
+  # Generate field should be true.
+  field_mapping {
+    from           = "big_column"
+    to             = "big_column"
+    generate_field = true
+  }
+}
+```
+
+### Mirror sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync all properties
+
+```hcl
+resource "census_sync" "s3_mirror_sync_specific_properties" {
+  label          = "Sync to S3 - sync specific properties"
+  workspace_id   = census_workspace.main.id
+  operation      = "mirror"
+
+  source_attributes {
+    connection_id = census_source.warehouse.id
+    object {
+      type = "dataset"
+      id   = 134586
+    }
+  }
+
+  destination_attributes {
+    connection_id = census_destination.s3.id
+    object = "path/test_%m-%d-%y.csv"
+  }
+
+  # Automatically sync all properties from source to destination
+  field_behavior      = "sync_all_properties"
+  field_normalization = "snake_case"  # Format field names in snake_case
+  field_order         = "mapping_order"
+
+  # Mirror syncs to file system destinations do not support
+  # primary identifier mappings.
+  # No need to set any mappings when using sync_all_properties
+  # field_behavior to file system destinations
+}
+```
+
 ### Sync with Alert Configurations
 
 ```hcl
