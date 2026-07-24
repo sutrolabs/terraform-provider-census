@@ -578,6 +578,158 @@ resource "census_sync" "blob_storage_sync" {
 }
 ```
 
+### Mirror sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with specific properties
+
+Mirror syncs to file system destinations do not support primary identifier mappings.
+
+```hcl
+resource "census_sync" "s3_mirror_sync_specific_properties" {
+  label          = "Mirror syncs to S3 - sync specific properties"
+  workspace_id   = census_workspace.main.id
+  operation      = "mirror"
+  field_behavior = "specifc_properties"
+
+  source_attributes {
+    connection_id = census_source.warehouse.id
+    object {
+      type = "dataset"
+      id   = 134586
+    }
+  }
+
+  destination_attributes {
+    connection_id = census_destination.s3.id
+    object = "path/test_%m-%d-%y.csv"
+  }
+
+  # Mirror syncs to file system destinations do not support
+  # primary identifier mappings.
+  # Generate field should be true.
+  field_mapping {
+    from           = "big_column"
+    to             = "big_column"
+    generate_field = true
+  }
+}
+```
+
+### Mirror sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync all properties
+
+Mirror syncs to file system destinations do not support primary identifier mappings.
+
+```hcl
+resource "census_sync" "s3_mirror_sync_all_properties" {
+  label          = "Mirror to S3 - sync all properties"
+  workspace_id   = census_workspace.main.id
+  operation      = "mirror"
+
+  source_attributes {
+    connection_id = census_source.warehouse.id
+    object {
+      type = "dataset"
+      id   = 134586
+    }
+  }
+
+  destination_attributes {
+    connection_id = census_destination.s3.id
+    object = "path/test_%m-%d-%y.csv"
+  }
+
+  # Automatically sync all properties from source to destination
+  field_behavior      = "sync_all_properties"
+  field_normalization = "snake_case"  # Format field names in snake_case
+  field_order         = "mapping_order"
+
+  # Mirror syncs to file system destinations do not support
+  # primary identifier mappings.
+  # No need to set any mappings when using sync_all_properties
+  # field_behavior to file system destinations
+}
+```
+
+### Upsert sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync specific properties
+
+Upsert syncs to file system destinations require primary identifier mappings to uniquely identify rows in the source between sync runs.
+
+```hcl
+resource "census_sync" "s3_upsert_sync_specific_properties" {
+  label          = "Upsert sync to S3 - sync specific properties"
+  workspace_id   = census_workspace.main.id
+  operation      = "mirror"
+  field_behavior = "specific_properties"
+
+  source_attributes {
+    connection_id = census_source.warehouse.id
+    object {
+      type = "dataset"
+      id   = 134586
+    }
+  }
+
+  destination_attributes {
+    connection_id = census_destination.s3.id
+    object = "path/test_%m-%d-%y.csv"
+  }
+
+  # Upsert syncs to file system destinations require
+  # primary identifier mappings to the "unique_id" field.
+  field_mapping {
+    from           = "id"
+    to             = "unique_id"
+    is_primary_identifier = true
+  }
+
+  # Other mapping should set generate_field
+  field_mapping {
+    from           = "big_column"
+    to             = "big_column"
+    generate_field = true
+  }
+}
+```
+
+### Upsert sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync all properties
+
+Upsert syncs to file system destinations require primary identifier mappings to uniquely identify rows in the source between sync runs.
+
+```hcl
+resource "census_sync" "s3_upsert_sync_all_properties" {
+  label          = "Upsert sync to S3 - sync all properties"
+  workspace_id   = census_workspace.main.id
+  operation      = "mirror"
+
+  source_attributes {
+    connection_id = census_source.warehouse.id
+    object {
+      type = "dataset"
+      id   = 134586
+    }
+  }
+
+  destination_attributes {
+    connection_id = census_destination.s3.id
+    object = "path/test_%m-%d-%y.csv"
+  }
+
+  # Automatically sync all properties from source to destination
+  field_behavior      = "sync_all_properties"
+  field_normalization = "snake_case"  # Format field names in snake_case
+  field_order         = "mapping_order"
+
+  # Upsert syncs to file system destinations require
+  # primary identifier mappings to the "unique_id" field.
+  field_mapping {
+    from           = "id"
+    to             = "unique_id"
+    is_primary_identifier = true
+  }
+
+  # No need to set any other mappings when using sync_all_properties
+  # field_behavior to file system destinations
+}
+```
+
 ### Sync with Alert Configurations
 
 ```hcl
