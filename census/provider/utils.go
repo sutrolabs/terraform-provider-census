@@ -3,6 +3,8 @@ package provider
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -10,50 +12,60 @@ import (
 	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
 
-// writeOnlyCredentialAttributes maps write-only schema arguments to the
-// credential keys they populate in the Census connection payload. Write-only
-// values are read from the raw configuration (never from state) and merged into
-// connection_config so secret payloads are not persisted in Terraform state.
-var writeOnlyCredentialAttributes = map[string]string{
-	"password_wo":               "password",
-	"private_key_pkcs8_wo":      "private_key_pkcs8",
-	"private_key_passphrase_wo": "private_key_passphrase",
+// writeOnlyConnectionConfigAttr is the write-only argument that carries a
+// jsonencode-d object of secret connection credentials. It is read from the raw
+// configuration (never from state) and merged into connection_config so secret
+// payloads are not persisted in Terraform state.
+const writeOnlyConnectionConfigAttr = "connection_config_wo"
+
+// applyWriteOnlyCredentials merges the write-only connection_config_wo object
+// into the credentials map. Keys set in the write-only object take precedence
+// over the same key in connection_config.
+func applyWriteOnlyCredentials(d *schema.ResourceData, credentials map[string]interface{}) error {
+	return applyWriteOnlyCredentialsFromConfig(d.GetRawConfig(), credentials)
 }
 
-// applyWriteOnlyCredentials merges any configured write-only credential values
-// into the credentials map. A write-only value that is set (even to an empty
-// string) takes precedence over the same key in connection_config.
-func applyWriteOnlyCredentials(d *schema.ResourceData, credentials map[string]interface{}) {
-	applyWriteOnlyCredentialsFromConfig(d.GetRawConfig(), credentials)
-}
-
-// applyWriteOnlyCredentialsFromConfig merges write-only credential values from a
-// raw configuration object into the credentials map. It is separated from
+// applyWriteOnlyCredentialsFromConfig merges write-only credentials from a raw
+// configuration object into the credentials map. It is separated from
 // applyWriteOnlyCredentials so it can be unit tested without a live
 // *schema.ResourceData.
-func applyWriteOnlyCredentialsFromConfig(rawConfig cty.Value, credentials map[string]interface{}) {
-	for attr, credentialKey := range writeOnlyCredentialAttributes {
-		if value, ok := writeOnlyCredentialValue(rawConfig, attr); ok {
-			credentials[credentialKey] = value
-		}
+func applyWriteOnlyCredentialsFromConfig(rawConfig cty.Value, credentials map[string]interface{}) error {
+	raw, ok := writeOnlyConnectionConfigJSON(rawConfig)
+	if !ok {
+		return nil
 	}
+
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+		return fmt.Errorf("connection_config_wo must be a jsonencode-d object of credential key/value pairs: %w", err)
+	}
+
+	for key, value := range parsed {
+		credentials[key] = value
+	}
+
+	return nil
 }
 
-// writeOnlyCredentialValue reads a write-only string argument from the raw
-// configuration. It returns ok=false when the value is absent, null, or not yet
-// known (e.g. during planning), since write-only values are never available
+// writeOnlyConnectionConfigJSON reads the raw connection_config_wo string from
+// the configuration. It returns ok=false when the value is absent, null, or not
+// yet known (e.g. during planning), since write-only values are never available
 // from Terraform state.
-func writeOnlyCredentialValue(rawConfig cty.Value, attr string) (string, bool) {
+func writeOnlyConnectionConfigJSON(rawConfig cty.Value) (string, bool) {
 	if rawConfig.IsNull() || !rawConfig.IsKnown() {
 		return "", false
 	}
 
 	rawType := rawConfig.Type()
-	if !rawType.IsObjectType() || !rawType.HasAttribute(attr) {
+	if !rawType.IsObjectType() || !rawType.HasAttribute(writeOnlyConnectionConfigAttr) {
 		return "", false
 	}
 
-	value := rawConfig.GetAttr(attr)
+	value := rawConfig.GetAttr(writeOnlyConnectionConfigAttr)
 	if value.IsNull() || !value.IsKnown() {
 		return "", false
 	}

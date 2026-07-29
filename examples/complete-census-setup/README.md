@@ -267,8 +267,10 @@ source_connection = {
 
 ### Snowflake (Keypair Authentication, Write-Only Secrets — Terraform 1.11+)
 Keep secret payloads out of Terraform state/plan by passing them through the
-write-only `*_wo` arguments on `census_source`. Bump `connection_config_wo_version`
-whenever you rotate a secret so Terraform re-applies it.
+write-only `connection_config_wo` argument on `census_source` — a `jsonencode`-d
+object of secret credentials that works for any source type. Bump
+`connection_config_wo_version` whenever you rotate a secret so Terraform
+re-applies it.
 ```hcl
 resource "census_source" "warehouse" {
   workspace_id = census_workspace.data_team.id
@@ -284,8 +286,10 @@ resource "census_source" "warehouse" {
     use_keypair = true
   }
 
-  private_key_pkcs8_wo         = var.snowflake_private_key
-  private_key_passphrase_wo    = var.snowflake_key_passphrase # Optional
+  connection_config_wo = jsonencode({
+    private_key_pkcs8      = var.snowflake_private_key
+    private_key_passphrase = var.snowflake_key_passphrase # Optional
+  })
   connection_config_wo_version = 1
 }
 ```
