@@ -86,6 +86,36 @@ resource "census_source" "warehouse_keypair" {
 }
 ```
 
+### Snowflake Source (Keypair Authentication, Write-Only Secrets)
+
+Supply the private key and passphrase through the write-only `*_wo` arguments so
+the secret payloads are never written to Terraform state or plan files. This
+requires Terraform 1.11 or newer. Only non-secret fields remain in
+`connection_config`; increment `connection_config_wo_version` whenever you rotate
+the write-only values so Terraform applies the new secrets.
+
+```hcl
+resource "census_source" "warehouse_keypair_wo" {
+  workspace_id = census_workspace.main.id
+  name         = "Production Warehouse (Keypair, write-only)"
+  type         = "snowflake"
+
+  connection_config = {
+    account     = "abc12345.us-east-1"
+    warehouse   = "COMPUTE_WH"
+    database    = "PRODUCTION"
+    username    = "census_user"
+    role        = "CENSUS_ROLE"
+    use_keypair = true
+  }
+
+  # Secret payloads are write-only: present in config, never persisted in state.
+  private_key_pkcs8_wo      = var.snowflake_private_key
+  private_key_passphrase_wo = var.snowflake_key_passphrase # Optional
+  connection_config_wo_version = 1
+}
+```
+
 ### BigQuery Source
 
 ```hcl
@@ -134,7 +164,11 @@ resource "census_source" "postgres" {
   - And many more... (validated against Census API)
 * `sync_engine` - (Optional, Computed, Forces new resource) The sync engine to use when the source is created. New sources default to `advanced` to match the Census UI. Leave this unset to preserve the current engine on existing sources, or set it explicitly to `basic` only when you need the basic engine.
 * `warehouse_writeback_retention_in_days` - (Optional, Computed) Enables Warehouse Writeback for the source and sets the sync log retention period (in days). Setting this attribute enables the feature; omit it to leave the value to whatever the Census API reports for this source. Only supported on the `advanced` sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). The Census API rejects requests that set this on unsupported source types or basic-engine sources.
-* `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema.
+* `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema. Secret values may instead be supplied through the write-only `*_wo` arguments below so they are not persisted in Terraform state or plan files.
+* `password_wo` - (Optional, Write-only, Sensitive) Write-only value for the `password` credential. Requires Terraform 1.11+. Merged into `connection_config` on create and update, taking precedence over any `password` set in `connection_config`. Must be used together with `connection_config_wo_version`.
+* `private_key_pkcs8_wo` - (Optional, Write-only, Sensitive) Write-only value for the Snowflake `private_key_pkcs8` keypair credential. Requires Terraform 1.11+. Merged into `connection_config` on create and update, taking precedence over any `private_key_pkcs8` set in `connection_config`. Must be used together with `connection_config_wo_version`.
+* `private_key_passphrase_wo` - (Optional, Write-only, Sensitive) Write-only value for the Snowflake `private_key_passphrase` keypair credential. Requires Terraform 1.11+. Merged into `connection_config` on create and update, taking precedence over any `private_key_passphrase` set in `connection_config`. Must be used together with `connection_config_wo_version`.
+* `connection_config_wo_version` - (Optional) Trigger for updating write-only credential arguments. Because write-only values are never stored in state, Terraform cannot detect when they change. Increment this integer whenever you change a `*_wo` value so the current write-only values are re-applied on the next apply.
 
 ## Attribute Reference
 
@@ -162,6 +196,8 @@ terraform import census_source.warehouse "12345:67890"
 ## Notes
 
 * The `connection_config` field is marked as sensitive and will not be displayed in Terraform output.
+* Write-only credential arguments (`password_wo`, `private_key_pkcs8_wo`, `private_key_passphrase_wo`) require Terraform 1.11 or newer. Their values are available to the provider during an apply but are never written to state or plan files. Because Terraform cannot diff a value it does not store, increment `connection_config_wo_version` whenever you change a write-only value so the provider re-sends it to Census on the next apply.
+* Write-only arguments are fully optional and backwards compatible: existing configurations that keep secrets in `connection_config` continue to work unchanged. When both a write-only argument and the same key in `connection_config` are set, the write-only value takes precedence.
 * Source types and required credential fields are validated against the Census API's `/source_types` endpoint.
 * After creation, the provider automatically triggers a table refresh to discover available tables.
 * `sync_engine` is a create-time setting. The Census API rejects in-place sync engine changes with a 4xx response, so Terraform recreates the source when this field changes.

@@ -26,8 +26,12 @@ func resourceSource() *schema.Resource {
 		},
 
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
-			// Force diff detection for sensitive connection_config changes
-			if d.HasChange("connection_config") {
+			// Force diff detection for sensitive connection_config changes.
+			// Write-only credential values are never stored in state, so a
+			// change to them cannot be detected directly; users signal a
+			// rotation by bumping connection_config_wo_version, which we treat
+			// as a connection change here.
+			if d.HasChange("connection_config") || d.HasChange("connection_config_wo_version") {
 				d.SetNewComputed("updated_at")
 			}
 			return nil
@@ -74,7 +78,36 @@ func resourceSource() *schema.Resource {
 				Required:    true,
 				Sensitive:   true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
-				Description: "Connection configuration for the source. Contents vary by source type.",
+				Description: "Connection configuration for the source. Contents vary by source type. Secret values may instead be supplied through the dedicated write-only `*_wo` arguments so they are never persisted in Terraform state or plan files.",
+			},
+			"password_wo": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				WriteOnly:    true,
+				RequiredWith: []string{"connection_config_wo_version"},
+				Description:  "Write-only value for the `password` credential. Its value is never stored in Terraform state or plan. Merged into `connection_config` when the source is created or updated, taking precedence over any `password` set in `connection_config`. Requires Terraform 1.11+. Bump `connection_config_wo_version` to have Terraform apply a new value.",
+			},
+			"private_key_pkcs8_wo": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				WriteOnly:    true,
+				RequiredWith: []string{"connection_config_wo_version"},
+				Description:  "Write-only value for the Snowflake `private_key_pkcs8` keypair credential. Its value is never stored in Terraform state or plan. Merged into `connection_config` when the source is created or updated, taking precedence over any `private_key_pkcs8` set in `connection_config`. Requires Terraform 1.11+. Bump `connection_config_wo_version` to have Terraform apply a new value.",
+			},
+			"private_key_passphrase_wo": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				WriteOnly:    true,
+				RequiredWith: []string{"connection_config_wo_version"},
+				Description:  "Write-only value for the Snowflake `private_key_passphrase` keypair credential. Its value is never stored in Terraform state or plan. Merged into `connection_config` when the source is created or updated, taking precedence over any `private_key_passphrase` set in `connection_config`. Requires Terraform 1.11+. Bump `connection_config_wo_version` to have Terraform apply a new value.",
+			},
+			"connection_config_wo_version": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Trigger for updating write-only credential arguments (`*_wo`). Because write-only values are never stored in state, Terraform cannot detect when they change. Increment this value to signal that the current write-only values should be re-applied on the next apply.",
 			},
 			"status": {
 				Type:        schema.TypeString,
@@ -119,6 +152,7 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	sourceType := d.Get("type").(string)
 	syncEngine := getConfiguredSourceSyncEngine(d)
 	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+	applyWriteOnlyCredentials(d, connectionConfig)
 
 	// Get the workspace API key dynamically using the personal access token
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
@@ -307,6 +341,7 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	name := d.Get("name").(string)
 	sourceType := d.Get("type").(string)
 	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+	applyWriteOnlyCredentials(d, connectionConfig)
 	workspaceId := d.Get("workspace_id").(string)
 
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
@@ -319,8 +354,10 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	// Always build complete connection structure for updates
-	if d.HasChange("connection_config") {
+	// Always build complete connection structure for updates. Validate when the
+	// connection changes, including when write-only credentials are rotated via
+	// connection_config_wo_version.
+	if d.HasChange("connection_config") || d.HasChange("connection_config_wo_version") {
 		if err := apiClient.ValidateSourceCredentials(ctx, sourceType, connectionConfig, workspaceToken); err != nil {
 			return diag.Errorf("source credential validation failed: %v", err)
 		}

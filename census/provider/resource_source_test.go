@@ -8,11 +8,168 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
+
+func TestResourceSourceSchema_WriteOnlyCredentialFields(t *testing.T) {
+	t.Parallel()
+
+	schemaMap := resourceSource().Schema
+
+	for attr := range writeOnlyCredentialAttributes {
+		field := schemaMap[attr]
+		if field == nil {
+			t.Fatalf("expected write-only field %q to exist on census_source", attr)
+		}
+		if !field.WriteOnly {
+			t.Fatalf("expected %q to be WriteOnly so its value is never persisted in state", attr)
+		}
+		if !field.Sensitive {
+			t.Fatalf("expected %q to be Sensitive", attr)
+		}
+		if !field.Optional {
+			t.Fatalf("expected %q to be Optional (backwards compatible; existing configs omit it)", attr)
+		}
+		if field.Computed {
+			t.Fatalf("expected %q not to be Computed (WriteOnly cannot be Computed)", attr)
+		}
+		if field.ForceNew {
+			t.Fatalf("expected %q not to be ForceNew (WriteOnly cannot be ForceNew)", attr)
+		}
+		if field.Type != schema.TypeString {
+			t.Fatalf("expected %q to be TypeString, got %v", attr, field.Type)
+		}
+		if len(field.RequiredWith) != 1 || field.RequiredWith[0] != "connection_config_wo_version" {
+			t.Fatalf("expected %q to require connection_config_wo_version so updates are triggerable, got %#v", attr, field.RequiredWith)
+		}
+	}
+
+	version := schemaMap["connection_config_wo_version"]
+	if version == nil {
+		t.Fatal("expected connection_config_wo_version field to exist on census_source")
+	}
+	if version.Type != schema.TypeInt {
+		t.Fatalf("expected connection_config_wo_version to be TypeInt, got %v", version.Type)
+	}
+	if !version.Optional {
+		t.Fatal("expected connection_config_wo_version to be Optional")
+	}
+	if version.WriteOnly {
+		t.Fatal("expected connection_config_wo_version NOT to be WriteOnly; it must be tracked in state to detect changes")
+	}
+}
+
+func TestResourceSourceSchema_ConnectionConfigStillRequired(t *testing.T) {
+	t.Parallel()
+
+	// Backwards compatibility: connection_config must remain a Required,
+	// Sensitive map so existing configurations keep working unchanged.
+	field := resourceSource().Schema["connection_config"]
+	if field == nil {
+		t.Fatal("expected connection_config field to exist on census_source")
+	}
+	if !field.Required {
+		t.Fatal("expected connection_config to remain Required for backwards compatibility")
+	}
+	if !field.Sensitive {
+		t.Fatal("expected connection_config to remain Sensitive")
+	}
+	if field.Type != schema.TypeMap {
+		t.Fatalf("expected connection_config to remain TypeMap, got %v", field.Type)
+	}
+}
+
+func TestApplyWriteOnlyCredentials_MergesAndOverridesConnectionConfig(t *testing.T) {
+	t.Parallel()
+
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"password_wo":               cty.StringVal("wo-password"),
+		"private_key_pkcs8_wo":      cty.StringVal("wo-private-key"),
+		"private_key_passphrase_wo": cty.StringVal("wo-passphrase"),
+	})
+
+	credentials := map[string]interface{}{
+		"account":  "acct",
+		"password": "config-password", // should be overridden by write-only value
+	}
+
+	applyWriteOnlyCredentialsFromConfig(rawConfig, credentials)
+
+	if got := credentials["account"]; got != "acct" {
+		t.Fatalf("expected non-secret account to be preserved, got %v", got)
+	}
+	if got := credentials["password"]; got != "wo-password" {
+		t.Fatalf("expected write-only password to override connection_config value, got %v", got)
+	}
+	if got := credentials["private_key_pkcs8"]; got != "wo-private-key" {
+		t.Fatalf("expected private_key_pkcs8 to be populated from write-only value, got %v", got)
+	}
+	if got := credentials["private_key_passphrase"]; got != "wo-passphrase" {
+		t.Fatalf("expected private_key_passphrase to be populated from write-only value, got %v", got)
+	}
+}
+
+func TestApplyWriteOnlyCredentials_IgnoresUnsetValues(t *testing.T) {
+	t.Parallel()
+
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"password_wo":               cty.NullVal(cty.String),
+		"private_key_pkcs8_wo":      cty.StringVal("wo-private-key"),
+		"private_key_passphrase_wo": cty.UnknownVal(cty.String),
+	})
+
+	credentials := map[string]interface{}{
+		"account":  "acct",
+		"password": "config-password",
+	}
+
+	applyWriteOnlyCredentialsFromConfig(rawConfig, credentials)
+
+	if got := credentials["password"]; got != "config-password" {
+		t.Fatalf("expected null write-only password to leave connection_config value untouched, got %v", got)
+	}
+	if _, ok := credentials["private_key_passphrase"]; ok {
+		t.Fatal("expected unknown write-only passphrase to be skipped")
+	}
+	if got := credentials["private_key_pkcs8"]; got != "wo-private-key" {
+		t.Fatalf("expected set write-only private_key_pkcs8 to be merged, got %v", got)
+	}
+}
+
+func TestApplyWriteOnlyCredentials_NullRawConfigIsNoOp(t *testing.T) {
+	t.Parallel()
+
+	rawType := resourceSource().CoreConfigSchema().ImpliedType()
+
+	credentials := map[string]interface{}{"account": "acct"}
+	applyWriteOnlyCredentialsFromConfig(cty.NullVal(rawType), credentials)
+
+	if len(credentials) != 1 || credentials["account"] != "acct" {
+		t.Fatalf("expected null raw config to leave credentials unchanged, got %#v", credentials)
+	}
+}
+
+// sourceRawConfig builds a raw config cty.Value for the census_source schema,
+// setting the given attributes and leaving the rest null. This mirrors what
+// Terraform passes to the SDK so write-only values can be read from config.
+func sourceRawConfig(attrs map[string]cty.Value) cty.Value {
+	implied := resourceSource().CoreConfigSchema().ImpliedType()
+
+	values := make(map[string]cty.Value, len(implied.AttributeTypes()))
+	for name, attrType := range implied.AttributeTypes() {
+		if v, ok := attrs[name]; ok {
+			values[name] = v
+			continue
+		}
+		values[name] = cty.NullVal(attrType)
+	}
+
+	return cty.ObjectVal(values)
+}
 
 func TestResourceSourceCreate_DefaultsSyncEngineToAdvanced(t *testing.T) {
 	t.Parallel()
