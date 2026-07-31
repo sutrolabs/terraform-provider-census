@@ -181,6 +181,66 @@ func TestApplyWriteOnlyCredentials_DoesNotRetypeScalarSecrets(t *testing.T) {
 	}
 }
 
+func TestApplyWriteOnlyCredentials_PreservesNativeJSONTypes(t *testing.T) {
+	t.Parallel()
+
+	// Non-string native JSON values written inside jsonencode({...}) reach the
+	// provider already typed by the outer decode and must be preserved as-is:
+	// numbers stay numbers, bools stay bools, native objects/arrays stay
+	// structured. Numbers decode to float64 via encoding/json.
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal(`{
+			"port":        5432,
+			"use_keypair": true,
+			"nested":      {"a": 1, "b": "two"},
+			"hosts":       ["h1", "h2"]
+		}`),
+	})
+
+	credentials := map[string]interface{}{}
+	if err := applyWriteOnlyCredentialsFromConfig(rawConfig, credentials); err != nil {
+		t.Fatalf("expected merge to succeed, got %v", err)
+	}
+
+	if got, ok := credentials["port"].(float64); !ok || got != 5432 {
+		t.Fatalf("expected port to be number 5432, got %T (%v)", credentials["port"], credentials["port"])
+	}
+	if got, ok := credentials["use_keypair"].(bool); !ok || got != true {
+		t.Fatalf("expected use_keypair to be bool true, got %T (%v)", credentials["use_keypair"], credentials["use_keypair"])
+	}
+	nested, ok := credentials["nested"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected nested to stay an object, got %T (%v)", credentials["nested"], credentials["nested"])
+	}
+	if nested["a"] != float64(1) || nested["b"] != "two" {
+		t.Fatalf("unexpected nested object: %#v", nested)
+	}
+	hosts, ok := credentials["hosts"].([]interface{})
+	if !ok || len(hosts) != 2 || hosts[0] != "h1" || hosts[1] != "h2" {
+		t.Fatalf("expected hosts to stay a string array, got %T (%v)", credentials["hosts"], credentials["hosts"])
+	}
+}
+
+func TestApplyWriteOnlyCredentials_DecodesJSONArrayString(t *testing.T) {
+	t.Parallel()
+
+	// A structured credential supplied as a JSON *string* whose content is an
+	// array is decoded into a real array, mirroring the object case.
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal(`{"scopes": "[\"read\",\"write\"]"}`),
+	})
+
+	credentials := map[string]interface{}{}
+	if err := applyWriteOnlyCredentialsFromConfig(rawConfig, credentials); err != nil {
+		t.Fatalf("expected merge to succeed, got %v", err)
+	}
+
+	arr, ok := credentials["scopes"].([]interface{})
+	if !ok || len(arr) != 2 || arr[0] != "read" || arr[1] != "write" {
+		t.Fatalf("expected scopes to be decoded into an array, got %T (%v)", credentials["scopes"], credentials["scopes"])
+	}
+}
+
 func TestApplyWriteOnlyCredentials_UnsetOrEmptyIsNoOp(t *testing.T) {
 	t.Parallel()
 
