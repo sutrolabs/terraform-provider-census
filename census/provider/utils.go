@@ -44,7 +44,12 @@ func applyWriteOnlyCredentialsFromConfig(rawConfig cty.Value, credentials map[st
 		return fmt.Errorf("connection_config_wo must be a jsonencode-d object of credential key/value pairs: %w", err)
 	}
 
-	for key, value := range parsed {
+	// Route parsed values through expandConnectionConfig so each key is coerced
+	// exactly like the same key in connection_config: string values that are
+	// themselves JSON (e.g. a BigQuery service-account credential) are decoded
+	// into real objects, so what Census receives is identical whether a
+	// credential is supplied via connection_config or connection_config_wo.
+	for key, value := range expandConnectionConfig(parsed) {
 		credentials[key] = value
 	}
 

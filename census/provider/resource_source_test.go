@@ -117,6 +117,31 @@ func TestApplyWriteOnlyCredentials_MergesAndOverridesConnectionConfig(t *testing
 	}
 }
 
+func TestApplyWriteOnlyCredentials_CoercesNestedJSONLikeConnectionConfig(t *testing.T) {
+	t.Parallel()
+
+	// A credential whose value is itself a JSON document (e.g. a BigQuery
+	// service account) must be delivered to Census as a real object, matching
+	// how expandConnectionConfig treats the same key in connection_config.
+	serviceAccount := `{"type":"service_account","project_id":"p"}`
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal(`{"credentials": ` + strconv.Quote(serviceAccount) + `}`),
+	})
+
+	credentials := map[string]interface{}{}
+	if err := applyWriteOnlyCredentialsFromConfig(rawConfig, credentials); err != nil {
+		t.Fatalf("expected merge to succeed, got %v", err)
+	}
+
+	obj, ok := credentials["credentials"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected credentials to be decoded into an object, got %T (%v)", credentials["credentials"], credentials["credentials"])
+	}
+	if obj["type"] != "service_account" || obj["project_id"] != "p" {
+		t.Fatalf("unexpected decoded credentials object: %#v", obj)
+	}
+}
+
 func TestApplyWriteOnlyCredentials_UnsetOrEmptyIsNoOp(t *testing.T) {
 	t.Parallel()
 
