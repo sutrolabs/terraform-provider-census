@@ -53,7 +53,7 @@ func applyWriteOnlyCredentialsFromConfig(rawConfig cty.Value, credentials map[st
 
 // coerceWriteOnlyCredentialValue upgrades a string value that is itself a JSON
 // object or array (e.g. a BigQuery service-account credential supplied as
-// jsonencode({ private_key = file("sa.json") })) into the decoded structure, so
+// jsonencode({ service_account_key = file("sa.json") })) into the decoded structure, so
 // Census receives it as a real object. Scalar strings are left exactly as
 // written — decoding them would retype opaque secrets (e.g. a password of
 // "123456" into a number, or "true"/"null" into a bool/null), which is never

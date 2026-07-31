@@ -126,9 +126,9 @@ source_credentials = {
 ```hcl
 source_type = "bigquery"
 source_credentials = {
-  project_id   = "staging-project-id"
-  private_key  = file("staging-service-account.json")
-  client_email = "census@staging-project.iam.gserviceaccount.com"
+  project_id          = "staging-project-id"
+  service_account_key = file("staging-service-account.json")
+  client_email        = "census@staging-project.iam.gserviceaccount.com"
 }
 ```
 

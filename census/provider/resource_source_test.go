@@ -122,10 +122,10 @@ func TestApplyWriteOnlyCredentials_DecodesNestedJSONObject(t *testing.T) {
 
 	// A credential whose value is itself a JSON document (e.g. a BigQuery
 	// service account) must be delivered to Census as a real object even when
-	// it is supplied as a JSON string (jsonencode({ private_key = file(...) })).
+	// it is supplied as a JSON string (jsonencode({ service_account_key = file(...) })).
 	serviceAccount := `{"type":"service_account","project_id":"p"}`
 	rawConfig := sourceRawConfig(map[string]cty.Value{
-		"connection_config_wo": cty.StringVal(`{"private_key": ` + strconv.Quote(serviceAccount) + `}`),
+		"connection_config_wo": cty.StringVal(`{"service_account_key": ` + strconv.Quote(serviceAccount) + `}`),
 	})
 
 	credentials := map[string]interface{}{}
@@ -133,9 +133,9 @@ func TestApplyWriteOnlyCredentials_DecodesNestedJSONObject(t *testing.T) {
 		t.Fatalf("expected merge to succeed, got %v", err)
 	}
 
-	obj, ok := credentials["private_key"].(map[string]interface{})
+	obj, ok := credentials["service_account_key"].(map[string]interface{})
 	if !ok {
-		t.Fatalf("expected private_key to be decoded into an object, got %T (%v)", credentials["private_key"], credentials["private_key"])
+		t.Fatalf("expected service_account_key to be decoded into an object, got %T (%v)", credentials["service_account_key"], credentials["service_account_key"])
 	}
 	if obj["type"] != "service_account" || obj["project_id"] != "p" {
 		t.Fatalf("unexpected decoded object: %#v", obj)

@@ -298,9 +298,9 @@ resource "census_source" "warehouse" {
 ```hcl
 source_type = "bigquery"
 source_connection = {
-  project_id   = "your-gcp-project-id"
-  private_key  = jsonencode(var.bigquery_service_account_key)
-  client_email = "census@your-project.iam.gserviceaccount.com"
+  project_id          = "your-gcp-project-id"
+  service_account_key = jsonencode(var.bigquery_service_account_key)
+  client_email        = "census@your-project.iam.gserviceaccount.com"
 }
 ```
 

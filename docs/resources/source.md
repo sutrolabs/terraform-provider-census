@@ -149,7 +149,7 @@ resource "census_source" "bigquery" {
   connection_config = {
     project_id = "my-gcp-project"
     dataset_id = "analytics"
-    private_key = var.gcp_service_account_key
+    service_account_key = var.gcp_service_account_key
   }
 }
 ```
@@ -187,7 +187,7 @@ resource "census_source" "postgres" {
 * `sync_engine` - (Optional, Computed, Forces new resource) The sync engine to use when the source is created. New sources default to `advanced` to match the Census UI. Leave this unset to preserve the current engine on existing sources, or set it explicitly to `basic` only when you need the basic engine.
 * `warehouse_writeback_retention_in_days` - (Optional, Computed) Enables Warehouse Writeback for the source and sets the sync log retention period (in days). Setting this attribute enables the feature; omit it to leave the value to whatever the Census API reports for this source. Only supported on the `advanced` sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). The Census API rejects requests that set this on unsupported source types or basic-engine sources.
 * `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema. Secret values may instead be supplied through the write-only `connection_config_wo` argument below so they are not persisted in Terraform state or plan files.
-* `connection_config_wo` - (Optional, Write-only, Sensitive) A `jsonencode`-d object of secret connection credentials (e.g. `password`, Snowflake `private_key_pkcs8` / `private_key_passphrase`, BigQuery `private_key`, etc.). Requires Terraform 1.11+. Its value is never stored in Terraform state or plan. Each key is merged into `connection_config` on create and update, taking precedence over the same key set in `connection_config`. Must be used together with `connection_config_wo_version`.
+* `connection_config_wo` - (Optional, Write-only, Sensitive) A `jsonencode`-d object of secret connection credentials (e.g. `password`, Snowflake `private_key_pkcs8` / `private_key_passphrase`, BigQuery `service_account_key`, etc.). Requires Terraform 1.11+. Its value is never stored in Terraform state or plan. Each key is merged into `connection_config` on create and update, taking precedence over the same key set in `connection_config`. Must be used together with `connection_config_wo_version`.
 * `connection_config_wo_version` - (Optional) Trigger for updating the write-only `connection_config_wo` argument. Because write-only values are never stored in state, Terraform cannot detect when they change. Increment this integer whenever you change `connection_config_wo` so the current write-only values are re-applied on the next apply.
 
 ## Attribute Reference
