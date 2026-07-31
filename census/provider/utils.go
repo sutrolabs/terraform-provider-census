@@ -44,16 +44,37 @@ func applyWriteOnlyCredentialsFromConfig(rawConfig cty.Value, credentials map[st
 		return fmt.Errorf("connection_config_wo must be a jsonencode-d object of credential key/value pairs: %w", err)
 	}
 
-	// Route parsed values through expandConnectionConfig so each key is coerced
-	// exactly like the same key in connection_config: string values that are
-	// themselves JSON (e.g. a BigQuery service-account credential) are decoded
-	// into real objects, so what Census receives is identical whether a
-	// credential is supplied via connection_config or connection_config_wo.
-	for key, value := range expandConnectionConfig(parsed) {
-		credentials[key] = value
+	for key, value := range parsed {
+		credentials[key] = coerceWriteOnlyCredentialValue(value)
 	}
 
 	return nil
+}
+
+// coerceWriteOnlyCredentialValue upgrades a string value that is itself a JSON
+// object or array (e.g. a BigQuery service-account credential supplied as
+// jsonencode({ private_key = file("sa.json") })) into the decoded structure, so
+// Census receives it as a real object. Scalar strings are left exactly as
+// written — decoding them would retype opaque secrets (e.g. a password of
+// "123456" into a number, or "true"/"null" into a bool/null), which is never
+// what the user intended.
+func coerceWriteOnlyCredentialValue(value interface{}) interface{} {
+	s, ok := value.(string)
+	if !ok {
+		return value
+	}
+
+	var decoded interface{}
+	if err := json.Unmarshal([]byte(s), &decoded); err != nil {
+		return s
+	}
+
+	switch decoded.(type) {
+	case map[string]interface{}, []interface{}:
+		return decoded
+	default:
+		return s
+	}
 }
 
 // writeOnlyConnectionConfigJSON reads the raw connection_config_wo string from

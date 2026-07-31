@@ -117,15 +117,15 @@ func TestApplyWriteOnlyCredentials_MergesAndOverridesConnectionConfig(t *testing
 	}
 }
 
-func TestApplyWriteOnlyCredentials_CoercesNestedJSONLikeConnectionConfig(t *testing.T) {
+func TestApplyWriteOnlyCredentials_DecodesNestedJSONObject(t *testing.T) {
 	t.Parallel()
 
 	// A credential whose value is itself a JSON document (e.g. a BigQuery
-	// service account) must be delivered to Census as a real object, matching
-	// how expandConnectionConfig treats the same key in connection_config.
+	// service account) must be delivered to Census as a real object even when
+	// it is supplied as a JSON string (jsonencode({ private_key = file(...) })).
 	serviceAccount := `{"type":"service_account","project_id":"p"}`
 	rawConfig := sourceRawConfig(map[string]cty.Value{
-		"connection_config_wo": cty.StringVal(`{"credentials": ` + strconv.Quote(serviceAccount) + `}`),
+		"connection_config_wo": cty.StringVal(`{"private_key": ` + strconv.Quote(serviceAccount) + `}`),
 	})
 
 	credentials := map[string]interface{}{}
@@ -133,12 +133,51 @@ func TestApplyWriteOnlyCredentials_CoercesNestedJSONLikeConnectionConfig(t *test
 		t.Fatalf("expected merge to succeed, got %v", err)
 	}
 
-	obj, ok := credentials["credentials"].(map[string]interface{})
+	obj, ok := credentials["private_key"].(map[string]interface{})
 	if !ok {
-		t.Fatalf("expected credentials to be decoded into an object, got %T (%v)", credentials["credentials"], credentials["credentials"])
+		t.Fatalf("expected private_key to be decoded into an object, got %T (%v)", credentials["private_key"], credentials["private_key"])
 	}
 	if obj["type"] != "service_account" || obj["project_id"] != "p" {
-		t.Fatalf("unexpected decoded credentials object: %#v", obj)
+		t.Fatalf("unexpected decoded object: %#v", obj)
+	}
+}
+
+func TestApplyWriteOnlyCredentials_DoesNotRetypeScalarSecrets(t *testing.T) {
+	t.Parallel()
+
+	// Opaque scalar secrets must be sent to Census exactly as written, even
+	// when they happen to parse as a JSON number, bool, or null. Only nested
+	// JSON objects/arrays are decoded.
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal(`{
+			"numeric":  "123456",
+			"boolish":  "true",
+			"nullish":  "null",
+			"leading0": "0123",
+			"plain":    "s3cr3t"
+		}`),
+	})
+
+	credentials := map[string]interface{}{}
+	if err := applyWriteOnlyCredentialsFromConfig(rawConfig, credentials); err != nil {
+		t.Fatalf("expected merge to succeed, got %v", err)
+	}
+
+	want := map[string]string{
+		"numeric":  "123456",
+		"boolish":  "true",
+		"nullish":  "null",
+		"leading0": "0123",
+		"plain":    "s3cr3t",
+	}
+	for key, expected := range want {
+		got, ok := credentials[key].(string)
+		if !ok {
+			t.Fatalf("expected %q to remain a string, got %T (%v)", key, credentials[key], credentials[key])
+		}
+		if got != expected {
+			t.Fatalf("expected %q to stay %q, got %q", key, expected, got)
+		}
 	}
 }
 
