@@ -86,7 +86,7 @@ func resourceSource() *schema.Resource {
 				Sensitive:    true,
 				WriteOnly:    true,
 				RequiredWith: []string{"connection_config_wo_version"},
-				Description:  "Write-only, `jsonencode`-d object of secret connection credentials (e.g. `password`, Snowflake `private_key_pkcs8` / `private_key_passphrase`, BigQuery `credentials`, etc.). Works for any source type without enumerating fields. Its value is never stored in Terraform state or plan. Each key/value is merged into `connection_config` when the source is created or updated, taking precedence over the same key set in `connection_config`. Requires Terraform 1.11+. Bump `connection_config_wo_version` to have Terraform apply new values.",
+				Description:  "Write-only, `jsonencode`-d object of secret connection credentials (e.g. `password`, Snowflake `private_key_pkcs8` / `private_key_passphrase`, BigQuery `service_account_key`, etc.). Works for any source type without enumerating fields. Its value is never stored in Terraform state or plan. Each key/value is merged into `connection_config` when the source is created or updated, taking precedence over the same key set in `connection_config`. Requires Terraform 1.11+. Bump `connection_config_wo_version` to have Terraform apply new values.",
 			},
 			"connection_config_wo_version": {
 				Type:        schema.TypeInt,
