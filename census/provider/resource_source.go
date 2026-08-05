@@ -366,8 +366,9 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	// Refresh tables if requested and connection changed
-	if d.HasChange("connection_config") && d.Get("auto_refresh_tables").(bool) {
+	// Refresh tables if requested and connection changed, including when
+	// write-only credentials are rotated via connection_config_wo_version.
+	if (d.HasChange("connection_config") || d.HasChange("connection_config_wo_version")) && d.Get("auto_refresh_tables").(bool) {
 		if err := apiClient.RefreshSourceTablesWithToken(ctx, id, workspaceToken); err != nil {
 			// Log the error but don't fail the update
 			return diag.Errorf("source updated successfully but table refresh failed: %v", err)
