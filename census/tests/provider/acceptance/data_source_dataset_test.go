@@ -5,17 +5,19 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 func TestAccDataSourceDataset_Basic(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceDatasetConfig_basic(),
+				Config: testAccDataSourceDatasetConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					// Verify data source attributes
 					resource.TestCheckResourceAttr("data.census_dataset.test", "name", "Test Dataset - Data Source"),
@@ -48,7 +50,7 @@ func TestAccDataSourceDataset_Basic(t *testing.T) {
 	})
 }
 
-func testAccDataSourceDatasetConfig_basic() string {
+func testAccDataSourceDatasetConfig_basic(rName string) string {
 	return fmt.Sprintf(`
 resource "census_workspace" "test" {
   name = "Test Workspace - Dataset Data Source"
@@ -56,7 +58,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test_Redshift_Source"
+  name = "Test_Redshift_Source_%s"
   type = "redshift"
 
   connection_config = {
@@ -93,6 +95,7 @@ data "census_dataset" "test" {
   workspace_id = census_workspace.test.id
 }
 `,
+		rName,
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),

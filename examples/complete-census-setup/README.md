@@ -265,13 +265,42 @@ source_connection = {
 }
 ```
 
+### Snowflake (Keypair Authentication, Write-Only Secrets — Terraform 1.11+)
+Keep secret payloads out of Terraform state/plan by passing them through the
+write-only `connection_config_wo` argument on `census_source` — a `jsonencode`-d
+object of secret credentials that works for any source type. Bump
+`connection_config_wo_version` whenever you rotate a secret so Terraform
+re-applies it.
+```hcl
+resource "census_source" "warehouse" {
+  workspace_id = census_workspace.data_team.id
+  name         = "Production Warehouse (Keypair)"
+  type         = "snowflake"
+
+  connection_config = {
+    account     = "abc12345.us-east-1"
+    warehouse   = "COMPUTE_WH"
+    database    = "PRODUCTION"
+    username    = "census_user"
+    role        = "CENSUS_ROLE"
+    use_keypair = true
+  }
+
+  connection_config_wo = jsonencode({
+    private_key_pkcs8      = var.snowflake_private_key
+    private_key_passphrase = var.snowflake_key_passphrase # Optional
+  })
+  connection_config_wo_version = 1
+}
+```
+
 ### BigQuery
 ```hcl
 source_type = "bigquery"
 source_connection = {
-  project_id   = "your-gcp-project-id"
-  private_key  = jsonencode(var.bigquery_service_account_key)
-  client_email = "census@your-project.iam.gserviceaccount.com"
+  project_id          = "your-gcp-project-id"
+  service_account_key = jsonencode(var.bigquery_service_account_key)
+  client_email        = "census@your-project.iam.gserviceaccount.com"
 }
 ```
 

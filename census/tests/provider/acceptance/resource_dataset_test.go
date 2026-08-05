@@ -12,12 +12,13 @@ import (
 )
 
 func TestAccResourceDataset_Basic(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceDatasetConfig_basic(),
+				Config: testAccResourceDatasetConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_dataset.test", "name", "Test Active Users Dataset"),
 					resource.TestCheckResourceAttr("census_dataset.test", "type", "sql"),
@@ -34,19 +35,20 @@ func TestAccResourceDataset_Basic(t *testing.T) {
 }
 
 func TestAccResourceDataset_Update(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceDatasetConfig_basic(),
+				Config: testAccResourceDatasetConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_dataset.test", "name", "Test Active Users Dataset"),
 					resource.TestCheckResourceAttr("census_dataset.test", "description", "Dataset for testing purposes"),
 				),
 			},
 			{
-				Config: testAccResourceDatasetConfig_updated(),
+				Config: testAccResourceDatasetConfig_updated(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_dataset.test", "name", "Updated Users Dataset"),
 					resource.TestCheckResourceAttr("census_dataset.test", "description", "Updated dataset description"),
@@ -57,12 +59,13 @@ func TestAccResourceDataset_Update(t *testing.T) {
 }
 
 func TestAccResourceDataset_WithSync(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceDatasetConfig_withSync(),
+				Config: testAccResourceDatasetConfig_withSync(rName),
 				Check: resource.ComposeTestCheckFunc(
 					// Check dataset
 					resource.TestCheckResourceAttr("census_dataset.test", "name", "All Users Dataset"),
@@ -80,7 +83,7 @@ func TestAccResourceDataset_WithSync(t *testing.T) {
 	})
 }
 
-func testAccResourceDatasetConfig_basic() string {
+func testAccResourceDatasetConfig_basic(rName string) string {
 	return fmt.Sprintf(`
 resource "census_workspace" "test" {
   name = "Test Workspace - Dataset"
@@ -88,7 +91,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test_Redshift_Source"
+  name = "Test_Redshift_Source_%s"
   type = "redshift"
 
   connection_config = {
@@ -121,6 +124,7 @@ resource "census_dataset" "test" {
   SQL
 }
 `,
+		rName,
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
@@ -129,7 +133,7 @@ resource "census_dataset" "test" {
 	)
 }
 
-func testAccResourceDatasetConfig_updated() string {
+func testAccResourceDatasetConfig_updated(rName string) string {
 	return fmt.Sprintf(`
 resource "census_workspace" "test" {
   name = "Test Workspace - Dataset"
@@ -137,7 +141,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test_Redshift_Source"
+  name = "Test_Redshift_Source_%s"
   type = "redshift"
 
   connection_config = {
@@ -171,6 +175,7 @@ resource "census_dataset" "test" {
   SQL
 }
 `,
+		rName,
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
@@ -179,7 +184,7 @@ resource "census_dataset" "test" {
 	)
 }
 
-func testAccResourceDatasetConfig_withSync() string {
+func testAccResourceDatasetConfig_withSync(rName string) string {
 	return fmt.Sprintf(`
 resource "census_workspace" "test" {
   name = "Test Workspace - Dataset Sync"
@@ -187,7 +192,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test_Redshift_Source"
+  name = "Test_Redshift_Source_%s"
   type = "redshift"
 
   connection_config = {
@@ -302,6 +307,7 @@ resource "census_sync" "dataset_sync" {
   paused = true
 }
 `,
+		rName,
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
@@ -316,12 +322,13 @@ resource "census_sync" "dataset_sync" {
 }
 
 func TestAccResourceDataset_Import(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceDatasetConfig_basic(),
+				Config: testAccResourceDatasetConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_dataset.test", "name", "Test Active Users Dataset"),
 					resource.TestCheckResourceAttr("census_dataset.test", "type", "sql"),
@@ -390,12 +397,13 @@ func TestAccResourceDataset_WithMetadataRefreshWait(t *testing.T) {
 
 // create a basic dataset without waiting for metadata refresh, this is the default behavior, but just an explicit test for this
 func TestAccResourceDataset_WithoutMetadataRefreshWait(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceDatasetConfig_basic(),
+				Config: testAccResourceDatasetConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_dataset.test", "name", "Test Active Users Dataset"),
 					resource.TestCheckResourceAttr("census_dataset.test", "wait_for_metadata_refresh", "false"),

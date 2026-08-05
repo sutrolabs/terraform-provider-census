@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.17] - 2026-07-29
+
+### Added
+- **Write-only source credentials**: Added a write-only `connection_config_wo` argument to `census_source` so secret payloads can be configured without persisting them in Terraform state or plan files. It takes a `jsonencode`-d object of secret credential key/value pairs (e.g. `password`, Snowflake `private_key_pkcs8` / `private_key_passphrase`, BigQuery `service_account_key`), and each key is merged into `connection_config` on create and update (taking precedence over the same key in `connection_config`). A companion `connection_config_wo_version` argument acts as the update trigger: because Terraform never stores write-only values it cannot detect when they change, so bumping this integer signals the provider to re-apply the current write-only values. Write-only arguments require Terraform 1.11+. The feature is fully backwards compatible—existing configurations that keep secrets in `connection_config` continue to work unchanged.
+
+### Changed
+- Upgraded `github.com/hashicorp/terraform-plugin-sdk/v2` to `v2.36.1` to gain write-only argument support.
+
+## [0.2.16] - 2026-07-15
+
+### Changed
+- Test-only maintenance: updated the remaining acceptance test source names to use underscores so they match Fivetran's group-name coercion. No functional provider changes.
+
+## [0.2.15] - 2026-07-15
+
+### Fixed
+- **Sync operation updates**: Fixed `census_sync` updates not sending the `operation` field to the Census API, so changes to a sync's `operation` on an existing resource were silently ignored. The update request now includes `operation`.
+- Hardened acceptance tests against Fivetran source-name coercion (spaces coerced to underscores) by randomizing and normalizing test source names to avoid group-name collisions.
+
 ## [0.2.14] - 2026-05-04
 
 ### Added

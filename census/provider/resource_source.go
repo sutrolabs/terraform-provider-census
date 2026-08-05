@@ -26,8 +26,10 @@ func resourceSource() *schema.Resource {
 		},
 
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
-			// Force diff detection for sensitive connection_config changes
-			if d.HasChange("connection_config") {
+			// Force diff detection for connection changes so updated_at is
+			// recomputed, including write-only credential rotations signalled by a
+			// connection_config_wo_version bump.
+			if sourceConnectionChanged(d) {
 				d.SetNewComputed("updated_at")
 			}
 			return nil
@@ -74,7 +76,20 @@ func resourceSource() *schema.Resource {
 				Required:    true,
 				Sensitive:   true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
-				Description: "Connection configuration for the source. Contents vary by source type.",
+				Description: "Connection configuration for the source. Contents vary by source type. Secret values may instead be supplied through the write-only `connection_config_wo` argument so they are never persisted in Terraform state or plan files.",
+			},
+			"connection_config_wo": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				WriteOnly:    true,
+				RequiredWith: []string{"connection_config_wo_version"},
+				Description:  "Write-only, `jsonencode`-d object of secret connection credentials (e.g. `password`, Snowflake `private_key_pkcs8` / `private_key_passphrase`, BigQuery `service_account_key`, etc.). Works for any source type without enumerating fields. Its value is never stored in Terraform state or plan. Each key/value is merged into `connection_config` when the source is created or updated, taking precedence over the same key set in `connection_config`. Requires Terraform 1.11+. Bump `connection_config_wo_version` to have Terraform apply new values.",
+			},
+			"connection_config_wo_version": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Trigger for updating the write-only `connection_config_wo` argument. Because write-only values are never stored in state, Terraform cannot detect when they change. Increment this value to signal that the current write-only credentials should be re-applied on the next apply.",
 			},
 			"status": {
 				Type:        schema.TypeString,
@@ -119,6 +134,9 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	sourceType := d.Get("type").(string)
 	syncEngine := getConfiguredSourceSyncEngine(d)
 	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+	if err := applyWriteOnlyCredentials(d, connectionConfig); err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Get the workspace API key dynamically using the personal access token
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
@@ -307,6 +325,9 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	name := d.Get("name").(string)
 	sourceType := d.Get("type").(string)
 	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+	if err := applyWriteOnlyCredentials(d, connectionConfig); err != nil {
+		return diag.FromErr(err)
+	}
 	workspaceId := d.Get("workspace_id").(string)
 
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
@@ -319,8 +340,10 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	// Always build complete connection structure for updates
-	if d.HasChange("connection_config") {
+	// Always build complete connection structure for updates. Validate when the
+	// connection changes, including when write-only credentials are rotated via
+	// connection_config_wo_version.
+	if sourceConnectionChanged(d) {
 		if err := apiClient.ValidateSourceCredentials(ctx, sourceType, connectionConfig, workspaceToken); err != nil {
 			return diag.Errorf("source credential validation failed: %v", err)
 		}
@@ -341,8 +364,9 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	// Refresh tables if requested and connection changed
-	if d.HasChange("connection_config") && d.Get("auto_refresh_tables").(bool) {
+	// Refresh tables if requested and connection changed, including when
+	// write-only credentials are rotated via connection_config_wo_version.
+	if sourceConnectionChanged(d) && d.Get("auto_refresh_tables").(bool) {
 		if err := apiClient.RefreshSourceTablesWithToken(ctx, id, workspaceToken); err != nil {
 			// Log the error but don't fail the update
 			return diag.Errorf("source updated successfully but table refresh failed: %v", err)

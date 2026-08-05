@@ -5,20 +5,22 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 func TestAccResourceSource_Basic(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSourceConfig_redshift(),
+				Config: testAccResourceSourceConfig_redshift(rName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("census_source.test", "name", "Test_Redshift_Source"),
+					resource.TestCheckResourceAttr("census_source.test", "name", fmt.Sprintf("Test_Redshift_Source_%s", rName)),
 					resource.TestCheckResourceAttr("census_source.test", "type", "redshift"),
 					resource.TestCheckResourceAttrSet("census_source.test", "id"),
 					resource.TestCheckResourceAttrSet("census_source.test", "workspace_id"),
@@ -30,21 +32,22 @@ func TestAccResourceSource_Basic(t *testing.T) {
 }
 
 func TestAccResourceSource_Update(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSourceConfig_redshift(),
+				Config: testAccResourceSourceConfig_redshift(rName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("census_source.test", "name", "Test_Redshift_Source"),
+					resource.TestCheckResourceAttr("census_source.test", "name", fmt.Sprintf("Test_Redshift_Source_%s", rName)),
 					resource.TestCheckResourceAttr("census_source.test", "auto_refresh_tables", "false"),
 				),
 			},
 			{
-				Config: testAccResourceSourceConfig_redshiftUpdated(),
+				Config: testAccResourceSourceConfig_redshiftUpdated(rName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("census_source.test", "name", "Updated_Redshift_Source"),
+					resource.TestCheckResourceAttr("census_source.test", "name", fmt.Sprintf("Updated_Redshift_Source_%s", rName)),
 					resource.TestCheckResourceAttr("census_source.test", "auto_refresh_tables", "true"),
 				),
 			},
@@ -52,7 +55,7 @@ func TestAccResourceSource_Update(t *testing.T) {
 	})
 }
 
-func testAccResourceSourceConfig_redshift() string {
+func testAccResourceSourceConfig_redshift(rName string) string {
 	return fmt.Sprintf(`
 resource "census_workspace" "test" {
   name = "Test Workspace - Source"
@@ -60,7 +63,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test_Redshift_Source"
+  name = "Test_Redshift_Source_%s"
   type = "redshift"
 
   connection_config = {
@@ -74,6 +77,7 @@ resource "census_source" "test" {
   auto_refresh_tables = false
 }
 `,
+		rName,
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
@@ -82,7 +86,7 @@ resource "census_source" "test" {
 	)
 }
 
-func testAccResourceSourceConfig_redshiftUpdated() string {
+func testAccResourceSourceConfig_redshiftUpdated(rName string) string {
 	return fmt.Sprintf(`
 resource "census_workspace" "test" {
   name = "Test Workspace - Source"
@@ -90,7 +94,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Updated_Redshift_Source"
+  name = "Updated_Redshift_Source_%s"
   type = "redshift"
 
   connection_config = {
@@ -104,6 +108,7 @@ resource "census_source" "test" {
   auto_refresh_tables = true
 }
 `,
+		rName,
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
@@ -113,14 +118,15 @@ resource "census_source" "test" {
 }
 
 func TestAccResourceSource_Import(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSourceConfig_redshift(),
+				Config: testAccResourceSourceConfig_redshift(rName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("census_source.test", "name", "Test_Redshift_Source"),
+					resource.TestCheckResourceAttr("census_source.test", "name", fmt.Sprintf("Test_Redshift_Source_%s", rName)),
 					resource.TestCheckResourceAttr("census_source.test", "type", "redshift"),
 				),
 			},

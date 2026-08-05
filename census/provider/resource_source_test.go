@@ -8,11 +8,313 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
+
+func TestResourceSourceSchema_WriteOnlyConnectionConfig(t *testing.T) {
+	t.Parallel()
+
+	schemaMap := resourceSource().Schema
+
+	field := schemaMap["connection_config_wo"]
+	if field == nil {
+		t.Fatal("expected connection_config_wo field to exist on census_source")
+	}
+	if !field.WriteOnly {
+		t.Fatal("expected connection_config_wo to be WriteOnly so its value is never persisted in state")
+	}
+	if !field.Sensitive {
+		t.Fatal("expected connection_config_wo to be Sensitive")
+	}
+	if !field.Optional {
+		t.Fatal("expected connection_config_wo to be Optional (backwards compatible; existing configs omit it)")
+	}
+	if field.Computed {
+		t.Fatal("expected connection_config_wo not to be Computed (WriteOnly cannot be Computed)")
+	}
+	if field.ForceNew {
+		t.Fatal("expected connection_config_wo not to be ForceNew (WriteOnly cannot be ForceNew)")
+	}
+	// SDKv2 forbids WriteOnly on TypeMap/TypeList/TypeSet, so the generic
+	// write-only object is carried as a jsonencode-d string.
+	if field.Type != schema.TypeString {
+		t.Fatalf("expected connection_config_wo to be TypeString, got %v", field.Type)
+	}
+	if len(field.RequiredWith) != 1 || field.RequiredWith[0] != "connection_config_wo_version" {
+		t.Fatalf("expected connection_config_wo to require connection_config_wo_version so updates are triggerable, got %#v", field.RequiredWith)
+	}
+
+	version := schemaMap["connection_config_wo_version"]
+	if version == nil {
+		t.Fatal("expected connection_config_wo_version field to exist on census_source")
+	}
+	if version.Type != schema.TypeInt {
+		t.Fatalf("expected connection_config_wo_version to be TypeInt, got %v", version.Type)
+	}
+	if !version.Optional {
+		t.Fatal("expected connection_config_wo_version to be Optional")
+	}
+	if version.WriteOnly {
+		t.Fatal("expected connection_config_wo_version NOT to be WriteOnly; it must be tracked in state to detect changes")
+	}
+}
+
+func TestResourceSourceSchema_ConnectionConfigStillRequired(t *testing.T) {
+	t.Parallel()
+
+	// Backwards compatibility: connection_config must remain a Required,
+	// Sensitive map so existing configurations keep working unchanged.
+	field := resourceSource().Schema["connection_config"]
+	if field == nil {
+		t.Fatal("expected connection_config field to exist on census_source")
+	}
+	if !field.Required {
+		t.Fatal("expected connection_config to remain Required for backwards compatibility")
+	}
+	if !field.Sensitive {
+		t.Fatal("expected connection_config to remain Sensitive")
+	}
+	if field.Type != schema.TypeMap {
+		t.Fatalf("expected connection_config to remain TypeMap, got %v", field.Type)
+	}
+}
+
+func TestApplyWriteOnlyCredentials_MergesAndOverridesConnectionConfig(t *testing.T) {
+	t.Parallel()
+
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal(`{
+			"password": "wo-password",
+			"private_key_pkcs8": "wo-private-key",
+			"private_key_passphrase": "wo-passphrase"
+		}`),
+	})
+
+	credentials := map[string]interface{}{
+		"account":  "acct",
+		"password": "config-password", // should be overridden by write-only value
+	}
+
+	if err := applyWriteOnlyCredentialsFromConfig(rawConfig, credentials); err != nil {
+		t.Fatalf("expected merge to succeed, got %v", err)
+	}
+
+	if got := credentials["account"]; got != "acct" {
+		t.Fatalf("expected non-secret account to be preserved, got %v", got)
+	}
+	if got := credentials["password"]; got != "wo-password" {
+		t.Fatalf("expected write-only password to override connection_config value, got %v", got)
+	}
+	if got := credentials["private_key_pkcs8"]; got != "wo-private-key" {
+		t.Fatalf("expected private_key_pkcs8 to be populated from write-only value, got %v", got)
+	}
+	if got := credentials["private_key_passphrase"]; got != "wo-passphrase" {
+		t.Fatalf("expected private_key_passphrase to be populated from write-only value, got %v", got)
+	}
+}
+
+func TestApplyWriteOnlyCredentials_DecodesNestedJSONObject(t *testing.T) {
+	t.Parallel()
+
+	// A credential whose value is itself a JSON document (e.g. a BigQuery
+	// service account) must be delivered to Census as a real object even when
+	// it is supplied as a JSON string (jsonencode({ service_account_key = file(...) })).
+	serviceAccount := `{"type":"service_account","project_id":"p"}`
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal(`{"service_account_key": ` + strconv.Quote(serviceAccount) + `}`),
+	})
+
+	credentials := map[string]interface{}{}
+	if err := applyWriteOnlyCredentialsFromConfig(rawConfig, credentials); err != nil {
+		t.Fatalf("expected merge to succeed, got %v", err)
+	}
+
+	obj, ok := credentials["service_account_key"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected service_account_key to be decoded into an object, got %T (%v)", credentials["service_account_key"], credentials["service_account_key"])
+	}
+	if obj["type"] != "service_account" || obj["project_id"] != "p" {
+		t.Fatalf("unexpected decoded object: %#v", obj)
+	}
+}
+
+func TestApplyWriteOnlyCredentials_DoesNotRetypeScalarSecrets(t *testing.T) {
+	t.Parallel()
+
+	// Opaque scalar secrets must be sent to Census exactly as written, even
+	// when they happen to parse as a JSON number, bool, or null. Only nested
+	// JSON objects/arrays are decoded.
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal(`{
+			"numeric":  "123456",
+			"boolish":  "true",
+			"nullish":  "null",
+			"leading0": "0123",
+			"plain":    "s3cr3t"
+		}`),
+	})
+
+	credentials := map[string]interface{}{}
+	if err := applyWriteOnlyCredentialsFromConfig(rawConfig, credentials); err != nil {
+		t.Fatalf("expected merge to succeed, got %v", err)
+	}
+
+	want := map[string]string{
+		"numeric":  "123456",
+		"boolish":  "true",
+		"nullish":  "null",
+		"leading0": "0123",
+		"plain":    "s3cr3t",
+	}
+	for key, expected := range want {
+		got, ok := credentials[key].(string)
+		if !ok {
+			t.Fatalf("expected %q to remain a string, got %T (%v)", key, credentials[key], credentials[key])
+		}
+		if got != expected {
+			t.Fatalf("expected %q to stay %q, got %q", key, expected, got)
+		}
+	}
+}
+
+func TestApplyWriteOnlyCredentials_PreservesNativeJSONTypes(t *testing.T) {
+	t.Parallel()
+
+	// Non-string native JSON values written inside jsonencode({...}) reach the
+	// provider already typed by the outer decode and must be preserved as-is:
+	// numbers stay numbers, bools stay bools, native objects/arrays stay
+	// structured. Numbers decode to float64 via encoding/json.
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal(`{
+			"port":        5432,
+			"use_keypair": true,
+			"nested":      {"a": 1, "b": "two"},
+			"hosts":       ["h1", "h2"]
+		}`),
+	})
+
+	credentials := map[string]interface{}{}
+	if err := applyWriteOnlyCredentialsFromConfig(rawConfig, credentials); err != nil {
+		t.Fatalf("expected merge to succeed, got %v", err)
+	}
+
+	if got, ok := credentials["port"].(float64); !ok || got != 5432 {
+		t.Fatalf("expected port to be number 5432, got %T (%v)", credentials["port"], credentials["port"])
+	}
+	if got, ok := credentials["use_keypair"].(bool); !ok || got != true {
+		t.Fatalf("expected use_keypair to be bool true, got %T (%v)", credentials["use_keypair"], credentials["use_keypair"])
+	}
+	nested, ok := credentials["nested"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected nested to stay an object, got %T (%v)", credentials["nested"], credentials["nested"])
+	}
+	if nested["a"] != float64(1) || nested["b"] != "two" {
+		t.Fatalf("unexpected nested object: %#v", nested)
+	}
+	hosts, ok := credentials["hosts"].([]interface{})
+	if !ok || len(hosts) != 2 || hosts[0] != "h1" || hosts[1] != "h2" {
+		t.Fatalf("expected hosts to stay a string array, got %T (%v)", credentials["hosts"], credentials["hosts"])
+	}
+}
+
+func TestApplyWriteOnlyCredentials_DecodesJSONArrayString(t *testing.T) {
+	t.Parallel()
+
+	// A structured credential supplied as a JSON *string* whose content is an
+	// array is decoded into a real array, mirroring the object case.
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal(`{"scopes": "[\"read\",\"write\"]"}`),
+	})
+
+	credentials := map[string]interface{}{}
+	if err := applyWriteOnlyCredentialsFromConfig(rawConfig, credentials); err != nil {
+		t.Fatalf("expected merge to succeed, got %v", err)
+	}
+
+	arr, ok := credentials["scopes"].([]interface{})
+	if !ok || len(arr) != 2 || arr[0] != "read" || arr[1] != "write" {
+		t.Fatalf("expected scopes to be decoded into an array, got %T (%v)", credentials["scopes"], credentials["scopes"])
+	}
+}
+
+func TestApplyWriteOnlyCredentials_UnsetOrEmptyIsNoOp(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		attrs map[string]cty.Value
+	}{
+		{name: "absent"},
+		{name: "null", attrs: map[string]cty.Value{"connection_config_wo": cty.NullVal(cty.String)}},
+		{name: "unknown", attrs: map[string]cty.Value{"connection_config_wo": cty.UnknownVal(cty.String)}},
+		{name: "empty string", attrs: map[string]cty.Value{"connection_config_wo": cty.StringVal("   ")}},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			credentials := map[string]interface{}{"account": "acct", "password": "config-password"}
+			if err := applyWriteOnlyCredentialsFromConfig(sourceRawConfig(tc.attrs), credentials); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if credentials["password"] != "config-password" {
+				t.Fatalf("expected connection_config password to be untouched, got %v", credentials["password"])
+			}
+		})
+	}
+}
+
+func TestApplyWriteOnlyCredentials_InvalidJSONErrors(t *testing.T) {
+	t.Parallel()
+
+	rawConfig := sourceRawConfig(map[string]cty.Value{
+		"connection_config_wo": cty.StringVal("not-json"),
+	})
+
+	err := applyWriteOnlyCredentialsFromConfig(rawConfig, map[string]interface{}{})
+	if err == nil {
+		t.Fatal("expected an error for non-JSON connection_config_wo")
+	}
+}
+
+func TestApplyWriteOnlyCredentials_NullRawConfigIsNoOp(t *testing.T) {
+	t.Parallel()
+
+	rawType := resourceSource().CoreConfigSchema().ImpliedType()
+
+	credentials := map[string]interface{}{"account": "acct"}
+	if err := applyWriteOnlyCredentialsFromConfig(cty.NullVal(rawType), credentials); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(credentials) != 1 || credentials["account"] != "acct" {
+		t.Fatalf("expected null raw config to leave credentials unchanged, got %#v", credentials)
+	}
+}
+
+// sourceRawConfig builds a raw config cty.Value for the census_source schema,
+// setting the given attributes and leaving the rest null. This mirrors what
+// Terraform passes to the SDK so write-only values can be read from config.
+func sourceRawConfig(attrs map[string]cty.Value) cty.Value {
+	implied := resourceSource().CoreConfigSchema().ImpliedType()
+
+	values := make(map[string]cty.Value, len(implied.AttributeTypes()))
+	for name, attrType := range implied.AttributeTypes() {
+		if v, ok := attrs[name]; ok {
+			values[name] = v
+			continue
+		}
+		values[name] = cty.NullVal(attrType)
+	}
+
+	return cty.ObjectVal(values)
+}
 
 func TestResourceSourceCreate_DefaultsSyncEngineToAdvanced(t *testing.T) {
 	t.Parallel()

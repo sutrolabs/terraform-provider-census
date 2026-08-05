@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
@@ -12,12 +13,13 @@ import (
 
 // TestAccResourceSync_Basic tests basic sync creation with minimal configuration
 func TestAccResourceSync_Basic(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSyncConfig_basic(),
+				Config: testAccResourceSyncConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Basic Sync"),
 					resource.TestCheckResourceAttr("census_sync.test", "operation", "upsert"),
@@ -32,19 +34,20 @@ func TestAccResourceSync_Basic(t *testing.T) {
 
 // TestAccResourceSync_Update tests updating sync configuration
 func TestAccResourceSync_Update(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSyncConfig_basic(),
+				Config: testAccResourceSyncConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Basic Sync"),
 					resource.TestCheckResourceAttr("census_sync.test", "paused", "true"),
 				),
 			},
 			{
-				Config: testAccResourceSyncConfig_updated(),
+				Config: testAccResourceSyncConfig_updated(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Updated Sync Label"),
 					resource.TestCheckResourceAttr("census_sync.test", "paused", "false"),
@@ -56,12 +59,13 @@ func TestAccResourceSync_Update(t *testing.T) {
 
 // TestAccResourceSync_FieldMappings tests various field mapping types
 func TestAccResourceSync_FieldMappings(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSyncConfig_fieldMappings(),
+				Config: testAccResourceSyncConfig_fieldMappings(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Field Mappings"),
 					resource.TestCheckResourceAttr("census_sync.test", "field_mapping.#", "5"),
@@ -80,12 +84,13 @@ func TestAccResourceSync_FieldMappings(t *testing.T) {
 
 // TestAccResourceSync_RunMode_Daily tests daily schedule configuration
 func TestAccResourceSync_RunMode_Daily(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSyncConfig_runModeDaily(),
+				Config: testAccResourceSyncConfig_runModeDaily(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Daily Schedule"),
 					resource.TestCheckResourceAttr("census_sync.test", "run_mode.0.type", "triggered"),
@@ -100,12 +105,13 @@ func TestAccResourceSync_RunMode_Daily(t *testing.T) {
 
 // TestAccResourceSync_RunMode_Hourly tests hourly schedule configuration
 func TestAccResourceSync_RunMode_Hourly(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSyncConfig_runModeHourly(),
+				Config: testAccResourceSyncConfig_runModeHourly(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Hourly Schedule"),
 					resource.TestCheckResourceAttr("census_sync.test", "run_mode.0.type", "triggered"),
@@ -119,12 +125,13 @@ func TestAccResourceSync_RunMode_Hourly(t *testing.T) {
 
 // TestAccResourceSync_RunMode_Manual tests never/manual schedule configuration (triggered manually)
 func TestAccResourceSync_RunMode_Manual(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSyncConfig_runModeManual(),
+				Config: testAccResourceSyncConfig_runModeManual(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Manual Schedule"),
 					resource.TestCheckResourceAttr("census_sync.test", "run_mode.0.type", "triggered"),
@@ -137,12 +144,13 @@ func TestAccResourceSync_RunMode_Manual(t *testing.T) {
 
 // TestAccResourceSync_Alerts tests alert configurations
 func TestAccResourceSync_Alerts(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSyncConfig_alerts(),
+				Config: testAccResourceSyncConfig_alerts(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Alerts"),
 					resource.TestCheckResourceAttr("census_sync.test", "alert.#", "2"),
@@ -159,7 +167,7 @@ func TestAccResourceSync_Alerts(t *testing.T) {
 // =============================================================================
 
 // testAccIntegrationBaseConfig returns base configuration with workspace, source, and destination
-func testAccIntegrationBaseConfig() string {
+func testAccIntegrationBaseConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "census_workspace" "test" {
   name = "Test Workspace - Sync Integration"
@@ -167,7 +175,7 @@ resource "census_workspace" "test" {
 
 resource "census_source" "test" {
   workspace_id = census_workspace.test.id
-  name = "Test_Redshift_Source"
+  name = "Test_Redshift_Source_%s"
   type = "redshift"
 
   connection_config = {
@@ -193,6 +201,7 @@ resource "census_destination" "test" {
   }
 }
 `,
+		rName,
 		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
 		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
 		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
@@ -206,8 +215,8 @@ resource "census_destination" "test" {
 	)
 }
 
-func testAccResourceSyncConfig_basic() string {
-	return testAccIntegrationBaseConfig() + `
+func testAccResourceSyncConfig_basic(rName string) string {
+	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
   workspace_id = census_workspace.test.id
   label        = "Test Basic Sync"
@@ -279,8 +288,8 @@ resource "census_sync" "test" {
 `
 }
 
-func testAccResourceSyncConfig_updated() string {
-	return testAccIntegrationBaseConfig() + `
+func testAccResourceSyncConfig_updated(rName string) string {
+	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
   workspace_id = census_workspace.test.id
   label        = "Updated Sync Label"
@@ -352,8 +361,8 @@ resource "census_sync" "test" {
 `
 }
 
-func testAccResourceSyncConfig_fieldMappings() string {
-	return testAccIntegrationBaseConfig() + `
+func testAccResourceSyncConfig_fieldMappings(rName string) string {
+	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
   workspace_id = census_workspace.test.id
   label        = "Test Field Mappings"
@@ -434,8 +443,8 @@ resource "census_sync" "test" {
 `
 }
 
-func testAccResourceSyncConfig_runModeDaily() string {
-	return testAccIntegrationBaseConfig() + `
+func testAccResourceSyncConfig_runModeDaily(rName string) string {
+	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
   workspace_id = census_workspace.test.id
   label        = "Test Daily Schedule"
@@ -509,8 +518,8 @@ resource "census_sync" "test" {
 `
 }
 
-func testAccResourceSyncConfig_runModeHourly() string {
-	return testAccIntegrationBaseConfig() + `
+func testAccResourceSyncConfig_runModeHourly(rName string) string {
+	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
   workspace_id = census_workspace.test.id
   label        = "Test Hourly Schedule"
@@ -583,8 +592,8 @@ resource "census_sync" "test" {
 `
 }
 
-func testAccResourceSyncConfig_runModeManual() string {
-	return testAccIntegrationBaseConfig() + `
+func testAccResourceSyncConfig_runModeManual(rName string) string {
+	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
   workspace_id = census_workspace.test.id
   label        = "Test Manual Schedule"
@@ -656,8 +665,8 @@ resource "census_sync" "test" {
 `
 }
 
-func testAccResourceSyncConfig_alerts() string {
-	return testAccIntegrationBaseConfig() + `
+func testAccResourceSyncConfig_alerts(rName string) string {
+	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
   workspace_id = census_workspace.test.id
   label        = "Test Alerts"
@@ -731,12 +740,13 @@ resource "census_sync" "test" {
 }
 
 func TestAccResourceSync_Import(t *testing.T) {
+	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceSyncConfig_basic(),
+				Config: testAccResourceSyncConfig_basic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Basic Sync"),
 					resource.TestCheckResourceAttr("census_sync.test", "operation", "upsert"),
