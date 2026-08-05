@@ -26,12 +26,10 @@ func resourceSource() *schema.Resource {
 		},
 
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
-			// Force diff detection for sensitive connection_config changes.
-			// Write-only credential values are never stored in state, so a
-			// change to them cannot be detected directly; users signal a
-			// rotation by bumping connection_config_wo_version, which we treat
-			// as a connection change here.
-			if d.HasChange("connection_config") || d.HasChange("connection_config_wo_version") {
+			// Force diff detection for connection changes so updated_at is
+			// recomputed, including write-only credential rotations signalled by a
+			// connection_config_wo_version bump.
+			if sourceConnectionChanged(d) {
 				d.SetNewComputed("updated_at")
 			}
 			return nil
@@ -345,7 +343,7 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	// Always build complete connection structure for updates. Validate when the
 	// connection changes, including when write-only credentials are rotated via
 	// connection_config_wo_version.
-	if d.HasChange("connection_config") || d.HasChange("connection_config_wo_version") {
+	if sourceConnectionChanged(d) {
 		if err := apiClient.ValidateSourceCredentials(ctx, sourceType, connectionConfig, workspaceToken); err != nil {
 			return diag.Errorf("source credential validation failed: %v", err)
 		}
@@ -368,7 +366,7 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 
 	// Refresh tables if requested and connection changed, including when
 	// write-only credentials are rotated via connection_config_wo_version.
-	if (d.HasChange("connection_config") || d.HasChange("connection_config_wo_version")) && d.Get("auto_refresh_tables").(bool) {
+	if sourceConnectionChanged(d) && d.Get("auto_refresh_tables").(bool) {
 		if err := apiClient.RefreshSourceTablesWithToken(ctx, id, workspaceToken); err != nil {
 			// Log the error but don't fail the update
 			return diag.Errorf("source updated successfully but table refresh failed: %v", err)

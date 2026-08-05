@@ -18,6 +18,21 @@ import (
 // payloads are not persisted in Terraform state.
 const writeOnlyConnectionConfigAttr = "connection_config_wo"
 
+// changeDetector is implemented by both *schema.ResourceData (in CRUD) and
+// *schema.ResourceDiff (in CustomizeDiff), letting sourceConnectionChanged be
+// shared across both contexts.
+type changeDetector interface {
+	HasChange(key string) bool
+}
+
+// sourceConnectionChanged reports whether a source's connection changed. It is
+// true when connection_config changes or when the write-only credentials are
+// rotated by bumping connection_config_wo_version — write-only values are never
+// stored in state, so a version bump is the only signal that they changed.
+func sourceConnectionChanged(d changeDetector) bool {
+	return d.HasChange("connection_config") || d.HasChange("connection_config_wo_version")
+}
+
 // applyWriteOnlyCredentials merges the write-only connection_config_wo object
 // into the credentials map. Keys set in the write-only object take precedence
 // over the same key in connection_config.
