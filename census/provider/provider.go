@@ -37,13 +37,13 @@ func Provider() *schema.Provider {
 					regexp.MustCompile(`^(us|eu)$`),
 					"region must be either 'us' or 'eu'",
 				),
-				Description: "Census region to use (us or eu). Defaults to 'us'.",
+				Description: "Census region. Defaults to 'us', which is correct for all standard configurations; there is no need to set this as of August 2026.",
 			},
 			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CENSUS_BASE_URL", ""),
-				Description: "Base URL for Census API. If not provided, will be determined based on region. Can also be set via CENSUS_BASE_URL environment variable.",
+				Description: "Base URL for Census API. Defaults to the standard Census API endpoint. Can also be set via CENSUS_BASE_URL environment variable.",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{

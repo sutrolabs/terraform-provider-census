@@ -62,7 +62,7 @@ terraform apply
 ```hcl
 provider "census" {
   personal_access_token = var.census_token
-  # region defaults to "us" → https://app.getcensus.com/api/v1
+  # base_url defaults to https://app.getcensus.com/api/v1
 }
 ```
 

@@ -59,7 +59,6 @@ This example demonstrates the core functionality of the Census Terraform Provide
 - `census_personal_token`: Your Census personal access token
 
 ### Optional
-- `census_region`: "us" (default) or "eu"
 - `workspace_name`: Custom workspace name (default: "Terraform Test Workspace")
 - `notification_emails`: List of email addresses for alerts
 - `return_api_key`: Whether to return workspace API key (default: true)
@@ -100,9 +99,6 @@ This example includes validation outputs:
    - Verify your token in `terraform.tfvars`
    - Check token permissions in Census dashboard
    - Ensure you're using a personal access token with organization-level permissions
-
-3. **Region mismatch**:
-   - Set `census_region = "eu"` if using Census EU instance
 
 ### Debug Mode
 

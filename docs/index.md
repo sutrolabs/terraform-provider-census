@@ -23,7 +23,6 @@ terraform {
 
 provider "census" {
   personal_access_token = var.census_personal_token
-  region                = "us"  # or "eu"
 }
 ```
 
@@ -38,16 +37,6 @@ To obtain a Personal Access Token:
 3. Generate a new Personal Access Token
 4. Store it securely (e.g., in environment variables or a secret manager)
 
-## Multi-Region Support
-
-Census operates in multiple regions. Specify your region when configuring the provider:
-
-- `us` - United States (default)
-- `eu` - European Union
-- `au` - Australia
-
-The provider automatically configures the appropriate API endpoints for your region.
-
 ## Schema
 
 ### Required
@@ -56,7 +45,6 @@ The provider automatically configures the appropriate API endpoints for your reg
 
 ### Optional
 
-- `region` (String) Census region: `us`, `eu`, or `au`. Defaults to `us`. Can also be set via the `CENSUS_REGION` environment variable.
 - `base_url` (String) Custom base URL for the Census API. Primarily used for testing against staging environments. Can also be set via the `CENSUS_BASE_URL` environment variable.
 
 ## Resources

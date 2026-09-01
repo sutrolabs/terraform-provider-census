@@ -10,7 +10,6 @@ terraform {
 # Configure the Census Provider with your personal access token
 provider "census" {
   personal_access_token = var.census_personal_token
-  region               = var.census_region
 }
 
 # Create a test workspace
