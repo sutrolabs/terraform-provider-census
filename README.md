@@ -4,7 +4,6 @@ A Terraform provider for managing [Census](https://www.fivetran.com/data-movemen
 
 ## Features
 
-- **Multi-region support**: Works with US, EU, and AU Census regions
 - **Complete Census workflow**: Manage workspaces, sources, datasets, destinations, and syncs
 - **PAT-only authentication**: Uses personal access tokens with dynamic workspace token retrieval
 - **Import support**: Import existing Census resources into Terraform state
@@ -24,7 +23,6 @@ terraform {
 
 provider "census" {
   personal_access_token = var.census_personal_token
-  region                = "us"  # or "eu", "au"
 }
 ```
 

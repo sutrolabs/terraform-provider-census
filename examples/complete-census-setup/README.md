@@ -64,7 +64,6 @@ The minimal required configuration in `terraform.tfvars`:
 ```hcl
 # Authentication
 census_personal_token = "census_pat_your_personal_token_here"
-census_region = "us"  # or "eu"
 
 # No single workspace token needed - tokens are handled per workspace!
 

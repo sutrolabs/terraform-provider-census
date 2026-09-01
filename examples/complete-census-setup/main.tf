@@ -10,7 +10,6 @@ terraform {
 # Provider configuration
 provider "census" {
   personal_access_token = var.census_personal_token # For workspace management
-  region                = var.census_region
 
   # Note: No single workspace_access_token - workspace-specific tokens are handled
   # per resource using the workspace API keys from the workspaces configuration
