@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.19] - 2026-09-02
+
+### Added
+- **Support for Source Column Order Field Order**: Accept `"source_column_order"` as valid `field_order` value.
+
+
+## [0.2.18] - 2026-09-01
+
+### Changed
+- **Remove region references in documentation**: As of August 2026, terraform users do not need to specify the region to use (us, eu, or the documented but never supported au). The provider still accepts region as input for now, but removing all documentation referencing region or needing to set it.
+
 ## [0.2.17] - 2026-07-29
 
 ### Added

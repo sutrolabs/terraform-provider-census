@@ -1032,6 +1032,7 @@ resource "census_sync" "preserve_example" {
 * `field_order` - (Optional) Specifies how destination fields should be ordered. Only applicable for destinations that support field ordering:
   * `"alphabetical_column_name"` (default) - Sort fields alphabetically
   * `"mapping_order"` - Use the order fields are defined in `field_mapping`
+  * `"source_column_order"` - Destination fields are ordered by the position of the columns returned from the source
 * `sync_behavior_family` - (Optional) Specifies the behavior family for the sync:
   * `"activateEvents"` - For event-based activation syncs (only supported for live syncs from Kafka/streaming sources)
   * `"mapRecords"` - For record mapping syncs (not supported for live syncs from Materialize)
