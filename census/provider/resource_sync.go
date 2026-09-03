@@ -264,10 +264,10 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 			Type:     schema.TypeString,
 			Optional: true,
 			Computed: true,
-			Description: "Specify how destination fields should be ordered. Options: 'alphabetical_column_name' (default) or 'mapping_order'. " +
+			Description: "Specify how destination fields should be ordered. Options: 'alphabetical_column_name' (default), 'mapping_order', or 'source_column_order'. " +
 				"Only works on destinations that support field ordering.",
 			ValidateFunc: validation.StringInSlice([]string{
-				"alphabetical_column_name", "mapping_order",
+				"alphabetical_column_name", "mapping_order", "source_column_order",
 			}, false),
 		},
 		"sync_behavior_family": {

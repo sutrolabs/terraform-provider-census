@@ -52,7 +52,7 @@ type Sync struct {
 	// Field configuration
 	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
 	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
-	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
+	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name, mapping_order, or source_column_order
 
 	// Sync behavior family
 	SyncBehaviorFamily string `json:"sync_behavior_family,omitempty"` // activateEvents or mapRecords
@@ -202,7 +202,7 @@ type CreateSyncRequest struct {
 	// Field configuration
 	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
 	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
-	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
+	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name, mapping_order, or source_column_order
 
 	// Sync behavior family
 	SyncBehaviorFamily string `json:"sync_behavior_family,omitempty"` // activateEvents or mapRecords
@@ -245,7 +245,7 @@ type UpdateSyncRequest struct {
 	// Field configuration
 	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties
 	FieldNormalization string `json:"field_normalization,omitempty"` // snake_case, camel_case, etc.
-	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name or mapping_order
+	FieldOrder         string `json:"field_order,omitempty"`         // alphabetical_column_name, mapping_order, or source_column_order
 
 	// Sync behavior family
 	SyncBehaviorFamily string `json:"sync_behavior_family,omitempty"` // activateEvents or mapRecords

@@ -77,7 +77,7 @@ output "sync_run_mode" {
     * `sync_sequence` - Sync sequence trigger configuration (if configured).
 * `field_behavior` - Field syncing behavior: "specific_properties" or "sync_all_properties".
 * `field_normalization` - Field name normalization (when field_behavior="sync_all_properties").
-* `field_order` - Field ordering: "alphabetical_column_name" or "mapping_order".
+* `field_order` - Field ordering: "alphabetical_column_name", "mapping_order", or "source_column_order".
 * `sync_behavior_family` - Behavior family: "activateEvents" or "mapRecords".
 * `advanced_configuration` - Advanced configuration JSON string.
 * `high_water_mark_attribute` - High water mark column name.
