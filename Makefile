@@ -3,7 +3,7 @@ VERSION=0.2.19
 BUILD_DIR=bin
 LDFLAGS=-ldflags "-X main.version=${VERSION}"
 
-.PHONY: build test clean install fmt vet lint help
+.PHONY: build test clean install fmt vet lint help test-regression
 
 help: ## Display this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -32,6 +32,9 @@ test-integration: ## Run integration tests (creates all resources in staging)
 	@set -a && . ./.env.test && set +a && TF_ACC=1 go test -v ./census/tests/provider/acceptance -timeout 60m
 
 test-acc: test-integration ## Alias for test-integration (Terraform convention)
+
+test-regression: build ## Run regression tests against the built provider binary (requires terraform CLI)
+	@go test -v ./census/tests/provider/regression/...
 
 test-coverage: ## Generate test coverage report
 	@echo "Generating test coverage report..."
