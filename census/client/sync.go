@@ -37,9 +37,7 @@ type Sync struct {
 	ScheduleMinute    *int    `json:"schedule_minute,omitempty"`
 	CronExpression    string  `json:"cron_expression,omitempty"`
 
-	// For terraform config - keep existing schedule structure
-	Schedule *SyncSchedule `json:"schedule,omitempty"`
-	Paused   bool          `json:"paused,omitempty"`
+	Paused bool `json:"paused,omitempty"`
 
 	// Mode - live vs triggered with trigger configurations
 	Mode *SyncMode `json:"mode,omitempty"`
@@ -123,15 +121,6 @@ type MappingAttributes struct {
 type MappingFrom struct {
 	Type string      `json:"type"` // "column", "constant_value", "sync_metadata", "segment_membership", "liquid_template"
 	Data interface{} `json:"data"` // Data format varies by type
-}
-
-// SyncSchedule represents sync scheduling configuration
-type SyncSchedule struct {
-	Frequency string `json:"frequency"`             // hourly, daily, weekly, etc.
-	Minute    int    `json:"minute,omitempty"`      // minute of hour to run (0-59)
-	Hour      int    `json:"hour,omitempty"`        // for daily/weekly
-	DayOfWeek int    `json:"day_of_week,omitempty"` // for weekly (0=Sunday)
-	Timezone  string `json:"timezone,omitempty"`
 }
 
 // SyncMode represents the mode configuration for a sync (live vs triggered)
