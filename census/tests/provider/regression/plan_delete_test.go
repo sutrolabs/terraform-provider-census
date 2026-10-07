@@ -1,4 +1,3 @@
-
 // Package regression_test checks that the provider's current schema can
 // still decode a real, historical Terraform state file without erroring.
 //
