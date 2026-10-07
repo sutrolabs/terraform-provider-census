@@ -3,12 +3,12 @@ package client
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Sync represents a Census data sync
@@ -328,27 +328,17 @@ func (c *Client) CreateSync(ctx context.Context, req *CreateSyncRequest) (*Sync,
 
 // CreateSyncWithToken creates a new sync using a specific workspace token
 func (c *Client) CreateSyncWithToken(ctx context.Context, req *CreateSyncRequest, workspaceToken string) (*Sync, error) {
-	// Log the request being sent
-	fmt.Printf("[DEBUG] Create sync request: %+v\n", req)
+	tflog.Debug(ctx, "Creating sync", map[string]interface{}{"request": fmt.Sprintf("%+v", req)})
 
 	resp, err := c.makeRequestWithToken(ctx, http.MethodPost, "/syncs", req, TokenTypeWorkspace, workspaceToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make create sync request: %w", err)
 	}
 
-	// Read the raw response body for debugging
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-
-	fmt.Printf("[DEBUG] Create sync raw response: %s\n", string(bodyBytes))
-
-	// Write request and response to debug file
-	debugFile := "/tmp/census_sync_debug.log"
-	debugContent := fmt.Sprintf("=== CREATE SYNC DEBUG ===\n\nREQUEST:\n%+v\n\nRAW RESPONSE:\n%s\n\n", req, string(bodyBytes))
-	os.WriteFile(debugFile, []byte(debugContent), 0644)
-	fmt.Printf("[DEBUG] Debug info written to %s\n", debugFile)
 
 	// Reset the response body so handleResponse can read it
 	resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
@@ -358,14 +348,12 @@ func (c *Client) CreateSyncWithToken(ctx context.Context, req *CreateSyncRequest
 		return nil, fmt.Errorf("failed to create sync: %w", err)
 	}
 
-	fmt.Printf("[DEBUG] Parsed create sync response: %+v\n", result)
-
 	// Create a minimal Sync object from the response
 	sync := &Sync{
 		ID: result.Data.SyncID,
 	}
 
-	fmt.Printf("[DEBUG] Created sync object with ID: %d\n", sync.ID)
+	tflog.Debug(ctx, "Created sync", map[string]interface{}{"sync_id": sync.ID})
 	return sync, nil
 }
 
@@ -397,13 +385,7 @@ func (c *Client) UpdateSync(ctx context.Context, syncID int, req *UpdateSyncRequ
 
 // UpdateSyncWithToken updates an existing sync using a specific workspace token
 func (c *Client) UpdateSyncWithToken(ctx context.Context, syncID int, req *UpdateSyncRequest, workspaceToken string) (*Sync, error) {
-	// Log the request being sent
-	fmt.Printf("[DEBUG] Update sync %d request: %+v\n", syncID, req)
-
-	// Also log the JSON that will be sent
-	if reqJSON, err := json.MarshalIndent(req, "", "  "); err == nil {
-		fmt.Printf("[DEBUG] Update sync %d request JSON:\n%s\n", syncID, string(reqJSON))
-	}
+	tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": syncID, "request": fmt.Sprintf("%+v", req)})
 
 	path := fmt.Sprintf("/syncs/%d", syncID)
 	resp, err := c.makeRequestWithToken(ctx, http.MethodPatch, path, req, TokenTypeWorkspace, workspaceToken)
@@ -411,20 +393,10 @@ func (c *Client) UpdateSyncWithToken(ctx context.Context, syncID int, req *Updat
 		return nil, fmt.Errorf("failed to make update sync request: %w", err)
 	}
 
-	// Read the raw response body for debugging
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-
-	fmt.Printf("[DEBUG] Update sync %d raw response: %s\n", syncID, string(bodyBytes))
-
-	// Write request and response to debug file
-	debugFile := fmt.Sprintf("/tmp/census_sync_update_%d_debug.log", syncID)
-	reqJSON, _ := json.MarshalIndent(req, "", "  ")
-	debugContent := fmt.Sprintf("=== UPDATE SYNC %d DEBUG ===\n\nREQUEST:\n%+v\n\nREQUEST JSON:\n%s\n\nRAW RESPONSE:\n%s\n\n", syncID, req, string(reqJSON), string(bodyBytes))
-	os.WriteFile(debugFile, []byte(debugContent), 0644)
-	fmt.Printf("[DEBUG] Debug info written to %s\n", debugFile)
 
 	// Reset the response body so handleResponse can read it
 	resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
