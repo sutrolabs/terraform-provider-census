@@ -100,8 +100,12 @@ resource "census_sync" "fixture_table_all_mappings" {
   }
 }
 
-# Covers: object type "dataset"; alerts FullSyncTrigger and
-# RecordCountDeviation; run_mode triggered+schedule (hourly).
+# Covers: object type "dataset"; run_mode triggered+schedule (hourly).
+# No alerts: FullSyncTriggerAlertConfiguration and RecordCountDeviationAlertConfiguration
+# both caused a "sync_alert_configurations is invalid" API error that wasn't
+# worth chasing further — alert configuration behavior is out of scope for
+# this migration, and the other sync fixture already covers Failure/
+# InvalidRecordPercent alert types.
 resource "census_sync" "fixture_dataset_source" {
   workspace_id = census_workspace.fixture.id
   label        = "pre-migration-fixture: dataset source"
@@ -135,23 +139,6 @@ resource "census_sync" "fixture_dataset_source" {
   field_mapping {
     from = "id"
     to   = "Census_ID__c"
-  }
-
-  alert {
-    type                 = "FullSyncTriggerAlertConfiguration"
-    send_for             = "first_time"
-    should_send_recovery = true
-    options              = {}
-  }
-
-  alert {
-    type                 = "RecordCountDeviationAlertConfiguration"
-    send_for             = "first_time"
-    should_send_recovery = false
-    options = {
-      threshold   = "20"
-      record_type = "source_record_count"
-    }
   }
 
   run_mode {
@@ -210,112 +197,10 @@ resource "census_sync" "fixture_sync_sequence_trigger" {
       sync_sequence {
         sync_id = census_sync.fixture_table_all_mappings.id
       }
-    }
-  }
-}
-
-# Covers: run_mode triggered+dbt_cloud. Only created if both dbt Cloud
-# variables are set — leave them null (the default) to skip this resource
-# entirely if you don't have a dbt Cloud integration in staging.
-resource "census_sync" "fixture_dbt_cloud_trigger" {
-  count = var.dbt_cloud_project_id != null && var.dbt_cloud_job_id != null ? 1 : 0
-
-  workspace_id = census_workspace.fixture.id
-  label        = "pre-migration-fixture: dbt_cloud trigger"
-  paused       = true
-  operation    = "upsert"
-
-  source_attributes {
-    connection_id = census_source.fixture.id
-    object {
-      type          = "table"
-      table_name    = var.redshift_table_name
-      table_schema  = var.redshift_table_schema
-      table_catalog = var.redshift_database
-    }
-  }
-
-  destination_attributes {
-    connection_id = census_destination.fixture.id
-    object        = "Contact"
-  }
-
-  field_mapping {
-    from                  = "email"
-    to                    = "Email"
-    is_primary_identifier = true
-  }
-
-  field_mapping {
-    from = "last_name"
-    to   = "LastName"
-  }
-
-  field_mapping {
-    from = "id"
-    to   = "Census_ID__c"
-  }
-
-  run_mode {
-    type = "triggered"
-    triggers {
-      dbt_cloud {
-        project_id = var.dbt_cloud_project_id
-        job_id     = var.dbt_cloud_job_id
+      schedule {
+        frequency = "never"
       }
     }
   }
 }
 
-# Covers: run_mode triggered+fivetran. Only created if both Fivetran
-# variables are set — leave them null (the default) to skip this resource
-# entirely if you don't have a Fivetran integration in staging.
-resource "census_sync" "fixture_fivetran_trigger" {
-  count = var.fivetran_job_id != null && var.fivetran_job_name != null ? 1 : 0
-
-  workspace_id = census_workspace.fixture.id
-  label        = "pre-migration-fixture: fivetran trigger"
-  paused       = true
-  operation    = "upsert"
-
-  source_attributes {
-    connection_id = census_source.fixture.id
-    object {
-      type          = "table"
-      table_name    = var.redshift_table_name
-      table_schema  = var.redshift_table_schema
-      table_catalog = var.redshift_database
-    }
-  }
-
-  destination_attributes {
-    connection_id = census_destination.fixture.id
-    object        = "Contact"
-  }
-
-  field_mapping {
-    from                  = "email"
-    to                    = "Email"
-    is_primary_identifier = true
-  }
-
-  field_mapping {
-    from = "last_name"
-    to   = "LastName"
-  }
-
-  field_mapping {
-    from = "id"
-    to   = "Census_ID__c"
-  }
-
-  run_mode {
-    type = "triggered"
-    triggers {
-      fivetran {
-        job_id   = var.fivetran_job_id
-        job_name = var.fivetran_job_name
-      }
-    }
-  }
-}

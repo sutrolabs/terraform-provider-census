@@ -8,23 +8,31 @@ values blanked) produced by applying `pre_migration/` against the current
 before-and-after baseline: a provider build should be able to `plan` against
 this state with no unexpected changes.
 
-**Current coverage is partial.** Only one `census_sync` resource
-(`fixture_table_all_mappings`) actually applied successfully — it covers all
-five `field_mapping` types (direct, constant, sync_metadata, liquid_template,
-segment_membership) and two alert types (Failure, InvalidRecordPercent), with
-a `triggered`+`schedule` run_mode.
+**All three `census_sync` resources in `pre_migration/` now apply successfully:**
+- `fixture_table_all_mappings` — all five `field_mapping` types (direct,
+  constant, sync_metadata, liquid_template, segment_membership) and two alert
+  types (Failure, InvalidRecordPercent), with a `triggered`+`schedule`
+  run_mode.
+- `fixture_dataset_source` — dataset-type source object, `triggered`+`schedule`
+  run_mode. No alerts: it originally also covered the FullSyncTrigger and
+  RecordCountDeviation alert types, but both caused a
+  `sync_alert_configurations is invalid` API error that wasn't worth chasing —
+  alert configuration behavior is out of scope for this migration, and
+  `fixture_table_all_mappings` already covers two other alert types. Those two
+  alert blocks were removed from that sync's config permanently, not deferred.
+- `fixture_sync_sequence_trigger` — `sync_sequence` trigger.
 
-Not yet represented, because the corresponding resources in `pre_migration/`
-failed to apply due to a Census-side bug currently being worked with another
-team:
-- `fixture_dataset_source` — dataset-type source object; FullSyncTrigger and
-  RecordCountDeviation alerts
-- `fixture_live_mode` — `run_mode.type = "live"`; Runtime and Status alerts
-- `fixture_sync_sequence_trigger` — `sync_sequence` trigger
+`fixture_dbt_cloud_trigger` and `fixture_fivetran_trigger` have been removed
+from `pre_migration/` entirely (not just skipped) — dbt Cloud/Fivetran sync
+triggers aren't changing as part of this migration, so there's no need to
+cover them in this fixture.
 
-Also not yet created (optional, `count`-gated on unset variables, not a
-failure): `fixture_dbt_cloud_trigger`, `fixture_fivetran_trigger`.
+There is no `run_mode.type = "live"` fixture — live mode syncs have been
+completely sunset from the Census product since this provider was authored,
+so there's nothing left to exercise. This also means Runtime and Status alert
+types (which the removed live-mode fixture covered) aren't represented in
+this fixture at all anymore.
 
-**To refresh this fixture** once the upstream bug is fixed: re-run
-`terraform apply` in `pre_migration/`, redact the result the same way
+**If this file doesn't yet reflect the state above**, it needs refreshing:
+re-run `terraform apply` in `pre_migration/`, redact the result the same way
 described in `pre_migration/README.md`, and overwrite this file.

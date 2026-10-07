@@ -18,9 +18,3 @@ salesforce_client_id       = "3MVG9..."
 salesforce_instance_url    = "https://your-sandbox.my.salesforce.com"
 salesforce_jwt_signing_key = "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----\n"
 salesforce_domain          = "test"
-
-# Optional — leave commented out / null to skip those two sync resources
-# dbt_cloud_project_id = "12345"
-# dbt_cloud_job_id     = "67890"
-# fivetran_job_id      = "123456"
-# fivetran_job_name    = "my_fivetran_job"

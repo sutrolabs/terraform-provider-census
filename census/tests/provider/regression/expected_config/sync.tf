@@ -91,3 +91,99 @@ resource "census_sync" "fixture_table_all_mappings" {
     }
   }
 }
+
+resource "census_sync" "fixture_dataset_source" {
+  workspace_id = census_workspace.fixture.id
+  label        = "pre-migration-fixture: dataset source"
+  paused       = true
+  operation    = "upsert"
+
+  source_attributes {
+    connection_id = census_source.fixture.id
+    object {
+      type = "dataset"
+      id   = census_dataset.fixture.id
+    }
+  }
+
+  destination_attributes {
+    connection_id = census_destination.fixture.id
+    object        = "Contact"
+  }
+
+  field_mapping {
+    from                  = "email"
+    to                    = "Email"
+    is_primary_identifier = true
+  }
+
+  field_mapping {
+    from = "last_name"
+    to   = "LastName"
+  }
+
+  field_mapping {
+    from = "id"
+    to   = "Census_ID__c"
+  }
+
+  run_mode {
+    type = "triggered"
+    triggers {
+      schedule {
+        frequency = "hourly"
+        minute    = 10
+      }
+    }
+  }
+}
+
+resource "census_sync" "fixture_sync_sequence_trigger" {
+  workspace_id = census_workspace.fixture.id
+  label        = "pre-migration-fixture: sync_sequence trigger"
+  paused       = true
+  operation    = "upsert"
+
+  source_attributes {
+    connection_id = census_source.fixture.id
+    object {
+      type          = "table"
+      table_name    = "users"
+      table_schema  = "public"
+      table_catalog = "dev"
+    }
+  }
+
+  destination_attributes {
+    connection_id = census_destination.fixture.id
+    object        = "Contact"
+  }
+
+  field_mapping {
+    from                  = "email"
+    to                    = "Email"
+    is_primary_identifier = true
+  }
+
+  field_mapping {
+    from = "last_name"
+    to   = "LastName"
+  }
+
+  field_mapping {
+    from = "id"
+    to   = "Census_ID__c"
+  }
+
+  run_mode {
+    type = "triggered"
+    triggers {
+      sync_sequence {
+        sync_id = census_sync.fixture_table_all_mappings.id
+      }
+      schedule {
+        frequency = "never"
+      }
+    }
+  }
+}

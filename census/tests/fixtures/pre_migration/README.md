@@ -2,8 +2,10 @@
 
 Produces a regression baseline: one real resource of every type (workspace,
 source, destination, sync, dataset), with the sync resources collectively
-covering every `field_mapping` type, every `alert` type, and every
-`run_mode`/trigger variant the current (v1-backed) provider schema supports.
+covering every `field_mapping` type and the `run_mode`/trigger/alert variants
+still reachable in the current product (see `../README.md` for exactly what's
+covered and what's deliberately excluded, including `run_mode.type = "live"`,
+which has been fully sunset from Census and is not exercised here).
 
 Run this **before any provider code change lands** — it has to reflect
 genuinely untouched behavior.
@@ -22,12 +24,6 @@ terraform init
 terraform plan
 terraform apply
 ```
-
-If `fixture_dbt_cloud_trigger` or `fixture_fivetran_trigger` fail because you
-don't have those integrations configured in your staging org, leave their
-variables unset — `count` makes both resources skip creation entirely rather
-than fail. Same for `fixture_live_mode` if your source type doesn't support
-live/continuous mode.
 
 ## ⚠️ Before committing the resulting state anywhere
 

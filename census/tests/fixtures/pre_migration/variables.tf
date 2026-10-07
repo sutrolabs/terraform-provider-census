@@ -78,35 +78,3 @@ variable "salesforce_domain" {
   description = "Salesforce OAuth domain. Reused from .env.test's CENSUS_TEST_SALESFORCE_DOMAIN, passed straight through unchanged — matches how the existing acceptance tests use it (see resource_destination_test.go)."
   type        = string
 }
-
-# ==============================================================================
-# OPTIONAL: dbt Cloud trigger — only used if both values are provided
-# ==============================================================================
-
-variable "dbt_cloud_project_id" {
-  description = "dbt Cloud project ID for the dbt_cloud trigger sync. Leave null to skip that resource entirely (it won't be created)."
-  type        = string
-  default     = null
-}
-
-variable "dbt_cloud_job_id" {
-  description = "dbt Cloud job ID for the dbt_cloud trigger sync. Leave null to skip that resource entirely."
-  type        = string
-  default     = null
-}
-
-# ==============================================================================
-# OPTIONAL: Fivetran trigger — only used if both values are provided
-# ==============================================================================
-
-variable "fivetran_job_id" {
-  description = "Fivetran job ID for the fivetran trigger sync. Leave null to skip that resource entirely."
-  type        = string
-  default     = null
-}
-
-variable "fivetran_job_name" {
-  description = "Fivetran job name for the fivetran trigger sync. Leave null to skip that resource entirely."
-  type        = string
-  default     = null
-}
