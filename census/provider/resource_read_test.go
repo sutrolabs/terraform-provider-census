@@ -133,6 +133,83 @@ func TestResourceReads_NotFoundClearsState(t *testing.T) {
 	}
 }
 
+func TestResourceReads_EmptyBodyIsError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		resourcePath    string
+		expectedSummary string
+		buildData       func(t *testing.T) *schema.ResourceData
+		read            func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
+	}{
+		{
+			name:            "destination",
+			resourcePath:    "/destinations/2311185",
+			expectedSummary: "no data",
+			buildData:       testDestinationResourceData,
+			read:            resourceDestinationRead,
+		},
+		{
+			name:            "source",
+			resourcePath:    "/sources/2280673",
+			expectedSummary: "no data",
+			buildData:       testSourceResourceData,
+			read:            resourceSourceRead,
+		},
+		{
+			name:            "dataset",
+			resourcePath:    "/datasets/44001",
+			expectedSummary: "no data",
+			buildData:       testDatasetResourceData,
+			read:            resourceDatasetRead,
+		},
+		{
+			name:            "sync",
+			resourcePath:    "/syncs/3503053",
+			expectedSummary: "no data",
+			buildData:       testSyncResourceData,
+			read:            resourceSyncRead,
+		},
+		{
+			name:            "workspace",
+			resourcePath:    "/workspaces/69962",
+			expectedSummary: "no data",
+			buildData:       testWorkspaceResourceData,
+			read:            resourceWorkspaceRead,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// A 200 with an empty body — Stage 0 item 4's fix means this must
+			// surface as an error (via errEmptyResponse in the client layer),
+			// not be treated as "not found" the way a real 404 is. Behaves
+			// like TestResourceReads_GatewayTimeoutPreservesState, not like
+			// TestResourceReads_NotFoundClearsState.
+			apiClient := newEmptyBodyReadTestClient(t, tc.resourcePath)
+			d := tc.buildData(t)
+			originalID := d.Id()
+
+			diags := tc.read(context.Background(), d, apiClient)
+			if !diags.HasError() {
+				t.Fatalf("expected diagnostics for a 200-with-empty-body %s read", tc.name)
+			}
+
+			if d.Id() != originalID {
+				t.Fatalf("expected %s ID to be preserved after an empty body response, got %q", tc.name, d.Id())
+			}
+
+			if got := diags[0].Summary; !strings.Contains(got, tc.expectedSummary) {
+				t.Fatalf("expected empty-body error summary containing %q, got %q", tc.expectedSummary, got)
+			}
+		})
+	}
+}
+
 func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *client.Client {
 	t.Helper()
 
@@ -146,6 +223,38 @@ func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *clien
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(statusCode)
 			_, _ = w.Write([]byte(`{"message":"request failed"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	apiClient, err := client.NewClient(&client.Config{
+		BaseURL:             server.URL,
+		PersonalAccessToken: "personal-token",
+	})
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	return apiClient
+}
+
+// newEmptyBodyReadTestClient is like newReadTestClient, but responds to
+// resourcePath with a 200 and a zero-length body instead of an error status
+// — the "API returned successfully but with nil data" scenario.
+func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *client.Client {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/workspaces/69962/api_key":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"api_key":"workspace-token"}`))
+		case resourcePath:
+			w.WriteHeader(http.StatusOK)
+			// Deliberately no body written.
 		default:
 			http.NotFound(w, r)
 		}
@@ -215,6 +324,17 @@ func testSyncResourceData(t *testing.T) *schema.ResourceData {
 		"operation":    "upsert",
 	})
 	d.SetId("3503053")
+
+	return d
+}
+
+func testWorkspaceResourceData(t *testing.T) *schema.ResourceData {
+	t.Helper()
+
+	d := schema.TestResourceDataRaw(t, resourceWorkspace().Schema, map[string]interface{}{
+		"name": "Test Workspace",
+	})
+	d.SetId("69962")
 
 	return d
 }
