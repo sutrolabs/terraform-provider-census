@@ -83,6 +83,27 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("Census API error (status %d)", e.StatusCode)
 }
 
+// errEmptyResponse reports that the Census API responded successfully but
+// without the data a caller expected to read back (e.g. an empty body on a
+// 200). There's no confirmed case where this represents a genuine "not
+// found" — callers should treat it as an unexpected error, not infer that
+// the resource was deleted.
+func errEmptyResponse(resourceDescription string) error {
+	return fmt.Errorf("Census API returned a successful response with no data for %s — this is unexpected and may indicate an API or network issue; the resource was not modified", resourceDescription)
+}
+
+// errAmbiguousCreateResponse reports that a create request appeared to
+// succeed at the HTTP level but returned no data, so the caller has no ID to
+// record. Unlike errEmptyResponse, this is not just "unexpected" — a 200
+// response means the resource may actually have been created on the Census
+// backend despite the missing body, so blindly retrying risks creating a
+// duplicate. There is deliberately no SetId-and-taint path available here
+// (Terraform's standard mechanism for this ambiguity): no ID was returned,
+// so there's nothing to taint. The caller can only surface this clearly.
+func errAmbiguousCreateResponse(resourceType string) error {
+	return fmt.Errorf("Census API returned a successful response with no data while creating this %s — it may have actually been created despite this error; check the Census dashboard or API before retrying to avoid creating a duplicate", resourceType)
+}
+
 // PaginationInfo holds pagination information from API responses
 type PaginationInfo struct {
 	TotalRecords int  `json:"total_records"`

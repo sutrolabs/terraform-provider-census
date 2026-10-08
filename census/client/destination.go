@@ -117,6 +117,9 @@ func (c *Client) CreateDestinationWithToken(ctx context.Context, req *CreateDest
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to create destination: %w", err)
 	}
+	if result.Data == nil {
+		return nil, errAmbiguousCreateResponse("destination")
+	}
 
 	return result.Data, nil
 }
@@ -137,6 +140,9 @@ func (c *Client) GetDestinationWithToken(ctx context.Context, destinationID int,
 	var result DestinationResponse
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to get destination: %w", err)
+	}
+	if result.Data == nil {
+		return nil, errEmptyResponse(fmt.Sprintf("destination %d", destinationID))
 	}
 
 	return result.Data, nil
