@@ -171,13 +171,6 @@ func TestResourceReads_EmptyBodyIsError(t *testing.T) {
 			buildData:       testSyncResourceData,
 			read:            resourceSyncRead,
 		},
-		{
-			name:            "workspace",
-			resourcePath:    "/workspaces/69962",
-			expectedSummary: "no data",
-			buildData:       testWorkspaceResourceData,
-			read:            resourceWorkspaceRead,
-		},
 	}
 
 	for _, tc := range testCases {

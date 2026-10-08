@@ -1,5 +1,7 @@
 # census_workspace Data Source
 
+~> **Deprecated:** Workspace management has been removed from the version of the Census API this provider targets. You may continue to include census_workspace data sources in your configurations, but no data will be fetched from the Census API. Do not include census_workspace data sources in new configurations.
+
 Retrieves information about a Census workspace.
 
 ## Example Usage
