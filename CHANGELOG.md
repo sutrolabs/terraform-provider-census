@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.20] - 2026-10-08
+
+### Fixed
+- **Empty API response handling**: `census_destination`, `census_source`, `census_dataset`, `census_sync`, and `census_workspace` now treat a successful (`200`) API response with no data as a hard error instead of silently proceeding with zero-value data. Previously, a read in this situation could leave Terraform state populated with incorrect blank values without any warning, and a create in this situation could report success while leaving the resource's ID unset, risking a duplicate resource being created on the next `apply`.
+- **Removed unconditional debug output for `census_sync`**: Creating or updating a sync no longer writes request/response details to predictable files under `/tmp` (`/tmp/census_sync_debug.log`, `/tmp/census_sync_update_<id>_debug.log`) or prints them unconditionally to stdout. Debug details, including request bodies, are now only emitted through Terraform's structured logging when `TF_LOG=debug` (or more verbose) is set.
+
 ## [0.2.19] - 2026-09-02
 
 ### Added
