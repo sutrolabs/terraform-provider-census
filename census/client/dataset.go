@@ -74,6 +74,9 @@ func (c *Client) CreateDatasetWithToken(ctx context.Context, req *CreateDatasetR
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to create dataset: %w", err)
 	}
+	if result.Data == nil {
+		return nil, errAmbiguousCreateResponse("dataset")
+	}
 
 	return result.Data, nil
 }
@@ -94,6 +97,9 @@ func (c *Client) GetDatasetWithToken(ctx context.Context, id int, workspaceToken
 	var result DatasetResponse
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to get dataset: %w", err)
+	}
+	if result.Data == nil {
+		return nil, errEmptyResponse(fmt.Sprintf("dataset %d", id))
 	}
 
 	return result.Data, nil

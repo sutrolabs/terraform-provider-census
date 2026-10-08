@@ -336,6 +336,13 @@ func (c *Client) CreateSyncWithToken(ctx context.Context, req *CreateSyncRequest
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to create sync: %w", err)
 	}
+	if result.Data.SyncID == 0 {
+		// CreateSyncResponse.Data is a value struct, not a pointer, so an
+		// empty response body can't be detected via a nil check the way the
+		// other Create*WithToken functions do it — it silently leaves SyncID
+		// at its zero value instead. Treat that the same as a missing ID.
+		return nil, errAmbiguousCreateResponse("sync")
+	}
 
 	// Create a minimal Sync object from the response
 	sync := &Sync{
@@ -362,6 +369,9 @@ func (c *Client) GetSyncWithToken(ctx context.Context, syncID int, workspaceToke
 	var result SyncResponse
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to get sync: %w", err)
+	}
+	if result.Data == nil {
+		return nil, errEmptyResponse(fmt.Sprintf("sync %d", syncID))
 	}
 
 	return result.Data, nil

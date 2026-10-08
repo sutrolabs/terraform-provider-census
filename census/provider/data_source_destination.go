@@ -92,11 +92,6 @@ func dataSourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	// Check if destination is nil (API returned successfully but with nil data)
-	if destination == nil {
-		return diag.Errorf("destination not found: %d", id)
-	}
-
 	d.SetId(strconv.Itoa(destination.ID))
 	// Note: workspace_id is a Required input field, don't overwrite it with API response
 	d.Set("name", destination.Name)

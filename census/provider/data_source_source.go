@@ -92,11 +92,6 @@ func dataSourceSourceRead(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	// Check if source is nil (API returned successfully but with nil data)
-	if source == nil {
-		return diag.Errorf("source not found: %d", id)
-	}
-
 	d.SetId(strconv.Itoa(source.ID))
 	// Note: workspace_id is a Required input field, don't overwrite it with API response
 	d.Set("name", source.Name)

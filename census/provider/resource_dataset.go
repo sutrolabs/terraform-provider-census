@@ -278,12 +278,6 @@ To fix this, add the missing workspace_id to terraform state:
 		return diag.FromErr(err)
 	}
 
-	// Check if dataset is nil (API returned successfully but with nil data)
-	if dataset == nil {
-		d.SetId("")
-		return nil
-	}
-
 	// Only update workspace_id if API returned it, otherwise preserve what's in state
 	if dataset.WorkspaceID != "" {
 		d.Set("workspace_id", dataset.WorkspaceID)

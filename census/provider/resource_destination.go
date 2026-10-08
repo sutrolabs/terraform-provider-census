@@ -191,11 +191,6 @@ func resourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
-	if destination == nil {
-		d.SetId("")
-		return nil
-	}
-
 	// Only update workspace_id if API returned it, otherwise preserve what's in state
 	if destination.WorkspaceID != "" {
 		d.Set("workspace_id", destination.WorkspaceID)

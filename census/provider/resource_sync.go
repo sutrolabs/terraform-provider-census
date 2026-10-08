@@ -727,13 +727,6 @@ To fix this, add the missing workspace_id to terraform state:
 		return diag.FromErr(err)
 	}
 
-	// Check if sync is nil (API returned successfully but with nil data)
-	if sync == nil {
-		tflog.Debug(ctx, "Sync is nil, clearing resource ID", map[string]interface{}{"sync_id": id})
-		d.SetId("")
-		return nil
-	}
-
 	// Only update workspace_id if API returned it, otherwise preserve what's in state
 	if sync.WorkspaceID != "" {
 		d.Set("workspace_id", sync.WorkspaceID)
