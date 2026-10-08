@@ -119,10 +119,6 @@ func dataSourceDatasetRead(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	if dataset == nil {
-		return diag.Errorf("dataset not found: %d", id)
-	}
-
 	d.SetId(strconv.Itoa(dataset.ID))
 	d.Set("workspace_id", workspaceId)
 	d.Set("name", dataset.Name)

@@ -105,6 +105,9 @@ func (c *Client) CreateSourceWithToken(ctx context.Context, req *CreateSourceReq
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to create source: %w", err)
 	}
+	if result.Data == nil {
+		return nil, errAmbiguousCreateResponse("source")
+	}
 
 	return result.Data, nil
 }
@@ -125,6 +128,9 @@ func (c *Client) GetSourceWithToken(ctx context.Context, sourceID int, workspace
 	var result SourceResponse
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to get source: %w", err)
+	}
+	if result.Data == nil {
+		return nil, errEmptyResponse(fmt.Sprintf("source %d", sourceID))
 	}
 
 	return result.Data, nil
