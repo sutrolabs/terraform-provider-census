@@ -1,0 +1,20 @@
+# Copy this file to terraform.tfvars and fill in real staging values.
+# terraform.tfvars is gitignored — never commit it.
+
+census_personal_token = "your-staging-personal-access-token"
+
+# Redshift test cluster (see TESTING.md)
+redshift_host          = "your-cluster.region.redshift.amazonaws.com"
+redshift_port          = "5439"
+redshift_database      = "dev"
+redshift_username      = "testuser"
+redshift_password      = "your-redshift-password"
+redshift_table_schema  = "public"
+redshift_table_name    = "users" # must have id, email, first_name, last_name columns
+
+# Salesforce sandbox, JWT OAuth (see TESTING.md)
+salesforce_username        = "test@example.com"
+salesforce_client_id       = "3MVG9..."
+salesforce_instance_url    = "https://your-sandbox.my.salesforce.com"
+salesforce_jwt_signing_key = "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----\n"
+salesforce_domain          = "test"

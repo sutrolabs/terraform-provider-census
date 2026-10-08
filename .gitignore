@@ -16,6 +16,9 @@
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+# Intentionally-committed, redacted regression fixture (see
+# census/tests/fixtures/pre_migration/README.md before replacing this file)
+!census/tests/fixtures/pre_migration.tfstate
 .terraform/
 .terraform.lock.hcl
 terraform.rc
