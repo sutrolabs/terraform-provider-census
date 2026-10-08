@@ -1,5 +1,7 @@
 # census_workspace Resource
 
+~> **Deprecated:** Workspace management has been removed from the version of the Census API this provider targets. You may continue to include census_workspace resources in your configuration, but no resources will be managed in the Census API, and attempting to create a new workspace will fail. You can safely remove census_workspace resources from your configuration without triggering any changes to your Census account. Do not include census_workspace resources in new configurations.
+
 Manages a Census workspace. Workspaces in Census are containers that organize your data syncs, destinations, and sources.
 
 ## Example Usage
@@ -43,4 +45,3 @@ terraform import census_workspace.example 123
 - The `api_key` attribute is only populated during resource creation when `return_workspace_api_key` is set to `true`.
 - The API key is marked as sensitive and will not be displayed in Terraform output unless explicitly requested.
 - Workspace names must be unique within your Census organization.
-- Deleting a workspace will also delete all associated syncs, destinations, and sources. Use caution when destroying workspace resources.

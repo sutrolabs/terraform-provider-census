@@ -2,16 +2,15 @@ package provider
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
 
 func resourceWorkspace() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "Workspace management has been removed from the version of the Census API this provider targets. You may continue to include census_workspace resources in your configuration, but no resources will be managed in the Census API, and attempting to create a new workspace will fail. You can safely remove census_workspace resources from your configuration without triggering any changes to your Census account. Do not include census_workspace resources in new configurations.",
+
 		Description: "Manages a Census workspace.",
 
 		CreateContext: resourceWorkspaceCreate,
@@ -31,12 +30,14 @@ func resourceWorkspace() *schema.Resource {
 			},
 			"name": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
+				Computed:    true,
 				Description: "The name of the workspace. Must be unique within the organization.",
 			},
 			"notification_emails": {
 				Type:        schema.TypeSet,
 				Optional:    true,
+				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Set:         schema.HashString,
 				Description: "The list of emails that will receive alerts from the workspace.",
@@ -68,116 +69,17 @@ func resourceWorkspace() *schema.Resource {
 }
 
 func resourceWorkspaceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
-
-	name := d.Get("name").(string)
-	notificationEmails := expandStringSet(d.Get("notification_emails").(*schema.Set))
-	returnAPIKey := d.Get("return_workspace_api_key").(bool)
-
-	req := &client.CreateWorkspaceRequest{
-		Name:                  name,
-		NotificationEmails:    notificationEmails,
-		ReturnWorkspaceAPIKey: returnAPIKey,
-	}
-
-	workspace, err := apiClient.CreateWorkspace(ctx, req)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(strconv.Itoa(workspace.ID))
-
-	// Set the API key if it was returned
-	if workspace.APIKey != "" {
-		d.Set("api_key", workspace.APIKey)
-	}
-
-	return resourceWorkspaceRead(ctx, d, meta)
+	return diag.Errorf("census_workspace can no longer be created; workspace management has been removed from this provider")
 }
 
 func resourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
-
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", d.Id())
-	}
-
-	workspace, err := apiClient.GetWorkspace(ctx, id)
-	if err != nil {
-		// Check if workspace was not found
-		if IsNotFoundError(err) {
-			d.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
-	}
-
-	d.Set("name", workspace.Name)
-	d.Set("organization_id", workspace.OrganizationID)
-
-	// Set time field only if it's not a zero value
-	if !workspace.CreatedAt.IsZero() {
-		d.Set("created_at", workspace.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
-	}
-
-	if err := d.Set("notification_emails", workspace.NotificationEmails); err != nil {
-		return diag.FromErr(err)
-	}
-
 	return nil
 }
 
 func resourceWorkspaceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
-
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", d.Id())
-	}
-
-	name := d.Get("name").(string)
-	notificationEmails := expandStringSet(d.Get("notification_emails").(*schema.Set))
-
-	req := &client.UpdateWorkspaceRequest{
-		Name:               name,
-		NotificationEmails: notificationEmails,
-	}
-
-	_, err = apiClient.UpdateWorkspace(ctx, id, req)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return resourceWorkspaceRead(ctx, d, meta)
-}
-
-func resourceWorkspaceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
-
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", d.Id())
-	}
-
-	err = apiClient.DeleteWorkspace(ctx, id)
-	if err != nil {
-		// If workspace is already deleted, don't return error
-		if IsNotFoundError(err) {
-			return nil
-		}
-		return diag.FromErr(err)
-	}
-
 	return nil
 }
 
-// expandStringSet converts a Terraform Set to a slice of strings
-func expandStringSet(set *schema.Set) []string {
-	list := set.List()
-	result := make([]string, len(list))
-	for i, v := range list {
-		result[i] = v.(string)
-	}
-	return result
+func resourceWorkspaceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return nil
 }
