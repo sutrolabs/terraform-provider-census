@@ -667,7 +667,11 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		AlertAttributes: ExpandAlerts(ctx, d.Get("alert").([]interface{})),
 	}
 
-	tflog.Debug(ctx, "Creating sync", map[string]interface{}{"request": fmt.Sprintf("%+v", req)})
+	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
+		tflog.Debug(ctx, "Creating sync", map[string]interface{}{"request": string(reqJSON)})
+	} else {
+		tflog.Debug(ctx, "Creating sync (failed to marshal request for logging)", map[string]interface{}{"error": jsonErr.Error()})
+	}
 	sync, err := apiClient.CreateSyncWithToken(ctx, req, workspaceToken)
 	if err != nil {
 		return diag.FromErr(err)
@@ -1041,7 +1045,11 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		AlertAttributes: ExpandAlerts(ctx, d.Get("alert").([]interface{})),
 	}
 
-	tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": id, "request": fmt.Sprintf("%+v", req)})
+	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
+		tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": id, "request": string(reqJSON)})
+	} else {
+		tflog.Debug(ctx, "Updating sync (failed to marshal request for logging)", map[string]interface{}{"sync_id": id, "error": jsonErr.Error()})
+	}
 	_, err = apiClient.UpdateSyncWithToken(ctx, id, req, workspaceToken)
 	if err != nil {
 		return diag.FromErr(err)

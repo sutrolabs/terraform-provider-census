@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -328,7 +329,11 @@ func (c *Client) CreateSync(ctx context.Context, req *CreateSyncRequest) (*Sync,
 
 // CreateSyncWithToken creates a new sync using a specific workspace token
 func (c *Client) CreateSyncWithToken(ctx context.Context, req *CreateSyncRequest, workspaceToken string) (*Sync, error) {
-	tflog.Debug(ctx, "Creating sync", map[string]interface{}{"request": fmt.Sprintf("%+v", req)})
+	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
+		tflog.Debug(ctx, "Creating sync", map[string]interface{}{"request": string(reqJSON)})
+	} else {
+		tflog.Debug(ctx, "Creating sync (failed to marshal request for logging)", map[string]interface{}{"error": jsonErr.Error()})
+	}
 
 	resp, err := c.makeRequestWithToken(ctx, http.MethodPost, "/syncs", req, TokenTypeWorkspace, workspaceToken)
 	if err != nil {
@@ -385,7 +390,11 @@ func (c *Client) UpdateSync(ctx context.Context, syncID int, req *UpdateSyncRequ
 
 // UpdateSyncWithToken updates an existing sync using a specific workspace token
 func (c *Client) UpdateSyncWithToken(ctx context.Context, syncID int, req *UpdateSyncRequest, workspaceToken string) (*Sync, error) {
-	tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": syncID, "request": fmt.Sprintf("%+v", req)})
+	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
+		tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": syncID, "request": string(reqJSON)})
+	} else {
+		tflog.Debug(ctx, "Updating sync (failed to marshal request for logging)", map[string]interface{}{"sync_id": syncID, "error": jsonErr.Error()})
+	}
 
 	path := fmt.Sprintf("/syncs/%d", syncID)
 	resp, err := c.makeRequestWithToken(ctx, http.MethodPatch, path, req, TokenTypeWorkspace, workspaceToken)
