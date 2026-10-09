@@ -2,7 +2,7 @@
 // instead of planning with no config (expect a clean delete for everything),
 // it plans WITH a matching config present (expect no changes at all). See
 // expected_config/README.md for why that config is a separate, independently
-// maintained artifact rather than a copy of census/tests/fixtures/pre_migration/*.tf.
+// maintained artifact rather than a copy of census/tests/regression/fixtures/pre_migration/*.tf.
 package regression_test
 
 import (

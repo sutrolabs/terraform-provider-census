@@ -6,13 +6,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 func TestResourceWorkspace_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers:    provider_test.TestAccProviders,
+		PreCheck:     func() { TestAccPreCheckIntegration(t) },
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckWorkspaceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -30,8 +29,8 @@ func TestResourceWorkspace_basic(t *testing.T) {
 
 func TestResourceWorkspace_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers:    provider_test.TestAccProviders,
+		PreCheck:     func() { TestAccPreCheckIntegration(t) },
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckWorkspaceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -55,8 +54,8 @@ func TestResourceWorkspace_update(t *testing.T) {
 
 func TestResourceWorkspace_withAPIKey(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { provider_test.TestAccPreCheck(t) },
-		Providers:    provider_test.TestAccProviders,
+		PreCheck:     func() { TestAccPreCheck(t) },
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckWorkspaceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -74,8 +73,8 @@ func TestResourceWorkspace_withAPIKey(t *testing.T) {
 
 func TestResourceWorkspace_Import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers:    provider_test.TestAccProviders,
+		PreCheck:     func() { TestAccPreCheckIntegration(t) },
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckWorkspaceDestroy,
 		Steps: []resource.TestStep{
 			{

@@ -9,13 +9,13 @@ import (
 	"testing"
 )
 
-const fixtureStatePath = "../../fixtures/pre_migration.tfstate"
+const fixtureStatePath = "./fixtures/pre_migration.tfstate"
 
 // expectedConfigDir holds the real .tf files tracking what the CURRENT
 // provider schema expects in order to reproduce the fixture's resources with
 // no drift. See expected_config/README.md for why this is a separate,
 // independently maintained artifact rather than a copy of
-// census/tests/fixtures/pre_migration/*.tf.
+// census/tests/regression/fixtures/pre_migration/*.tf.
 const expectedConfigDir = "expected_config"
 
 // copyConfigFiles copies the named files (relative to expectedConfigDir)
@@ -55,7 +55,7 @@ func allExpectedConfigFiles(t *testing.T) []string {
 
 // defaultProviderBinaryPath matches the Makefile's BUILD_DIR/BINARY_NAME
 // (`make build` produces bin/terraform-provider-census at the repo root).
-const defaultProviderBinaryPath = "../../../../bin/terraform-provider-census"
+const defaultProviderBinaryPath = "../../../bin/terraform-provider-census"
 
 // providerBinaryPathEnvVar lets CI (or a local override) point at a binary
 // built somewhere other than the default location.
