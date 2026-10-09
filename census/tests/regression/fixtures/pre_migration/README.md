@@ -19,7 +19,7 @@ cp terraform.tfvars.example terraform.tfvars
 cd ../../../..  # repo root
 make build      # or: make install, if you want a local dev-override build
 
-cd census/tests/fixtures/pre_migration
+cd census/tests/regression/fixtures/pre_migration
 terraform init
 terraform plan
 terraform apply
@@ -32,7 +32,7 @@ on the source and destination, and the workspace's `api_key` — **in
 plaintext**. The `Sensitive` flag only affects CLI output, not what's written
 to the state file. Do not commit the raw state file.
 
-Before copying it to `census/tests/fixtures/pre_migration.tfstate`, redact
+Before copying it to `census/tests/regression/fixtures/pre_migration.tfstate`, redact
 those fields, e.g.:
 
 ```bash
@@ -64,7 +64,7 @@ embeds a literal secret — this fixture's dataset query doesn't).
 
 ## Teardown
 
-The regression harness (`census/tests/provider/regression/`) runs `terraform
+The regression harness (`census/tests/regression/`) runs `terraform
 plan -refresh=false` against the frozen, redacted state file — it never
 contacts the real API. Once you've captured and redacted the state, the real
 staging resources created here don't need to stay alive.

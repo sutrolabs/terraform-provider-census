@@ -8,15 +8,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 // TestAccResourceSync_Basic tests basic sync creation with minimal configuration
 func TestAccResourceSync_Basic(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSyncConfig_basic(rName),
@@ -36,8 +35,8 @@ func TestAccResourceSync_Basic(t *testing.T) {
 func TestAccResourceSync_Update(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSyncConfig_basic(rName),
@@ -61,8 +60,8 @@ func TestAccResourceSync_Update(t *testing.T) {
 func TestAccResourceSync_FieldMappings(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSyncConfig_fieldMappings(rName),
@@ -86,8 +85,8 @@ func TestAccResourceSync_FieldMappings(t *testing.T) {
 func TestAccResourceSync_RunMode_Daily(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSyncConfig_runModeDaily(rName),
@@ -107,8 +106,8 @@ func TestAccResourceSync_RunMode_Daily(t *testing.T) {
 func TestAccResourceSync_RunMode_Hourly(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSyncConfig_runModeHourly(rName),
@@ -127,8 +126,8 @@ func TestAccResourceSync_RunMode_Hourly(t *testing.T) {
 func TestAccResourceSync_RunMode_Manual(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSyncConfig_runModeManual(rName),
@@ -146,8 +145,8 @@ func TestAccResourceSync_RunMode_Manual(t *testing.T) {
 func TestAccResourceSync_Alerts(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSyncConfig_alerts(rName),
@@ -742,8 +741,8 @@ resource "census_sync" "test" {
 func TestAccResourceSync_Import(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSyncConfig_basic(rName),

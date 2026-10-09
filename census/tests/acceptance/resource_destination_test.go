@@ -7,13 +7,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 func TestAccResourceDestination_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceDestinationConfig_salesforce(),
@@ -31,8 +30,8 @@ func TestAccResourceDestination_Basic(t *testing.T) {
 
 func TestAccResourceDestination_Update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceDestinationConfig_salesforce(),
@@ -114,8 +113,8 @@ resource "census_destination" "test" {
 
 func TestAccResourceDestination_Import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceDestinationConfig_salesforce(),

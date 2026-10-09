@@ -7,14 +7,13 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 func TestAccDataSourceDataset_Basic(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceDatasetConfig_basic(rName),

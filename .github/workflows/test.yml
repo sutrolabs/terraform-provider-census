@@ -151,7 +151,7 @@ jobs:
         run: make build
 
       - name: Run regression tests
-        run: go test -v ./census/tests/provider/regression/...
+        run: go test -v ./census/tests/regression/...
 
   # Integration tests (requires Census staging + external services)
   integration-tests:
@@ -189,4 +189,4 @@ jobs:
           CENSUS_TEST_SALESFORCE_DOMAIN: ${{ secrets.CENSUS_TEST_SALESFORCE_DOMAIN }}
         run: |
           echo "Running integration tests against Census staging environment..."
-          go test -v ./census/tests/provider/acceptance -timeout 60m
+          go test -v ./census/tests/acceptance -timeout 60m
