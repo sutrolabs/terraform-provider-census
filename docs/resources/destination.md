@@ -68,8 +68,10 @@ resource "census_destination" "intercom" {
 In addition to all arguments above, the following attributes are exported:
 
 * `id` - The ID of the destination.
-* `status` - The current status of the destination.
-* `test_status` - The test status of the destination connection.
+* `status` - The current status of the destination. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `test_status` - The test status of the destination connection. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `last_tested` - Timestamp when the destination was last tested. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `updated_at` - Timestamp when the destination was last updated. **Deprecated:** This field is unsupported and will be removed in a future version.
 
 ## Import
 

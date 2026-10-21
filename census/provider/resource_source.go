@@ -95,16 +95,19 @@ func resourceSource() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The current status of the source connection.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"test_status": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The status of the last connection test.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"last_tested": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Timestamp when the source was last tested.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
@@ -115,6 +118,7 @@ func resourceSource() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Timestamp when the source was last updated.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"auto_refresh_tables": {
 				Type:        schema.TypeBool,

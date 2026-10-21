@@ -195,8 +195,10 @@ resource "census_source" "postgres" {
 In addition to all arguments above, the following attributes are exported:
 
 * `id` - The ID of the source.
-* `status` - The current status of the source.
-* `test_status` - The test status of the source connection.
+* `status` - The current status of the source. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `test_status` - The test status of the source connection. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `last_tested` - Timestamp when the source was last tested. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `updated_at` - Timestamp when the source was last updated. **Deprecated:** This field is unsupported and will be removed in a future version.
 * `sync_engine` - The sync engine configured for the source when it is returned by the Census API.
 
 ## Import

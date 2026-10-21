@@ -514,16 +514,19 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "Timestamp when the sync was last executed.",
+			Deprecated:  "This field is unsupported and will be removed in a future version.",
 		},
 		"next_run_at": {
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "Timestamp when the sync is scheduled to run next.",
+			Deprecated:  "This field is unsupported and will be removed in a future version.",
 		},
 		"last_run_id": {
 			Type:        schema.TypeInt,
 			Computed:    true,
 			Description: "ID of the last sync run.",
+			Deprecated:  "This field is unsupported and will be removed in a future version.",
 		},
 	}
 }
