@@ -1,0 +1,14 @@
+.github/CODEOWNERS
+  h_96efa7013a7935 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4be12c8a5acc7ccaa3210dec0c71975b8f51c9b8",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
