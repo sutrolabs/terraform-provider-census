@@ -813,15 +813,8 @@ To fix this, add the missing workspace_id to terraform state:
 		d.Set("updated_at", sync.UpdatedAt.Format("2006-01-02T15:04:05Z"))
 	}
 
-	if sync.LastRunAt != nil {
-		d.Set("last_run_at", sync.LastRunAt.Format("2006-01-02T15:04:05Z"))
-	}
-	if sync.NextRunAt != nil {
-		d.Set("next_run_at", sync.NextRunAt.Format("2006-01-02T15:04:05Z"))
-	}
-	if sync.LastRunID != nil {
-		d.Set("last_run_id", *sync.LastRunID)
-	}
+	// last_run_at, next_run_at and last_run_id are deprecated: the API does not support them,
+	// so they are never set and stay empty.
 
 	// Handle run_mode from API response
 	if sync.Mode != nil {
@@ -850,14 +843,11 @@ To fix this, add the missing workspace_id to terraform state:
 	}
 
 	// Convert API Mappings back to Terraform FieldMappings with defensive handling
-	fmt.Printf("[DEBUG] Converting field mappings - Mappings: %v, FieldMappings: %v\n", sync.Mappings != nil, sync.FieldMappings != nil)
+	fmt.Printf("[DEBUG] Converting field mappings - Mappings: %v\n", sync.Mappings != nil)
 	var fieldMappings []client.FieldMapping
 	if sync.Mappings != nil && len(sync.Mappings) > 0 {
 		fmt.Printf("[DEBUG] Using sync.Mappings (count: %d)\n", len(sync.Mappings))
 		fieldMappings = ConvertMappingAttributesToFieldMappings(sync.Mappings)
-	} else if sync.FieldMappings != nil {
-		fmt.Printf("[DEBUG] Using sync.FieldMappings (count: %d)\n", len(sync.FieldMappings))
-		fieldMappings = sync.FieldMappings // Fallback to legacy field
 	} else {
 		fmt.Printf("[DEBUG] Using empty field mappings\n")
 		fieldMappings = []client.FieldMapping{} // Empty slice as fallback
