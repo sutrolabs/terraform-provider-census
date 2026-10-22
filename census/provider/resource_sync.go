@@ -1320,81 +1320,6 @@ func FlattenAlerts(alerts []client.AlertAttribute) []interface{} {
 	return result
 }
 
-func ExpandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
-	fmt.Printf("[DEBUG] ExpandSyncSchedule called with: %+v\n", schedules)
-
-	if len(schedules) == 0 || schedules[0] == nil {
-		fmt.Printf("[DEBUG] ExpandSyncSchedule returning nil (empty or nil schedule)\n")
-		return nil
-	}
-
-	// Safe type assertion
-	sInterface := schedules[0]
-	s, ok := sInterface.(map[string]interface{})
-	if !ok {
-		fmt.Printf("[DEBUG] ExpandSyncSchedule: schedules[0] is not a map[string]interface{}, type: %T, value: %+v\n", sInterface, sInterface)
-		return nil
-	}
-	fmt.Printf("[DEBUG] schedule map: %+v\n", s)
-
-	// Safely extract values with defaults
-	frequency := ""
-	if freq, ok := s["frequency"]; ok && freq != nil {
-		if freqStr, ok := freq.(string); ok {
-			frequency = freqStr
-		} else {
-			fmt.Printf("[DEBUG] ExpandSyncSchedule: frequency is not a string, type: %T, value: %+v\n", freq, freq)
-		}
-	}
-
-	minute := 0 // default
-	if m, ok := s["minute"]; ok && m != nil {
-		if minuteInt, ok := m.(int); ok {
-			minute = minuteInt
-		} else {
-			fmt.Printf("[DEBUG] ExpandSyncSchedule: minute is not an int, type: %T, value: %+v\n", m, m)
-		}
-	}
-
-	hour := 0 // default
-	if h, ok := s["hour"]; ok && h != nil {
-		if hourInt, ok := h.(int); ok {
-			hour = hourInt
-		} else {
-			fmt.Printf("[DEBUG] ExpandSyncSchedule: hour is not an int, type: %T, value: %+v\n", h, h)
-		}
-	}
-
-	dayOfWeek := 0 // default
-	if dow, ok := s["day_of_week"]; ok && dow != nil {
-		if dowInt, ok := dow.(int); ok {
-			dayOfWeek = dowInt
-		} else {
-			fmt.Printf("[DEBUG] ExpandSyncSchedule: day_of_week is not an int, type: %T, value: %+v\n", dow, dow)
-		}
-	}
-
-	timezone := "UTC" // default
-	if tz, ok := s["timezone"]; ok && tz != nil {
-		if tzStr, ok := tz.(string); ok {
-			timezone = tzStr
-		} else {
-			fmt.Printf("[DEBUG] ExpandSyncSchedule: timezone is not a string, type: %T, value: %+v\n", tz, tz)
-		}
-	}
-
-	result := &client.SyncSchedule{
-		Frequency: frequency,
-		Minute:    minute,
-		Hour:      hour,
-		DayOfWeek: dayOfWeek,
-		Timezone:  timezone,
-	}
-
-	fmt.Printf("[DEBUG] ExpandSyncSchedule returning: %+v\n", result)
-	return result
-}
-
 // ExpandRunMode converts Terraform run_mode config to API SyncMode struct
 func ExpandRunMode(ctx context.Context, runModes []interface{}) *client.SyncMode {
 	if len(runModes) == 0 || runModes[0] == nil {
@@ -1766,20 +1691,6 @@ func FlattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 	}
 
 	return []map[string]interface{}{result}
-}
-
-func ExpandStringList(ctx context.Context, list []interface{}) []string {
-	result := make([]string, 0, len(list))
-	for i, v := range list {
-		// Safe type assertion
-		if str, ok := v.(string); ok {
-			result = append(result, str)
-		} else {
-			tflog.Debug(ctx, "ExpandStringList: value is not a string", map[string]interface{}{"index": i, "type": fmt.Sprintf("%T", v)})
-			// Skip non-string values instead of panicking
-		}
-	}
-	return result
 }
 
 // convertToString converts various types to string for Terraform compatibility
