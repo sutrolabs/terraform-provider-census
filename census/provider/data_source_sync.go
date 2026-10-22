@@ -75,6 +75,7 @@ func dataSourceSync() *schema.Resource {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "Field mappings between source and destination.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from": {
@@ -239,16 +240,19 @@ func dataSourceSync() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Timestamp when the sync was last executed.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"next_run_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Timestamp when the sync is scheduled to run next.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"last_run_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "ID of the last sync run.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 		},
 	}
@@ -291,15 +295,8 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("created_at", sync.CreatedAt.Format("2006-01-02T15:04:05Z"))
 	d.Set("updated_at", sync.UpdatedAt.Format("2006-01-02T15:04:05Z"))
 
-	if sync.LastRunAt != nil {
-		d.Set("last_run_at", sync.LastRunAt.Format("2006-01-02T15:04:05Z"))
-	}
-	if sync.NextRunAt != nil {
-		d.Set("next_run_at", sync.NextRunAt.Format("2006-01-02T15:04:05Z"))
-	}
-	if sync.LastRunID != nil {
-		d.Set("last_run_id", *sync.LastRunID)
-	}
+	// last_run_at, next_run_at and last_run_id are deprecated: the API does not support them,
+	// so they are never set and stay empty.
 
 	// Set complex attributes
 	if err := d.Set("source_attributes", flattenSourceAttributesForDataSource(sync.SourceAttributes)); err != nil {
@@ -308,7 +305,8 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	if err := d.Set("destination_attributes", flattenDestinationAttributesForDataSource(sync.DestinationAttributes)); err != nil {
 		return diag.Errorf("failed to set destination_attributes: %v", err)
 	}
-	if err := d.Set("field_mapping", FlattenFieldMappings(sync.FieldMappings)); err != nil {
+	// field_mapping is deprecated: the API does not support it, so it is always an empty list.
+	if err := d.Set("field_mapping", []interface{}{}); err != nil {
 		return diag.Errorf("failed to set field_mapping: %v", err)
 	}
 	if sync.Mode != nil {

@@ -26,6 +26,8 @@ output "source_status" {
 * `type` - The type of data source connector (e.g., "snowflake", "big_query", "postgres").
 * `connection_status` - The current connection status of the source.
 * `connection_config` - The connection configuration for the source (sensitive, not fully populated in reads).
-* `status` - The current status of the source.
+* `status` - The current status of the source. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `test_status` - The test status of the source connection. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `last_tested` - Timestamp when the source was last tested. **Deprecated:** This field is unsupported and will be removed in a future version.
 * `created_at` - When the source was created.
-* `updated_at` - When the source was last updated.
+* `updated_at` - When the source was last updated. **Deprecated:** This field is unsupported and will be removed in a future version.

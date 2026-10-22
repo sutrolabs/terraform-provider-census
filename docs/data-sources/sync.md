@@ -45,7 +45,7 @@ output "sync_run_mode" {
   * `connection_id` - The destination connection ID.
   * `object` - The destination object name.
   * `lead_union_insert_to` - Lead union insertion target (Salesforce only).
-* `field_mapping` - Set of field mappings between source and destination:
+* `field_mapping` - Set of field mappings between source and destination. **Deprecated:** This field is unsupported and will be removed in a future version.
   * `from` - Source field name.
   * `to` - Destination field name.
   * `type` - Mapping type: "direct" (default), "hash", "constant", "sync_metadata", "segment_membership", or "liquid_template".
@@ -88,6 +88,6 @@ output "sync_run_mode" {
 * `status` - The current status of the sync.
 * `created_at` - When the sync was created.
 * `updated_at` - When the sync was last updated.
-* `last_run_at` - When the sync last ran.
-* `next_run_at` - When the sync will run next.
-* `last_run_id` - ID of the last sync run.
+* `last_run_at` - When the sync last ran. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `next_run_at` - When the sync will run next. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `last_run_id` - ID of the last sync run. **Deprecated:** This field is unsupported and will be removed in a future version.

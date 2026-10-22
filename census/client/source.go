@@ -16,11 +16,7 @@ type Source struct {
 	SyncEngine                        string                 `json:"sync_engine,omitempty"`
 	WarehouseWritebackRetentionInDays *int                   `json:"warehouse_writeback_retention_in_days,omitempty"`
 	CreatedAt                         time.Time              `json:"created_at"`
-	UpdatedAt                         time.Time              `json:"updated_at"`
 	Connection                        map[string]interface{} `json:"connection"`
-	Status                            string                 `json:"status,omitempty"`
-	TestStatus                        string                 `json:"test_status,omitempty"`
-	LastTested                        *time.Time             `json:"last_tested,omitempty"`
 }
 
 // CreateSourceRequest represents the request to create a source

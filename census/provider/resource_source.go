@@ -95,16 +95,19 @@ func resourceSource() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The current status of the source connection.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"test_status": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The status of the last connection test.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"last_tested": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Timestamp when the source was last tested.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
@@ -115,6 +118,7 @@ func resourceSource() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Timestamp when the source was last updated.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"auto_refresh_tables": {
 				Type:        schema.TypeBool,
@@ -252,14 +256,13 @@ Where 69962 is the workspace_id for marketing_prod workspace.`)
 	}
 	d.Set("name", source.Name)
 	d.Set("type", source.Type)
-	d.Set("status", source.Status)
-	d.Set("test_status", source.TestStatus)
 	d.Set("created_at", source.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
-	d.Set("updated_at", source.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"))
 
-	if source.LastTested != nil {
-		d.Set("last_tested", source.LastTested.Format("2006-01-02T15:04:05Z07:00"))
-	}
+	// status, test_status, last_tested and updated_at are deprecated: the API does not support them.
+	// They are set to the same values they have always had (empty, and the zero timestamp for updated_at).
+	d.Set("status", "")
+	d.Set("test_status", "")
+	d.Set("updated_at", "0001-01-01T00:00:00Z")
 
 	// Note: We don't set the connection config from the API response
 	// as it may not contain all the original values (especially secrets)

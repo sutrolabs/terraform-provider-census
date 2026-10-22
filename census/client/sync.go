@@ -26,10 +26,9 @@ type Sync struct {
 	DestinationAttributes map[string]interface{} `json:"destination_attributes,omitempty"`
 
 	// Field mappings and configuration (API returns mappings, not field_mappings)
-	Mappings      []MappingAttributes `json:"mappings,omitempty"`
-	FieldMappings []FieldMapping      `json:"field_mappings,omitempty"` // Keep for backward compatibility
-	SyncKey       []string            `json:"sync_key,omitempty"`
-	Operation     string              `json:"operation,omitempty"` // mirror, upsert, append, etc.
+	Mappings  []MappingAttributes `json:"mappings,omitempty"`
+	SyncKey   []string            `json:"sync_key,omitempty"`
+	Operation string              `json:"operation,omitempty"` // mirror, upsert, append, etc.
 
 	// Scheduling configuration from API response
 	ScheduleFrequency string  `json:"schedule_frequency,omitempty"`
@@ -44,11 +43,6 @@ type Sync struct {
 
 	// Mode - live vs triggered with trigger configurations
 	Mode *SyncMode `json:"mode,omitempty"`
-
-	// Run information
-	LastRunAt *time.Time `json:"last_run_at,omitempty"`
-	NextRunAt *time.Time `json:"next_run_at,omitempty"`
-	LastRunID *int       `json:"last_run_id,omitempty"`
 
 	// Field configuration
 	FieldBehavior      string `json:"field_behavior,omitempty"`      // sync_all_properties or specific_properties

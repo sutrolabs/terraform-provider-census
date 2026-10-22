@@ -14,11 +14,7 @@ type Destination struct {
 	Name        string                 `json:"name"`
 	Type        string                 `json:"type"`
 	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
 	Connection  map[string]interface{} `json:"connection"`
-	Status      string                 `json:"status,omitempty"`
-	TestStatus  string                 `json:"test_status,omitempty"`
-	LastTested  *time.Time             `json:"last_tested,omitempty"`
 }
 
 // CreateDestinationRequest represents the request to create a destination

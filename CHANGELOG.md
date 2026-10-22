@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Deprecated
+- The following unsupported attributes are now deprecated and will be removed in a future version:
+  - `census_source` and `census_destination` (resources and data sources): `status`, `test_status`, `last_tested`, and `updated_at`.
+  - `census_sync` (resource and data source): `last_run_at`, `next_run_at`, and `last_run_id`.
+  - `census_sync` data source: `field_mapping`.
+
 ## [0.2.19] - 2026-09-02
 
 ### Added

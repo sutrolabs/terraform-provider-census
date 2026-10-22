@@ -41,16 +41,19 @@ func dataSourceDestination() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The current status of the destination connection.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"test_status": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The status of the last connection test.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"last_tested": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Timestamp when the destination was last tested.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
@@ -61,6 +64,7 @@ func dataSourceDestination() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Timestamp when the destination was last updated.",
+				Deprecated:  "This field is unsupported and will be removed in a future version.",
 			},
 		},
 	}
@@ -101,14 +105,13 @@ func dataSourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta
 	// Note: workspace_id is a Required input field, don't overwrite it with API response
 	d.Set("name", destination.Name)
 	d.Set("type", destination.Type)
-	d.Set("status", destination.Status)
-	d.Set("test_status", destination.TestStatus)
 	d.Set("created_at", destination.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
-	d.Set("updated_at", destination.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"))
 
-	if destination.LastTested != nil {
-		d.Set("last_tested", destination.LastTested.Format("2006-01-02T15:04:05Z07:00"))
-	}
+	// status, test_status, last_tested and updated_at are deprecated: the API does not support them.
+	// They are set to the same values they have always had (empty, and the zero timestamp for updated_at).
+	d.Set("status", "")
+	d.Set("test_status", "")
+	d.Set("updated_at", "0001-01-01T00:00:00Z")
 
 	return nil
 }

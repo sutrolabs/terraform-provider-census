@@ -515,16 +515,19 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "Timestamp when the sync was last executed.",
+			Deprecated:  "This field is unsupported and will be removed in a future version.",
 		},
 		"next_run_at": {
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "Timestamp when the sync is scheduled to run next.",
+			Deprecated:  "This field is unsupported and will be removed in a future version.",
 		},
 		"last_run_id": {
 			Type:        schema.TypeInt,
 			Computed:    true,
 			Description: "ID of the last sync run.",
+			Deprecated:  "This field is unsupported and will be removed in a future version.",
 		},
 	}
 }
@@ -804,15 +807,8 @@ To fix this, add the missing workspace_id to terraform state:
 		d.Set("updated_at", sync.UpdatedAt.Format("2006-01-02T15:04:05Z"))
 	}
 
-	if sync.LastRunAt != nil {
-		d.Set("last_run_at", sync.LastRunAt.Format("2006-01-02T15:04:05Z"))
-	}
-	if sync.NextRunAt != nil {
-		d.Set("next_run_at", sync.NextRunAt.Format("2006-01-02T15:04:05Z"))
-	}
-	if sync.LastRunID != nil {
-		d.Set("last_run_id", *sync.LastRunID)
-	}
+	// last_run_at, next_run_at and last_run_id are deprecated: the API does not support them,
+	// so they are never set and stay empty.
 
 	// Handle run_mode from API response
 	if sync.Mode != nil {
@@ -838,8 +834,6 @@ To fix this, add the missing workspace_id to terraform state:
 	var fieldMappings []client.FieldMapping
 	if sync.Mappings != nil && len(sync.Mappings) > 0 {
 		fieldMappings = ConvertMappingAttributesToFieldMappings(sync.Mappings)
-	} else if sync.FieldMappings != nil {
-		fieldMappings = sync.FieldMappings // Fallback to legacy field
 	} else {
 		fieldMappings = []client.FieldMapping{} // Empty slice as fallback
 	}
