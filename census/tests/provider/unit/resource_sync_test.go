@@ -1,6 +1,7 @@
 package unit_test
 
 import (
+	"context"
 	"reflect"
 	"sort"
 	"testing"
@@ -97,7 +98,7 @@ func TestExpandFieldMappings_Direct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(tt.input)
+			result := provider.ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -149,7 +150,7 @@ func TestExpandFieldMappings_Constant(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(tt.input)
+			result := provider.ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -184,7 +185,7 @@ func TestExpandFieldMappings_LiquidTemplate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(tt.input)
+			result := provider.ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -219,7 +220,7 @@ func TestExpandFieldMappings_SyncMetadata(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(tt.input)
+			result := provider.ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -228,7 +229,7 @@ func TestExpandFieldMappings_SyncMetadata(t *testing.T) {
 }
 
 func TestExpandFieldMappings_Empty(t *testing.T) {
-	result := provider.ExpandFieldMappings([]interface{}{})
+	result := provider.ExpandFieldMappings(context.Background(), []interface{}{})
 	if len(result) != 0 {
 		t.Errorf("ExpandFieldMappings(empty) should return empty slice, got %d items", len(result))
 	}
@@ -489,7 +490,7 @@ func TestExpandAlerts_Basic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandAlerts(tt.input)
+			result := provider.ExpandAlerts(context.Background(), tt.input)
 			if len(result) != tt.expected {
 				t.Errorf("ExpandAlerts() returned %d items, want %d", len(result), tt.expected)
 			}
@@ -498,7 +499,7 @@ func TestExpandAlerts_Basic(t *testing.T) {
 }
 
 func TestExpandAlerts_Empty(t *testing.T) {
-	result := provider.ExpandAlerts([]interface{}{})
+	result := provider.ExpandAlerts(context.Background(), []interface{}{})
 	if result == nil {
 		t.Errorf("ExpandAlerts(empty) should return empty slice, got nil")
 	}
@@ -578,7 +579,7 @@ func TestExpandAlerts_EmptyStrings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandAlerts(tt.input)
+			result := provider.ExpandAlerts(context.Background(), tt.input)
 			if len(result) != tt.expected {
 				t.Errorf("ExpandAlerts() returned %d items, want %d", len(result), tt.expected)
 			}
@@ -694,7 +695,7 @@ func TestExpandStringList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandStringList(tt.input)
+			result := provider.ExpandStringList(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandStringList() got = %+v, want %+v", result, tt.expected)
 			}
@@ -872,7 +873,7 @@ func TestExpandFieldMappings_NoPrimaryIdentifier(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(tt.input)
+			result := provider.ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -925,7 +926,7 @@ func TestExpandFieldMappings_GoogleSheetsScenario(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(tt.input)
+			result := provider.ExpandFieldMappings(context.Background(), tt.input)
 			if len(result) != tt.expected {
 				t.Errorf("ExpandFieldMappings() returned %d mappings, want %d", len(result), tt.expected)
 			}

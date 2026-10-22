@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -610,8 +611,8 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.Errorf("workspace API key is empty for workspace %d", workspaceIdInt)
 	}
 
-	destinationAttributes := ExpandDestinationAttributes(d.Get("destination_attributes").([]interface{}))
-	fieldMappings := ExpandFieldMappings(d.Get("field_mapping").([]interface{}))
+	destinationAttributes := ExpandDestinationAttributes(ctx, d.Get("destination_attributes").([]interface{}))
+	fieldMappings := ExpandFieldMappings(ctx, d.Get("field_mapping").([]interface{}))
 
 	// Get operation from top-level field (per OpenAPI spec)
 	operation := d.Get("operation").(string)
@@ -624,13 +625,13 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	runModeRaw := d.Get("run_mode").([]interface{})
 
 	if len(runModeRaw) > 0 {
-		mode = ExpandRunMode(runModeRaw)
+		mode = ExpandRunMode(ctx, runModeRaw)
 	}
 
 	req := &client.CreateSyncRequest{
 		// Required fields per OpenAPI spec
 		Operation:             operation,
-		SourceAttributes:      ExpandSourceAttributes(d.Get("source_attributes").([]interface{})),
+		SourceAttributes:      ExpandSourceAttributes(ctx, d.Get("source_attributes").([]interface{})),
 		DestinationAttributes: destinationAttributes,
 		Mappings:              mappings,
 
@@ -651,7 +652,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		SyncBehaviorFamily: d.Get("sync_behavior_family").(string),
 
 		// Advanced configuration
-		AdvancedConfiguration: ExpandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
+		AdvancedConfiguration: ExpandAdvancedConfiguration(ctx, d.Get("advanced_configuration").(string)),
 
 		// High water mark attribute
 		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
@@ -663,18 +664,21 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		MirrorStrategy: d.Get("mirror_strategy").(string),
 
 		// Alert configuration
-		AlertAttributes: ExpandAlerts(d.Get("alert").([]interface{})),
+		AlertAttributes: ExpandAlerts(ctx, d.Get("alert").([]interface{})),
 	}
 
-	fmt.Printf("[DEBUG] Creating sync with request: %+v\n", req)
+	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
+		tflog.Debug(ctx, "Creating sync", map[string]interface{}{"request": string(reqJSON)})
+	} else {
+		tflog.Debug(ctx, "Creating sync (failed to marshal request for logging)", map[string]interface{}{"error": jsonErr.Error()})
+	}
 	sync, err := apiClient.CreateSyncWithToken(ctx, req, workspaceToken)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	fmt.Printf("[DEBUG] Sync created successfully with ID: %d\n", sync.ID)
+	tflog.Debug(ctx, "Sync created successfully", map[string]interface{}{"sync_id": sync.ID})
 	d.SetId(strconv.Itoa(sync.ID))
-	fmt.Printf("[DEBUG] Resource ID set to: %s\n", d.Id())
 
 	// Explicitly set workspace_id from our input since API doesn't return it
 	d.Set("workspace_id", workspaceId)
@@ -690,12 +694,10 @@ func resourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.Errorf("invalid sync ID: %s", d.Id())
 	}
 
-	// DEBUG: Log entry point
-	fmt.Printf("[DEBUG] Starting resourceSyncRead for sync ID: %d\n", id)
+	tflog.Debug(ctx, "Starting resourceSyncRead", map[string]interface{}{"sync_id": id})
 
 	// Get workspace token dynamically if we have workspace_id
 	workspaceId := d.Get("workspace_id").(string)
-	fmt.Printf("[DEBUG] Got workspace_id from state: %s\n", workspaceId)
 
 	var sync *client.Sync
 	if workspaceId != "" {
@@ -704,16 +706,13 @@ func resourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interfac
 			return diag.Errorf("invalid workspace ID: %s", workspaceId)
 		}
 
-		fmt.Printf("[DEBUG] Getting workspace token for workspace %d\n", workspaceIdInt)
 		workspaceToken, tokenErr := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 		if tokenErr != nil {
-			fmt.Printf("[DEBUG] Failed to get workspace API key: %v\n", tokenErr)
+			tflog.Debug(ctx, "Failed to get workspace API key", map[string]interface{}{"workspace_id": workspaceIdInt, "error": tokenErr.Error()})
 			return diag.FromErr(tokenErr)
 		}
 
-		fmt.Printf("[DEBUG] Successfully got workspace token, calling GetSyncWithToken for sync %d\n", id)
 		sync, err = apiClient.GetSyncWithToken(ctx, id, workspaceToken)
-		fmt.Printf("[DEBUG] GetSyncWithToken completed - sync: %v, err: %v\n", sync != nil, err)
 	} else {
 		return diag.Errorf(`workspace_id is required but missing from resource state.
 
@@ -723,10 +722,9 @@ To fix this, add the missing workspace_id to terraform state:
 	}
 
 	if err != nil {
-		fmt.Printf("[DEBUG] Error from GetSyncWithToken: %v\n", err)
 		// Check if sync was not found
 		if IsNotFoundError(err) {
-			fmt.Printf("[DEBUG] Sync not found, clearing resource ID\n")
+			tflog.Debug(ctx, "Sync not found, clearing resource ID", map[string]interface{}{"sync_id": id})
 			d.SetId("")
 			return nil
 		}
@@ -735,12 +733,10 @@ To fix this, add the missing workspace_id to terraform state:
 
 	// Check if sync is nil (API returned successfully but with nil data)
 	if sync == nil {
-		fmt.Printf("[DEBUG] Sync is nil, clearing resource ID\n")
+		tflog.Debug(ctx, "Sync is nil, clearing resource ID", map[string]interface{}{"sync_id": id})
 		d.SetId("")
 		return nil
 	}
-
-	fmt.Printf("[DEBUG] Sync found successfully, setting resource attributes\n")
 
 	// Only update workspace_id if API returned it, otherwise preserve what's in state
 	if sync.WorkspaceID != "" {
@@ -773,8 +769,7 @@ To fix this, add the missing workspace_id to terraform state:
 
 	// Set advanced configuration if present
 	if sync.AdvancedConfiguration != nil && len(sync.AdvancedConfiguration) > 0 {
-		if err := d.Set("advanced_configuration", FlattenAdvancedConfiguration(sync.AdvancedConfiguration)); err != nil {
-			fmt.Printf("[DEBUG] Failed to set advanced_configuration: %v\n", err)
+		if err := d.Set("advanced_configuration", FlattenAdvancedConfiguration(ctx, sync.AdvancedConfiguration)); err != nil {
 			return diag.Errorf("failed to set advanced_configuration: %v", err)
 		}
 	}
@@ -797,7 +792,6 @@ To fix this, add the missing workspace_id to terraform state:
 	// Set alert attributes if present
 	if len(sync.AlertAttributes) > 0 {
 		if err := d.Set("alert", FlattenAlerts(sync.AlertAttributes)); err != nil {
-			fmt.Printf("[DEBUG] Failed to set alert: %v\n", err)
 			return diag.Errorf("failed to set alert: %v", err)
 		}
 	}
@@ -822,49 +816,39 @@ To fix this, add the missing workspace_id to terraform state:
 
 	// Handle run_mode from API response
 	if sync.Mode != nil {
-		fmt.Printf("[DEBUG] Setting run_mode from API response\n")
 		if err := d.Set("run_mode", FlattenRunMode(sync.Mode)); err != nil {
-			fmt.Printf("[DEBUG] Failed to set run_mode: %v\n", err)
 			return diag.Errorf("failed to set run_mode: %v", err)
 		}
 	} else if sync.ScheduleFrequency != "" {
 		// Handle very old syncs that pre-date Mode API field (created before Census added Mode support)
-		fmt.Printf("[DEBUG] Legacy sync detected - has flat schedule fields but no Mode\n")
+		tflog.Debug(ctx, "Legacy sync detected - has flat schedule fields but no Mode", map[string]interface{}{"sync_id": id})
 		return diag.Errorf("This sync was created with an older version of the Census API that pre-dates run_mode support. Please recreate it using run_mode configuration or contact Census support to migrate it.")
 	}
 
 	// Set complex attributes with nil checks
-	fmt.Printf("[DEBUG] Setting source_attributes\n")
 	if err := d.Set("source_attributes", FlattenSourceAttributes(sync.SourceAttributes)); err != nil {
-		fmt.Printf("[DEBUG] Failed to set source_attributes: %v\n", err)
 		return diag.Errorf("failed to set source_attributes: %v", err)
 	}
 
-	fmt.Printf("[DEBUG] Setting destination_attributes\n")
 	if err := d.Set("destination_attributes", FlattenDestinationAttributes(sync.DestinationAttributes)); err != nil {
-		fmt.Printf("[DEBUG] Failed to set destination_attributes: %v\n", err)
 		return diag.Errorf("failed to set destination_attributes: %v", err)
 	}
 
 	// Convert API Mappings back to Terraform FieldMappings with defensive handling
-	fmt.Printf("[DEBUG] Converting field mappings - Mappings: %v, FieldMappings: %v\n", sync.Mappings != nil, sync.FieldMappings != nil)
 	var fieldMappings []client.FieldMapping
 	if sync.Mappings != nil && len(sync.Mappings) > 0 {
-		fmt.Printf("[DEBUG] Using sync.Mappings (count: %d)\n", len(sync.Mappings))
 		fieldMappings = ConvertMappingAttributesToFieldMappings(sync.Mappings)
 	} else if sync.FieldMappings != nil {
-		fmt.Printf("[DEBUG] Using sync.FieldMappings (count: %d)\n", len(sync.FieldMappings))
 		fieldMappings = sync.FieldMappings // Fallback to legacy field
 	} else {
-		fmt.Printf("[DEBUG] Using empty field mappings\n")
 		fieldMappings = []client.FieldMapping{} // Empty slice as fallback
 	}
+	tflog.Debug(ctx, "Converted field mappings", map[string]interface{}{"sync_id": id, "count": len(fieldMappings)})
 
 	// Sort API mappings by position (Census's canonical order)
 	// Position is always set by Census API regardless of field_order setting
 	// This prevents spurious diffs when the Census API returns mappings in a different order
 	if len(fieldMappings) > 0 {
-		fmt.Printf("[DEBUG] Sorting field mappings by position\n")
 		sort.Slice(fieldMappings, func(i, j int) bool {
 			return fieldMappings[i].Position < fieldMappings[j].Position
 		})
@@ -878,81 +862,63 @@ To fix this, add the missing workspace_id to terraform state:
 		if mapping.Type != "compound_key" {
 			userManagedMappings = append(userManagedMappings, mapping)
 		} else {
-			fmt.Printf("[DEBUG] Filtering out Census-managed compound_key mapping: %s -> %s\n", mapping.From, mapping.To)
+			tflog.Debug(ctx, "Filtering out Census-managed compound_key mapping", map[string]interface{}{"from": mapping.From, "to": mapping.To})
 		}
 	}
 	fieldMappings = userManagedMappings
 
-	fmt.Printf("[DEBUG] Setting field_mapping\n")
 	if err := d.Set("field_mapping", FlattenFieldMappings(fieldMappings)); err != nil {
-		fmt.Printf("[DEBUG] Failed to set field_mapping: %v\n", err)
 		return diag.Errorf("failed to set field_mapping: %v", err)
 	}
 
-	// Handle sync_key with nil check
-	fmt.Printf("[DEBUG] Setting sync_key (nil: %v)\n", sync.SyncKey == nil)
 	if sync.SyncKey != nil {
 		if err := d.Set("sync_key", sync.SyncKey); err != nil {
-			fmt.Printf("[DEBUG] Failed to set sync_key: %v\n", err)
 			return diag.Errorf("failed to set sync_key: %v", err)
 		}
 	}
-
-	// Schedule is already set above from flat API response fields
-
-	fmt.Printf("[DEBUG] resourceSyncRead completed successfully\n")
 
 	return nil
 }
 
 func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	fmt.Printf("[DEBUG] === Starting resourceSyncUpdate ===\n")
-
 	apiClient := meta.(*client.Client)
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
-		fmt.Printf("[DEBUG] Error parsing sync ID: %v\n", err)
 		return diag.Errorf("invalid sync ID: %s", d.Id())
 	}
-	fmt.Printf("[DEBUG] Updating sync with ID: %d\n", id)
+	tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": id})
 
 	// Safe type assertion for workspace_id
 	workspaceIdInterface := d.Get("workspace_id")
 	workspaceId, ok := workspaceIdInterface.(string)
 	if !ok {
-		fmt.Printf("[DEBUG] workspace_id is not a string, type: %T, value: %+v\n", workspaceIdInterface, workspaceIdInterface)
 		return diag.Errorf("workspace_id is not a valid string: %v", workspaceIdInterface)
 	}
 
 	workspaceIdInt, err := strconv.Atoi(workspaceId)
 	if err != nil {
-		fmt.Printf("[DEBUG] Error parsing workspace ID: %v\n", err)
 		return diag.Errorf("invalid workspace ID: %s", workspaceId)
 	}
 
 	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
 	if err != nil {
-		fmt.Printf("[DEBUG] Error getting workspace token: %v\n", err)
 		return diag.FromErr(err)
 	}
-
-	fmt.Printf("[DEBUG] Building update request...\n")
 
 	// Handle run_mode
 	var mode *client.SyncMode
 	runModeRaw := d.Get("run_mode").([]interface{})
 
 	if len(runModeRaw) > 0 {
-		mode = ExpandRunMode(runModeRaw)
-		fmt.Printf("[DEBUG] Using run_mode: %+v\n", mode)
+		mode = ExpandRunMode(ctx, runModeRaw)
+		tflog.Debug(ctx, "Using run_mode", map[string]interface{}{"mode": fmt.Sprintf("%+v", mode)})
 	}
 
 	// Safe type assertions for all fields
 	labelInterface := d.Get("label")
 	label, ok := labelInterface.(string)
 	if !ok {
-		fmt.Printf("[DEBUG] label is not a string, type: %T, value: %+v\n", labelInterface, labelInterface)
 		return diag.Errorf("label is not a valid string: %v", labelInterface)
 	}
 
@@ -968,14 +934,12 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			if m, ok := v[0].(map[string]interface{}); ok {
 				sourceAttrs = m
 			} else {
-				fmt.Printf("[DEBUG] source_attributes list element is not a map, type: %T, value: %+v\n", v[0], v[0])
 				return diag.Errorf("source_attributes list element is not a valid map: %v", v[0])
 			}
 		} else {
 			sourceAttrs = make(map[string]interface{})
 		}
 	default:
-		fmt.Printf("[DEBUG] source_attributes is not a map or list, type: %T, value: %+v\n", sourceAttrsInterface, sourceAttrsInterface)
 		return diag.Errorf("source_attributes is not a valid map or list: %v", sourceAttrsInterface)
 	}
 
@@ -987,17 +951,15 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 				// Object stored as list in Terraform state - extract first element
 				if len(v) > 0 {
 					if obj, ok := v[0].(map[string]interface{}); ok {
-						fmt.Printf("[DEBUG] Extracted object from list in UPDATE: %+v\n", obj)
 						sourceAttrs["object"] = obj
 					} else {
-						fmt.Printf("[DEBUG] object list element is not a map, type: %T, value: %+v\n", v[0], v[0])
+						tflog.Debug(ctx, "source_attributes object list element is not a map", map[string]interface{}{"type": fmt.Sprintf("%T", v[0])})
 					}
 				}
 			case map[string]interface{}:
 				// Object is already a direct map - no change needed
-				fmt.Printf("[DEBUG] object is already a map in UPDATE: %+v\n", v)
 			default:
-				fmt.Printf("[DEBUG] object is unexpected type in UPDATE: %T, value: %+v\n", v, v)
+				tflog.Debug(ctx, "source_attributes object is an unexpected type", map[string]interface{}{"type": fmt.Sprintf("%T", v)})
 			}
 		}
 	}
@@ -1014,28 +976,24 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			if m, ok := v[0].(map[string]interface{}); ok {
 				destAttrs = m
 			} else {
-				fmt.Printf("[DEBUG] destination_attributes list element is not a map, type: %T, value: %+v\n", v[0], v[0])
 				return diag.Errorf("destination_attributes list element is not a valid map: %v", v[0])
 			}
 		} else {
 			destAttrs = make(map[string]interface{})
 		}
 	default:
-		fmt.Printf("[DEBUG] destination_attributes is not a map or list, type: %T, value: %+v\n", destAttrsInterface, destAttrsInterface)
 		return diag.Errorf("destination_attributes is not a valid map or list: %v", destAttrsInterface)
 	}
 
 	fieldMappingsInterface := d.Get("field_mapping")
 	fieldMappings, ok := fieldMappingsInterface.([]interface{})
 	if !ok {
-		fmt.Printf("[DEBUG] field_mapping is not a []interface{}, type: %T, value: %+v\n", fieldMappingsInterface, fieldMappingsInterface)
 		return diag.Errorf("field_mapping is not a valid list: %v", fieldMappingsInterface)
 	}
 
 	pausedInterface := d.Get("paused")
 	paused, ok := pausedInterface.(bool)
 	if !ok {
-		fmt.Printf("[DEBUG] paused is not a bool, type: %T, value: %+v\n", pausedInterface, pausedInterface)
 		return diag.Errorf("paused is not a valid boolean: %v", pausedInterface)
 	}
 
@@ -1055,9 +1013,9 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	req := &client.UpdateSyncRequest{
 		Label:                 label,
 		Operation:             d.Get("operation").(string),
-		SourceAttributes:      ExpandSourceAttributes(d.Get("source_attributes").([]interface{})),
+		SourceAttributes:      ExpandSourceAttributes(ctx, d.Get("source_attributes").([]interface{})),
 		DestinationAttributes: ExpandStringMap(destAttrs),
-		Mappings:              ConvertFieldMappingsToMappingAttributes(ExpandFieldMappings(fieldMappings)),
+		Mappings:              ConvertFieldMappingsToMappingAttributes(ExpandFieldMappings(ctx, fieldMappings)),
 		Paused:                paused,
 
 		// Mode - live vs triggered with trigger configurations
@@ -1072,7 +1030,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		SyncBehaviorFamily: syncBehaviorFamily,
 
 		// Advanced configuration
-		AdvancedConfiguration: ExpandAdvancedConfiguration(d.Get("advanced_configuration").(string)),
+		AdvancedConfiguration: ExpandAdvancedConfiguration(ctx, d.Get("advanced_configuration").(string)),
 
 		// High water mark attribute
 		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
@@ -1084,21 +1042,20 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		MirrorStrategy: d.Get("mirror_strategy").(string),
 
 		// Alert configuration
-		AlertAttributes: ExpandAlerts(d.Get("alert").([]interface{})),
+		AlertAttributes: ExpandAlerts(ctx, d.Get("alert").([]interface{})),
 	}
 
-	fmt.Printf("[DEBUG] Update request: %+v\n", req)
-
-	fmt.Printf("[DEBUG] Calling UpdateSyncWithToken...\n")
+	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
+		tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": id, "request": string(reqJSON)})
+	} else {
+		tflog.Debug(ctx, "Updating sync (failed to marshal request for logging)", map[string]interface{}{"sync_id": id, "error": jsonErr.Error()})
+	}
 	_, err = apiClient.UpdateSyncWithToken(ctx, id, req, workspaceToken)
 	if err != nil {
-		fmt.Printf("[DEBUG] UpdateSyncWithToken failed: %v\n", err)
 		return diag.FromErr(err)
 	}
 
-	fmt.Printf("[DEBUG] UpdateSyncWithToken succeeded, calling resourceSyncRead...\n")
 	result := resourceSyncRead(ctx, d, meta)
-	fmt.Printf("[DEBUG] === resourceSyncUpdate completed ===\n")
 	return result
 }
 
@@ -1132,13 +1089,13 @@ func resourceSyncDelete(ctx context.Context, d *schema.ResourceData, meta interf
 
 // Helper functions for expanding/flattening complex types
 
-func ExpandFieldMappings(mappings []interface{}) []client.FieldMapping {
+func ExpandFieldMappings(ctx context.Context, mappings []interface{}) []client.FieldMapping {
 	result := make([]client.FieldMapping, 0, len(mappings))
 	for i, mapping := range mappings {
 		// Safe type assertion for mapping
 		m, ok := mapping.(map[string]interface{})
 		if !ok {
-			fmt.Printf("[DEBUG] ExpandFieldMappings: mappings[%d] is not a map[string]interface{}, type: %T, value: %+v\n", i, mapping, mapping)
+			tflog.Debug(ctx, "ExpandFieldMappings: mapping is not a map", map[string]interface{}{"index": i, "type": fmt.Sprintf("%T", mapping)})
 			continue // Skip invalid entries
 		}
 
@@ -1150,13 +1107,13 @@ func ExpandFieldMappings(mappings []interface{}) []client.FieldMapping {
 		if from, ok := m["from"].(string); ok {
 			fieldMapping.From = from
 		} else {
-			fmt.Printf("[DEBUG] ExpandFieldMappings: mappings[%d]['from'] is not a string, type: %T, value: %+v\n", i, m["from"], m["from"])
+			tflog.Debug(ctx, "ExpandFieldMappings: 'from' is not a string", map[string]interface{}{"index": i, "type": fmt.Sprintf("%T", m["from"])})
 		}
 
 		if to, ok := m["to"].(string); ok {
 			fieldMapping.To = to
 		} else {
-			fmt.Printf("[DEBUG] ExpandFieldMappings: mappings[%d]['to'] is not a string, type: %T, value: %+v\n", i, m["to"], m["to"])
+			tflog.Debug(ctx, "ExpandFieldMappings: 'to' is not a string", map[string]interface{}{"index": i, "type": fmt.Sprintf("%T", m["to"])})
 		}
 
 		// Get type field (defaults to "direct" in schema)
@@ -1182,7 +1139,7 @@ func ExpandFieldMappings(mappings []interface{}) []client.FieldMapping {
 		// Validate: if constant is present, type must be "constant"
 		if fieldMapping.Constant != nil && fieldMapping.Constant != "" {
 			if mappingType != "constant" {
-				fmt.Printf("[ERROR] ExpandFieldMappings: field_mapping[%d] has a constant value but type is '%s'. When using constant, type must be 'constant'.\n", i, mappingType)
+				tflog.Warn(ctx, "ExpandFieldMappings: field_mapping has a constant value but type is not 'constant'", map[string]interface{}{"index": i, "type": mappingType})
 				// Continue processing but log the error - validation should catch this
 			}
 		}
@@ -1264,7 +1221,7 @@ func FlattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 	return result
 }
 
-func ExpandAlerts(alerts []interface{}) []client.AlertAttribute {
+func ExpandAlerts(ctx context.Context, alerts []interface{}) []client.AlertAttribute {
 	// Return empty slice instead of nil to allow deleting all alerts
 	// When nil is used, the omitempty tag causes the field to be omitted entirely
 	// from the JSON, which the API interprets as "don't change"
@@ -1276,7 +1233,7 @@ func ExpandAlerts(alerts []interface{}) []client.AlertAttribute {
 	for i, alert := range alerts {
 		m, ok := alert.(map[string]interface{})
 		if !ok {
-			fmt.Printf("[DEBUG] ExpandAlerts: alerts[%d] is not a map[string]interface{}, type: %T, value: %+v\n", i, alert, alert)
+			tflog.Debug(ctx, "ExpandAlerts: alert is not a map", map[string]interface{}{"index": i, "type": fmt.Sprintf("%T", alert)})
 			continue
 		}
 
@@ -1439,17 +1396,14 @@ func ExpandSyncSchedule(schedules []interface{}) *client.SyncSchedule {
 }
 
 // ExpandRunMode converts Terraform run_mode config to API SyncMode struct
-func ExpandRunMode(runModes []interface{}) *client.SyncMode {
-	fmt.Printf("[DEBUG] ExpandRunMode called with: %+v\n", runModes)
-
+func ExpandRunMode(ctx context.Context, runModes []interface{}) *client.SyncMode {
 	if len(runModes) == 0 || runModes[0] == nil {
-		fmt.Printf("[DEBUG] ExpandRunMode returning nil (empty or nil run_mode)\n")
 		return nil
 	}
 
 	runModeMap, ok := runModes[0].(map[string]interface{})
 	if !ok {
-		fmt.Printf("[DEBUG] ExpandRunMode: runModes[0] is not a map[string]interface{}, type: %T\n", runModes[0])
+		tflog.Debug(ctx, "ExpandRunMode: runModes[0] is not a map", map[string]interface{}{"type": fmt.Sprintf("%T", runModes[0])})
 		return nil
 	}
 
@@ -1539,7 +1493,6 @@ func ExpandRunMode(runModes []interface{}) *client.SyncMode {
 		}
 	}
 
-	fmt.Printf("[DEBUG] ExpandRunMode returning: %+v\n", mode)
 	return mode
 }
 
@@ -1673,25 +1626,25 @@ func CleanEmptyStrings(m map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func ExpandAdvancedConfiguration(jsonStr string) map[string]interface{} {
+func ExpandAdvancedConfiguration(ctx context.Context, jsonStr string) map[string]interface{} {
 	if jsonStr == "" {
 		return nil
 	}
 	var result map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
-		fmt.Printf("[DEBUG] Failed to unmarshal advanced_configuration: %v\n", err)
+		tflog.Debug(ctx, "Failed to unmarshal advanced_configuration", map[string]interface{}{"error": err.Error()})
 		return nil
 	}
 	return result
 }
 
-func FlattenAdvancedConfiguration(m map[string]interface{}) string {
+func FlattenAdvancedConfiguration(ctx context.Context, m map[string]interface{}) string {
 	if m == nil || len(m) == 0 {
 		return ""
 	}
 	jsonBytes, err := json.Marshal(m)
 	if err != nil {
-		fmt.Printf("[DEBUG] Failed to marshal advanced_configuration: %v\n", err)
+		tflog.Debug(ctx, "Failed to marshal advanced_configuration", map[string]interface{}{"error": err.Error()})
 		return ""
 	}
 	return string(jsonBytes)
@@ -1815,14 +1768,14 @@ func FlattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 	return []map[string]interface{}{result}
 }
 
-func ExpandStringList(list []interface{}) []string {
+func ExpandStringList(ctx context.Context, list []interface{}) []string {
 	result := make([]string, 0, len(list))
 	for i, v := range list {
 		// Safe type assertion
 		if str, ok := v.(string); ok {
 			result = append(result, str)
 		} else {
-			fmt.Printf("[DEBUG] ExpandStringList: list[%d] is not a string, type: %T, value: %+v\n", i, v, v)
+			tflog.Debug(ctx, "ExpandStringList: value is not a string", map[string]interface{}{"index": i, "type": fmt.Sprintf("%T", v)})
 			// Skip non-string values instead of panicking
 		}
 	}
@@ -2040,7 +1993,7 @@ func ConvertMappingAttributesToFieldMappings(mappings []client.MappingAttributes
 }
 
 // ExpandSourceAttributes converts list-based source_attributes from Terraform to map format for API
-func ExpandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
+func ExpandSourceAttributes(ctx context.Context, sourceAttrs []interface{}) map[string]interface{} {
 	if len(sourceAttrs) == 0 {
 		return nil
 	}
@@ -2049,7 +2002,7 @@ func ExpandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 	attrInterface := sourceAttrs[0]
 	attr, ok := attrInterface.(map[string]interface{})
 	if !ok {
-		fmt.Printf("[DEBUG] ExpandSourceAttributes: sourceAttrs[0] is not a map[string]interface{}, type: %T, value: %+v\n", attrInterface, attrInterface)
+		tflog.Debug(ctx, "ExpandSourceAttributes: sourceAttrs[0] is not a map", map[string]interface{}{"type": fmt.Sprintf("%T", attrInterface)})
 		return nil
 	}
 
@@ -2073,19 +2026,17 @@ func ExpandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 			// Object stored as list in Terraform state
 			if len(v) > 0 {
 				if obj, ok := v[0].(map[string]interface{}); ok {
-					fmt.Printf("[DEBUG] ExpandSourceAttributes: object extracted from list: %+v\n", obj)
 					objectMap = obj
 				} else {
-					fmt.Printf("[DEBUG] ExpandSourceAttributes: objList[0] is not a map[string]interface{}, type: %T, value: %+v\n", v[0], v[0])
+					tflog.Debug(ctx, "ExpandSourceAttributes: object list element is not a map", map[string]interface{}{"type": fmt.Sprintf("%T", v[0])})
 					return result // Return partial result instead of nil
 				}
 			}
 		case map[string]interface{}:
 			// Object is directly a map (direct config)
-			fmt.Printf("[DEBUG] ExpandSourceAttributes: object is direct map: %+v\n", v)
 			objectMap = v
 		default:
-			fmt.Printf("[DEBUG] ExpandSourceAttributes: object is unexpected type: %T, value: %+v\n", objData, objData)
+			tflog.Debug(ctx, "ExpandSourceAttributes: object is an unexpected type", map[string]interface{}{"type": fmt.Sprintf("%T", objData)})
 		}
 	}
 
@@ -2109,7 +2060,7 @@ func ExpandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 			if segmentId, ok := objectMap["id"]; ok && segmentId != "" {
 				result["filter_segment_id"] = segmentId
 			}
-			fmt.Printf("[DEBUG] ExpandSourceAttributes: Translated segment source - object: %+v, filter_segment_id: %+v\n", translatedObject, result["filter_segment_id"])
+			tflog.Debug(ctx, "ExpandSourceAttributes: translated segment source", map[string]interface{}{"object": fmt.Sprintf("%+v", translatedObject), "filter_segment_id": result["filter_segment_id"]})
 
 		case "cohort":
 			// User provides: type="cohort", id=<cohort_id>, dataset_id=<dataset_id>
@@ -2123,13 +2074,13 @@ func ExpandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 			if cohortId, ok := objectMap["id"]; ok && cohortId != "" {
 				result["cohort_id"] = cohortId
 			}
-			fmt.Printf("[DEBUG] ExpandSourceAttributes: Translated cohort source - object: %+v, cohort_id: %+v\n", translatedObject, result["cohort_id"])
+			tflog.Debug(ctx, "ExpandSourceAttributes: translated cohort source", map[string]interface{}{"object": fmt.Sprintf("%+v", translatedObject), "cohort_id": result["cohort_id"]})
 
 		default:
 			// For all other types (model, topic, dataset, table), pass through as-is
 			// But clean empty strings to avoid API errors
 			result["object"] = CleanEmptyStrings(objectMap)
-			fmt.Printf("[DEBUG] ExpandSourceAttributes: Pass-through object for type %s (cleaned): %+v\n", objectType, result["object"])
+			tflog.Debug(ctx, "ExpandSourceAttributes: pass-through object (cleaned)", map[string]interface{}{"object_type": objectType, "object": fmt.Sprintf("%+v", result["object"])})
 		}
 	}
 
@@ -2142,7 +2093,7 @@ func ExpandSourceAttributes(sourceAttrs []interface{}) map[string]interface{} {
 }
 
 // ExpandDestinationAttributes converts list-based destination_attributes from Terraform to map format for API
-func ExpandDestinationAttributes(destAttrs []interface{}) map[string]interface{} {
+func ExpandDestinationAttributes(ctx context.Context, destAttrs []interface{}) map[string]interface{} {
 	if len(destAttrs) == 0 {
 		return nil
 	}
@@ -2151,7 +2102,7 @@ func ExpandDestinationAttributes(destAttrs []interface{}) map[string]interface{}
 	attrInterface := destAttrs[0]
 	attr, ok := attrInterface.(map[string]interface{})
 	if !ok {
-		fmt.Printf("[DEBUG] ExpandDestinationAttributes: destAttrs[0] is not a map[string]interface{}, type: %T, value: %+v\n", attrInterface, attrInterface)
+		tflog.Debug(ctx, "ExpandDestinationAttributes: destAttrs[0] is not a map", map[string]interface{}{"type": fmt.Sprintf("%T", attrInterface)})
 		return nil
 	}
 
