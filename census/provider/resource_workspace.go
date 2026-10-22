@@ -113,12 +113,6 @@ func resourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	// Check if workspace is nil (API returned successfully but with nil data)
-	if workspace == nil {
-		d.SetId("")
-		return nil
-	}
-
 	d.Set("name", workspace.Name)
 	d.Set("organization_id", workspace.OrganizationID)
 

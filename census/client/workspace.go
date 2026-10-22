@@ -54,6 +54,9 @@ func (c *Client) CreateWorkspace(ctx context.Context, req *CreateWorkspaceReques
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to create workspace: %w", err)
 	}
+	if result.Data == nil {
+		return nil, errAmbiguousCreateResponse("workspace")
+	}
 
 	return result.Data, nil
 }
@@ -69,6 +72,9 @@ func (c *Client) GetWorkspace(ctx context.Context, workspaceID int) (*Workspace,
 	var result WorkspaceResponse
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, fmt.Errorf("failed to get workspace: %w", err)
+	}
+	if result.Data == nil {
+		return nil, errEmptyResponse(fmt.Sprintf("workspace %d", workspaceID))
 	}
 
 	return result.Data, nil
