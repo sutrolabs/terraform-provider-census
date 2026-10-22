@@ -32,6 +32,26 @@ type Config struct {
 	BaseURL              string
 	Region               string
 	HTTPClient           *http.Client
+
+	// UserAgent is sent as the User-Agent header. Defaults to
+	// DefaultUserAgent when empty. Use UserAgent() to build one.
+	UserAgent string
+}
+
+// DefaultUserAgent is the User-Agent sent when Config.UserAgent is empty.
+const DefaultUserAgent = "terraform-provider-census"
+
+// UserAgent builds e.g. "terraform-provider-census/0.2.20 (terraform/1.9.0)".
+// Empty inputs are omitted, so UserAgent("", "") == DefaultUserAgent.
+func UserAgent(providerVersion, terraformVersion string) string {
+	ua := DefaultUserAgent
+	if providerVersion != "" {
+		ua += "/" + providerVersion
+	}
+	if terraformVersion != "" {
+		ua += " (terraform/" + terraformVersion + ")"
+	}
+	return ua
 }
 
 // Client represents a Census API client
@@ -127,7 +147,11 @@ func (c *Client) makeRequestWithToken(ctx context.Context, method, path string, 
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "terraform-provider-census")
+	userAgent := c.config.UserAgent
+	if userAgent == "" {
+		userAgent = DefaultUserAgent
+	}
+	req.Header.Set("User-Agent", userAgent)
 
 	// Set authentication based on token type and availability
 	token := ""
