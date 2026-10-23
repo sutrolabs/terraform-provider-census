@@ -227,7 +227,7 @@ resource "census_sync" "test" {
       type          = "table"
       table_name    = "users"
       table_schema  = "public"
-      table_catalog = "dev"
+      table_catalog = "` + os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE") + `"
     }
   }
 
@@ -300,7 +300,7 @@ resource "census_sync" "test" {
       type          = "table"
       table_name    = "users"
       table_schema  = "public"
-      table_catalog = "dev"
+      table_catalog = "` + os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE") + `"
     }
   }
 
@@ -373,7 +373,7 @@ resource "census_sync" "test" {
       type          = "table"
       table_name    = "users"
       table_schema  = "public"
-      table_catalog = "dev"
+      table_catalog = "` + os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE") + `"
     }
   }
 
@@ -455,7 +455,7 @@ resource "census_sync" "test" {
       type          = "table"
       table_name    = "users"
       table_schema  = "public"
-      table_catalog = "dev"
+      table_catalog = "` + os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE") + `"
     }
   }
 
@@ -530,7 +530,7 @@ resource "census_sync" "test" {
       type          = "table"
       table_name    = "users"
       table_schema  = "public"
-      table_catalog = "dev"
+      table_catalog = "` + os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE") + `"
     }
   }
 
@@ -604,7 +604,7 @@ resource "census_sync" "test" {
       type          = "table"
       table_name    = "users"
       table_schema  = "public"
-      table_catalog = "dev"
+      table_catalog = "` + os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE") + `"
     }
   }
 
@@ -677,7 +677,7 @@ resource "census_sync" "test" {
       type          = "table"
       table_name    = "users"
       table_schema  = "public"
-      table_catalog = "dev"
+      table_catalog = "` + os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE") + `"
     }
   }
 

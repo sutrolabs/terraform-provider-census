@@ -90,7 +90,7 @@ resource "census_sync" "test" {
     connection_id = census_source.test.id
     object {
       type          = "table"
-      table_catalog = "dev"
+      table_catalog = "%s"
       table_schema  = "public"
       table_name    = "users"
     }
@@ -158,5 +158,6 @@ data "census_sync" "test" {
 		os.Getenv("CENSUS_TEST_SALESFORCE_CLIENT_ID"),
 		os.Getenv("CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY"),
 		os.Getenv("CENSUS_TEST_SALESFORCE_DOMAIN"),
+		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
 	)
 }
