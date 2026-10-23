@@ -184,24 +184,3 @@ func TestClient_makeRequest(t *testing.T) {
 
 	t.Skip("Skipping test for unexported method - would need to test via exported methods")
 }
-
-func TestUserAgent(t *testing.T) {
-	tests := []struct {
-		name             string
-		providerVersion  string
-		terraformVersion string
-		want             string
-	}{
-		{"neither", "", "", "terraform-provider-census"},
-		{"provider only", "0.2.20", "", "terraform-provider-census/0.2.20"},
-		{"both", "0.2.20", "1.9.0", "terraform-provider-census/0.2.20 (terraform/1.9.0)"},
-		{"terraform only", "", "1.9.0", "terraform-provider-census (terraform/1.9.0)"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := client.UserAgent(tt.providerVersion, tt.terraformVersion); got != tt.want {
-				t.Errorf("UserAgent() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}

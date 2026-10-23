@@ -33,32 +33,14 @@ type Config struct {
 	Region               string
 	HTTPClient           *http.Client
 
-	// UserAgent is sent as the User-Agent header. Defaults to
-	// DefaultUserAgent when empty. Use UserAgent() to build one.
+	// UserAgent is sent as the User-Agent header.
 	UserAgent string
-}
-
-// DefaultUserAgent is the User-Agent sent when Config.UserAgent is empty.
-const DefaultUserAgent = "terraform-provider-census"
-
-// UserAgent builds e.g. "terraform-provider-census/0.2.20 (terraform/1.9.0)".
-// Empty inputs are omitted, so UserAgent("", "") == DefaultUserAgent.
-func UserAgent(providerVersion, terraformVersion string) string {
-	ua := DefaultUserAgent
-	if providerVersion != "" {
-		ua += "/" + providerVersion
-	}
-	if terraformVersion != "" {
-		ua += " (terraform/" + terraformVersion + ")"
-	}
-	return ua
 }
 
 // Client represents a Census API client
 type Client struct {
 	config     *Config
 	httpClient *http.Client
-	userAgent  string
 
 	// workspaceTokenCache caches workspace API keys by workspace ID to avoid
 	// redundant API calls during a single Terraform run. Protected by tokenMu.
@@ -83,15 +65,9 @@ func NewClient(config *Config) (*Client, error) {
 		}
 	}
 
-	userAgent := config.UserAgent
-	if userAgent == "" {
-		userAgent = DefaultUserAgent
-	}
-
 	return &Client{
 		config:              config,
 		httpClient:          httpClient,
-		userAgent:           userAgent,
 		workspaceTokenCache: make(map[int]string),
 	}, nil
 }
@@ -154,7 +130,7 @@ func (c *Client) makeRequestWithToken(ctx context.Context, method, path string, 
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", c.userAgent)
+	req.Header.Set("User-Agent", c.config.UserAgent)
 
 	// Set authentication based on token type and availability
 	token := ""

@@ -75,7 +75,7 @@ func newProvider(version string) *schema.Provider {
 	// p.TerraformVersion is set by the SDK after construction and before
 	// configure runs, so capture p rather than reading it now.
 	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		return configure(ctx, d, client.UserAgent(version, p.TerraformVersion))
+		return configure(ctx, d, p.UserAgent("terraform-provider-census", version))
 	}
 
 	return p
