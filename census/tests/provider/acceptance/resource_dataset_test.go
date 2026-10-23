@@ -119,7 +119,7 @@ resource "census_dataset" "test" {
       first_name,
       last_name,
       created_at
-    FROM users
+    FROM public.users
     WHERE active = true
   SQL
 }
@@ -170,7 +170,7 @@ resource "census_dataset" "test" {
       last_name,
       created_at,
       updated_at
-    FROM users
+    FROM public.users
     WHERE active = true
   SQL
 }
@@ -233,7 +233,7 @@ resource "census_dataset" "test" {
       email,
       first_name,
       last_name
-    FROM users
+    FROM public.users
   SQL
 }
 
@@ -470,7 +470,7 @@ resource "census_dataset" "test_with_wait" {
       email,
       first_name,
       last_name
-    FROM users
+    FROM public.users
   SQL
 
   wait_for_metadata_refresh = true
@@ -533,7 +533,7 @@ resource "census_dataset" "test_for_sync" {
       email,
       first_name,
       last_name
-    FROM users
+    FROM public.users
   SQL
 
   wait_for_metadata_refresh = true
@@ -732,7 +732,7 @@ resource "census_dataset" "test_update" {
       email,
       first_name,
       last_name
-    FROM users
+    FROM public.users
   SQL
 
   wait_for_metadata_refresh = %t
@@ -784,7 +784,7 @@ resource "census_dataset" "test_update" {
       email,
       first_name,
       last_name
-    FROM users
+    FROM public.users
   SQL
 
   wait_for_metadata_refresh = %t

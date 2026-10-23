@@ -85,7 +85,7 @@ resource "census_dataset" "test" {
       email,
       first_name,
       last_name
-    FROM users
+    FROM public.users
     WHERE active = true
   SQL
 }
