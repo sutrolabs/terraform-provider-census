@@ -58,6 +58,7 @@ func UserAgent(providerVersion, terraformVersion string) string {
 type Client struct {
 	config     *Config
 	httpClient *http.Client
+	userAgent  string
 
 	// workspaceTokenCache caches workspace API keys by workspace ID to avoid
 	// redundant API calls during a single Terraform run. Protected by tokenMu.
@@ -82,9 +83,15 @@ func NewClient(config *Config) (*Client, error) {
 		}
 	}
 
+	userAgent := config.UserAgent
+	if userAgent == "" {
+		userAgent = DefaultUserAgent
+	}
+
 	return &Client{
 		config:              config,
 		httpClient:          httpClient,
+		userAgent:           userAgent,
 		workspaceTokenCache: make(map[int]string),
 	}, nil
 }
@@ -147,11 +154,7 @@ func (c *Client) makeRequestWithToken(ctx context.Context, method, path string, 
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	userAgent := c.config.UserAgent
-	if userAgent == "" {
-		userAgent = DefaultUserAgent
-	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", c.userAgent)
 
 	// Set authentication based on token type and availability
 	token := ""
