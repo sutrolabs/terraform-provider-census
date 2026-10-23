@@ -1,0 +1,26 @@
+census/client/client.go
+  s_4ceff87a0e5292::t_64b4f49e04459f 86-90,94
+  s_4ceff87a0e5292::t_988d900d957b19 157
+  s_4ceff87a0e5292::t_165a1bf1bc45f4 61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6c064f58a048d1f5801f8fef62c7c826b124afa",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_4ceff87a0e5292": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61d3be71-efec-4467-9efe-55b0103c1313",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
