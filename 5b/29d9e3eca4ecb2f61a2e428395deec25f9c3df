@@ -1,0 +1,16 @@
+CHANGELOG.md
+  h_96efa7013a7935 8-14
+Makefile
+  h_96efa7013a7935 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5b29d9e3eca4ecb2f61a2e428395deec25f9c3df",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
