@@ -18,18 +18,12 @@ const (
 	DefaultBaseURL = "https://app.getcensus.com/api/v1"
 )
 
-// Provider returns the Census Terraform provider with no release version
-// (the User-Agent reports "dev").
+// Version is the provider release version, sent to Census in the User-Agent.
+// main sets it from its build-time version.
+var Version = "dev"
+
+// Provider returns the Census Terraform provider
 func Provider() *schema.Provider {
-	return New("dev")()
-}
-
-// New returns a provider factory that reports version in the User-Agent.
-func New(version string) func() *schema.Provider {
-	return func() *schema.Provider { return newProvider(version) }
-}
-
-func newProvider(version string) *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"personal_access_token": {
@@ -75,7 +69,7 @@ func newProvider(version string) *schema.Provider {
 	// p.TerraformVersion is set by the SDK after construction and before
 	// configure runs, so capture p rather than reading it now.
 	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		return configure(ctx, d, p.UserAgent("terraform-provider-census", version))
+		return configure(ctx, d, p.UserAgent("terraform-provider-census", Version))
 	}
 
 	return p
