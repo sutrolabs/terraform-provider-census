@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.20] - 2026-10-26
 
 ### Security
 - **Build with Go 1.26.10**: Raised the Go version from 1.25 to 1.26.10, which removes trust in the compromised eMudhra (emSign) intermediate CAs from the standard library's certificate verification (CVE-2026-111943). Go 1.25 gets no fix, so released provider binaries built with it still trust those certificates.
