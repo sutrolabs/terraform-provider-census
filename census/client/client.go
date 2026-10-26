@@ -32,6 +32,9 @@ type Config struct {
 	BaseURL              string
 	Region               string
 	HTTPClient           *http.Client
+
+	// UserAgent is sent as the User-Agent header.
+	UserAgent string
 }
 
 // Client represents a Census API client
@@ -148,7 +151,7 @@ func (c *Client) makeRequestWithToken(ctx context.Context, method, path string, 
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "terraform-provider-census")
+	req.Header.Set("User-Agent", c.config.UserAgent)
 
 	// Set authentication based on token type and availability
 	token := ""

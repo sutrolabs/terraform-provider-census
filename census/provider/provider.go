@@ -18,9 +18,13 @@ const (
 	DefaultBaseURL = "https://app.getcensus.com/api/v1"
 )
 
+// Version is the provider release version, sent to Census in the User-Agent.
+// main sets it from its build-time version.
+var Version = "dev"
+
 // Provider returns the Census Terraform provider
 func Provider() *schema.Provider {
-	return &schema.Provider{
+	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"personal_access_token": {
 				Type:        schema.TypeString,
@@ -60,11 +64,18 @@ func Provider() *schema.Provider {
 			"census_sync":        dataSourceSync(),
 			"census_dataset":     dataSourceDataset(),
 		},
-		ConfigureContextFunc: configure,
 	}
+
+	// p.TerraformVersion is set by the SDK after construction and before
+	// configure runs, so capture p rather than reading it now.
+	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		return configure(ctx, d, p.UserAgent("terraform-provider-census", Version))
+	}
+
+	return p
 }
 
-func configure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+func configure(ctx context.Context, d *schema.ResourceData, userAgent string) (interface{}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	personalToken := d.Get("personal_access_token").(string)
@@ -93,6 +104,7 @@ func configure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.D
 		WorkspaceAccessToken: "", // No longer used - workspace tokens are fetched dynamically
 		BaseURL:              baseURL,
 		Region:               region,
+		UserAgent:            userAgent,
 	}
 
 	client, err := client.NewClient(config)
