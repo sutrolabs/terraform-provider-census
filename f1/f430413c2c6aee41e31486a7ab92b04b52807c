@@ -1,0 +1,14 @@
+Makefile
+  h_96efa7013a7935 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f1f430413c2c6aee41e31486a7ab92b04b52807c",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
