@@ -27,6 +27,24 @@ func dataSourceSource() *schema.Resource {
 				Computed:    true,
 				Description: "The group ID of the source, used to reference it from activations and datasets.",
 			},
+			"region": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The region the source runs in.",
+			},
+			"notification_emails": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "Email addresses notified about this source.",
+			},
+			"storage_backend": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Sensitive:   true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "The source's custom storage backend (bring your own bucket), if one is configured: `type` (`s3`, `gcs`, or `azure`) plus that backend's fields.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -87,6 +105,9 @@ func dataSourceSourceRead(ctx context.Context, d *schema.ResourceData, meta inte
 	d.Set("name", source.Name)
 	d.Set("type", source.Type)
 	d.Set("group_id", source.GroupID)
+	d.Set("region", source.Region)
+	d.Set("notification_emails", source.NotificationEmails)
+	d.Set("storage_backend", source.StorageBackend)
 	d.Set("created_at", source.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
 
 	// status, test_status, last_tested and updated_at are deprecated: the API does not support them.
