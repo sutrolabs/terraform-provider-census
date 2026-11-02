@@ -1,0 +1,88 @@
+census/provider/resource_sync.go
+  s_c4dc2e7beb0de0::t_24936741af476e 599,693,871,1050
+census/client/v2/source.go
+  s_c4dc2e7beb0de0::t_6a7d672318d3ce 6-7,10-48,53-114,120,122
+  s_c4dc2e7beb0de0::t_4dded813000cee 115-116
+census/provider/resource_dataset.go
+  s_c4dc2e7beb0de0::t_24936741af476e 188,241,332,395
+census/tests/provider/acceptance/resource_source_test.go
+  s_c4dc2e7beb0de0::t_ef02a81e1b35be 25
+census/provider/resource_source_test.go
+  s_c4dc2e7beb0de0::t_d2f5dae6068e66 377,467-468,531-532,664,720
+  s_c4dc2e7beb0de0::t_4dded813000cee 15,685,717,722,741,781,787
+  s_c4dc2e7beb0de0::t_984f9620c93724 670,673-676,726,729-732
+  s_c4dc2e7beb0de0::t_306bbcf5447b8d 818-871
+census/provider/data_source_dataset.go
+  s_c4dc2e7beb0de0::t_24936741af476e 97
+census/provider/data_source_sync.go
+  s_c4dc2e7beb0de0::t_24936741af476e 260
+census/provider/data_source_source_test.go
+  s_c4dc2e7beb0de0::t_2e2069807e5d50 1-68
+census/tests/provider/regression/helpers_test.go
+  s_c4dc2e7beb0de0::t_ff04423bf5852b 7-8,105-152
+  s_c4dc2e7beb0de0::t_cc9ad6432d9c5e 153
+census/provider/resource_read_test.go
+  s_c4dc2e7beb0de0::t_4dded813000cee 14,187,206,212,230,298-321
+  s_c4dc2e7beb0de0::t_f3ff94d91e34b2 322
+census/client/v2/source_validation_test.go
+  s_c4dc2e7beb0de0::t_73a047908150f1 1-7,11-65,67-167,169-260,262-319,321-337,350,364
+  s_c4dc2e7beb0de0::t_114f5bbdec4332 8,66,168,261,320,338-349,351-363
+  s_c4dc2e7beb0de0::t_777db3e1b4b8ec 9-10
+census/client/v2/source_types.go
+  s_c4dc2e7beb0de0::t_e5600c8b431bf0 1-4,6,8-12,14-22,47-61,67,75,77-79,82,84-223
+  s_c4dc2e7beb0de0::t_c3f801f7925f2b 5,7,13,23-46,62-66,68-74,76
+  s_c4dc2e7beb0de0::t_c76c8b285ccd84 80
+  s_c4dc2e7beb0de0::t_c1c4da55179e14 81,83
+census/provider/resource_source.go
+  s_c4dc2e7beb0de0::t_15c55b918606db 23
+  s_c4dc2e7beb0de0::t_777db3e1b4b8ec 10,200,209,213-215,217,226,236,243,245,252-253,260-262,271-272,274-276,278,282,295-296,298,304,306,313,322,329,331,340-345,351-361,363-364,366-371,373-374,376-380,382-384,387
+  s_c4dc2e7beb0de0::t_a41f50d1d12147 26-32,167-175,177,179,181-194,196
+  s_c4dc2e7beb0de0::t_b381e0d4c15ce2 24,45-151,153-166,176,178,180
+  s_c4dc2e7beb0de0::t_d2f5b3a55831dd 303,346-350
+  s_c4dc2e7beb0de0::t_cdc52b59acc128 25
+census/client/v2/source_test.go
+  s_c4dc2e7beb0de0::t_81c2d5fc62f244 1-233,235,238-267
+  s_c4dc2e7beb0de0::t_d0c1b24849036e 234,236-237
+docs/resources/source.md
+  s_c4dc2e7beb0de0::t_7d13fbd9e1a297 167-193,210-219,226-227,236,239,242,251-252
+  s_c4dc2e7beb0de0::t_12a13dbe454049 11-12,15-20,29-31,48-50,69-70,98-99,120-121,139-140,143-144,154-155
+docs/data-sources/source.md
+  s_c4dc2e7beb0de0::t_88e1af621a9eab 9,12-18,25,31-35,39
+census/tests/provider/acceptance/data_source_source_test.go
+  s_c4dc2e7beb0de0::t_ef02a81e1b35be 27,50
+census/tests/provider/regression/plan_nodiff_test.go
+  s_c4dc2e7beb0de0::t_ff04423bf5852b 52
+  s_c4dc2e7beb0de0::t_9551dc2bae9c96 73-76
+  s_c4dc2e7beb0de0::t_ec2a38cbc7a624 89-107
+  s_c4dc2e7beb0de0::t_eee732420bdd65 13
+census/provider/data_source_source.go
+  s_c4dc2e7beb0de0::t_4eabbda3057e5b 11,28-47,99,106,114-116
+  s_c4dc2e7beb0de0::t_4dded813000cee 146
+  s_c4dc2e7beb0de0::t_ee0bc13ad401d8 5,48-53,117,128-145
+census/provider/provider.go
+  s_c4dc2e7beb0de0::t_4dded813000cee 129-132
+  s_c4dc2e7beb0de0::t_24936741af476e 6,13,23-30,120,125-128,133-143
+census/tests/provider/regression/plan_delete_test.go
+  s_c4dc2e7beb0de0::t_ff04423bf5852b 71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ded26e1b775fff93082b5b202001664a93757411",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_c4dc2e7beb0de0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c57be8f6-71dd-4447-893f-51149084ea92",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
