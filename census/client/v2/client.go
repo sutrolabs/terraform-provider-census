@@ -38,6 +38,7 @@ type Config struct {
 	// BaseURL is the API root. Always "https://app.getcensus.com/api/v2" in
 	// production — v2 has no regional endpoints, unlike v1.
 	BaseURL string
+	UserAgent string
 	// HTTPClient overrides the default *http.Client. Mainly for tests; nil
 	// uses a default client with defaultHTTPTimeout.
 	HTTPClient *http.Client
@@ -88,7 +89,7 @@ func (c *Client) do(ctx context.Context, method, path string, body interface{}) 
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "terraform-provider-census")
+	req.Header.Set("User-Agent", c.config.UserAgent)
 	req.Header.Set("Authorization", "Bearer "+c.config.PersonalAccessToken)
 
 	return c.doWithRetry(ctx, req, bodyBytes)
