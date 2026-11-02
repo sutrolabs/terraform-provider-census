@@ -131,7 +131,7 @@ func resourceSource() *schema.Resource {
 }
 
 func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	workspaceId := d.Get("workspace_id").(string)
 	name := d.Get("name").(string)
@@ -195,7 +195,7 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceSourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -311,7 +311,7 @@ func getConfiguredWarehouseWritebackRetention(d *schema.ResourceData) *int {
 }
 
 func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -374,7 +374,7 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceSourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {

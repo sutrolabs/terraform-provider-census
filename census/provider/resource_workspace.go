@@ -68,7 +68,7 @@ func resourceWorkspace() *schema.Resource {
 }
 
 func resourceWorkspaceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	name := d.Get("name").(string)
 	notificationEmails := expandStringSet(d.Get("notification_emails").(*schema.Set))
@@ -96,7 +96,7 @@ func resourceWorkspaceCreate(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -129,7 +129,7 @@ func resourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceWorkspaceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -153,7 +153,7 @@ func resourceWorkspaceUpdate(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceWorkspaceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {

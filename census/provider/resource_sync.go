@@ -596,7 +596,7 @@ func suppressEquivalentJSON(k, old, new string, d *schema.ResourceData) bool {
 }
 
 func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	workspaceId := d.Get("workspace_id").(string)
 
@@ -690,7 +690,7 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -868,7 +868,7 @@ To fix this, add the missing workspace_id to terraform state:
 }
 
 func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -1047,7 +1047,7 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceSyncDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {

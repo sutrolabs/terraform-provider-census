@@ -6,8 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
 
 func dataSourceDestination() *schema.Resource {
@@ -71,7 +69,7 @@ func dataSourceDestination() *schema.Resource {
 }
 
 func dataSourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Get("id").(string))
 	if err != nil {
