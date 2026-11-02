@@ -4,6 +4,8 @@
 package regression_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -99,4 +101,53 @@ func writeDevOverrides(t *testing.T, workdir, providerBinary string) {
 	if err := os.WriteFile(filepath.Join(workdir, "dev.tfrc"), []byte(rc), 0o644); err != nil {
 		t.Fatalf("failed to write dev_overrides config: %v", err)
 	}
+}
+
+// fixtureResourceAddresses lists every resource instance address in a
+// Terraform state file by reading its JSON directly. `terraform show` can't
+// be used for this: it refuses to render state whose recorded schema_version
+// is older than the provider's (it doesn't run state upgraders), which is
+// exactly the situation this harness exists to test across schema bumps.
+func fixtureResourceAddresses(t *testing.T, state []byte) map[string]bool {
+	t.Helper()
+
+	var parsed struct {
+		Resources []struct {
+			Module    string `json:"module"`
+			Mode      string `json:"mode"`
+			Type      string `json:"type"`
+			Name      string `json:"name"`
+			Instances []struct {
+				IndexKey interface{} `json:"index_key"`
+			} `json:"instances"`
+		} `json:"resources"`
+	}
+	if err := json.Unmarshal(state, &parsed); err != nil {
+		t.Fatalf("failed to parse fixture state JSON: %v", err)
+	}
+
+	addresses := map[string]bool{}
+	for _, r := range parsed.Resources {
+		base := r.Type + "." + r.Name
+		if r.Mode == "data" {
+			base = "data." + base
+		}
+		if r.Module != "" {
+			base = r.Module + "." + base
+		}
+
+		for _, inst := range r.Instances {
+			switch key := inst.IndexKey.(type) {
+			case nil:
+				addresses[base] = true
+			case float64:
+				addresses[fmt.Sprintf("%s[%d]", base, int(key))] = true
+			case string:
+				addresses[fmt.Sprintf("%s[%q]", base, key)] = true
+			default:
+				t.Fatalf("unexpected index_key %#v on %s", key, base)
+			}
+		}
+	}
+	return addresses
 }

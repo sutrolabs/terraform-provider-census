@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -48,16 +49,7 @@ func TestPreMigrationFixture_PlansWithNoChangesAgainstExpectedConfig(t *testing.
 		t.Fatalf("terraform init failed: %v", err)
 	}
 
-	priorState, err := tf.Show(ctx)
-	if err != nil {
-		t.Fatalf("failed to read fixture state via terraform show: %v", err)
-	}
-	expectedAddresses := map[string]bool{}
-	if priorState.Values != nil && priorState.Values.RootModule != nil {
-		for _, r := range priorState.Values.RootModule.Resources {
-			expectedAddresses[r.Address] = true
-		}
-	}
+	expectedAddresses := fixtureResourceAddresses(t, fixtureState)
 	if len(expectedAddresses) == 0 {
 		t.Fatal("fixture state contains no resources — nothing to validate")
 	}
@@ -78,6 +70,10 @@ func TestPreMigrationFixture_PlansWithNoChangesAgainstExpectedConfig(t *testing.
 	for _, rc := range plan.ResourceChanges {
 		seen[rc.Address] = true
 		actions := rc.Change.Actions
+		if isSensitivityOnlyUpdate(rc.Change) {
+			t.Logf("%s: update changes only which attributes are marked sensitive, not any value — treated as no change", rc.Address)
+			continue
+		}
 		if len(actions) != 1 || actions[0] != tfjson.ActionNoop {
 			t.Errorf("%s: expected no changes, got %v — either a real regression, or expected_config.go "+
 				"needs to be updated to match an intentional schema change", rc.Address, actions)
@@ -89,4 +85,22 @@ func TestPreMigrationFixture_PlansWithNoChangesAgainstExpectedConfig(t *testing.
 			t.Errorf("%s is in the fixture state but missing from expected_config.go (no matching resource block, or it wasn't planned at all)", addr)
 		}
 	}
+}
+
+// isSensitivityOnlyUpdate reports whether change is an in-place update that
+// changes no values at all — only which attributes Terraform marks as
+// sensitive. That happens when a new provider version adds a Sensitive
+// attribute: the fixture state's recorded sensitive_attributes predate it,
+// and only Terraform core (not a provider state upgrader) can update them.
+// This harness plans with Refresh(false), so it sees the stale marks; a real
+// `terraform plan` refreshes first, which re-marks the state from the current
+// schema, and shows no changes.
+func isSensitivityOnlyUpdate(change *tfjson.Change) bool {
+	if len(change.Actions) != 1 || change.Actions[0] != tfjson.ActionUpdate {
+		return false
+	}
+	if unknown, ok := change.AfterUnknown.(map[string]interface{}); ok && len(unknown) > 0 {
+		return false
+	}
+	return reflect.DeepEqual(change.Before, change.After)
 }
