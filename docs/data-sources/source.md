@@ -6,28 +6,26 @@ Retrieves information about an existing Census data source connection.
 
 ```hcl
 data "census_source" "warehouse" {
-  id           = "67890"
-  workspace_id = census_workspace.main.id
+  id = "67890"
 }
 
-output "source_status" {
-  value = data.census_source.warehouse.connection_status
+output "source_group_id" {
+  value = data.census_source.warehouse.group_id
 }
 ```
 
 ## Argument Reference
 
 * `id` - (Required) The ID of the source.
-* `workspace_id` - (Required) The ID of the workspace this source belongs to.
+* `workspace_id` - (Optional, **Deprecated**) Ignored. Sources are looked up with the personal access token alone; remove it from your configuration.
 
 ## Attribute Reference
 
 * `name` - The name of the source.
 * `type` - The type of data source connector (e.g., "snowflake", "big_query", "postgres").
-* `connection_status` - The current connection status of the source.
-* `connection_config` - The connection configuration for the source (sensitive, not fully populated in reads).
+* `group_id` - The group ID of the source, used to reference it from activations and datasets.
+* `created_at` - When the source was created.
 * `status` - The current status of the source. **Deprecated:** This field is unsupported and will be removed in a future version.
 * `test_status` - The test status of the source connection. **Deprecated:** This field is unsupported and will be removed in a future version.
 * `last_tested` - Timestamp when the source was last tested. **Deprecated:** This field is unsupported and will be removed in a future version.
-* `created_at` - When the source was created.
 * `updated_at` - When the source was last updated. **Deprecated:** This field is unsupported and will be removed in a future version.
