@@ -1,33 +1,29 @@
 # census_destination Data Source
 
-Retrieves information about an existing Census destination connection.
+~> **Deprecated:** This data source is deprecated and no longer returns data from Fivetran Activations. Use the `census_activation` data source instead.
+
+Previously retrieved a destination connection from Fivetran Activations. To look up a destination connection, use the [`census_activation`](activation.md) data source.
+
+## Behavior
+
+This data source remains in the provider only so that existing configurations keep working. It will not be removed.
+
+It makes no API calls. It returns the `id` you give it, empty values for every other attribute, and a warning.
 
 ## Example Usage
 
 ```hcl
 data "census_destination" "salesforce" {
-  id           = "12345"
-  workspace_id = census_workspace.main.id
-}
-
-output "destination_status" {
-  value = data.census_destination.salesforce.connection_status
+  id = "12345"
 }
 ```
 
 ## Argument Reference
 
-* `id` - (Required) The ID of the destination.
-* `workspace_id` - (Required) The ID of the workspace this destination belongs to.
+* `id` - (Required) The ID of the destination. Returned unchanged.
+* `workspace_id` - (Optional) Ignored.
 
 ## Attribute Reference
 
-* `name` - The name of the destination.
-* `type` - The type of destination connector (e.g., "salesforce", "hubspot", "intercom").
-* `connection_status` - The current connection status of the destination.
-* `connection_config` - The connection configuration for the destination (sensitive, not fully populated in reads).
-* `status` - The current status of the destination. **Deprecated:** This field is unsupported and will be removed in a future version.
-* `test_status` - The test status of the destination connection. **Deprecated:** This field is unsupported and will be removed in a future version.
-* `last_tested` - Timestamp when the destination was last tested. **Deprecated:** This field is unsupported and will be removed in a future version.
-* `created_at` - When the destination was created.
-* `updated_at` - When the destination was last updated. **Deprecated:** This field is unsupported and will be removed in a future version.
+* `id` - The ID given in the configuration.
+* `name`, `type`, `status`, `test_status`, `last_tested`, `created_at`, `updated_at` - Always empty.
