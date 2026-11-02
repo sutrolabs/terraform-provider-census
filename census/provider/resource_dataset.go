@@ -185,7 +185,7 @@ func waitForMetadataRefresh(ctx context.Context, apiClient *client.Client, datas
 }
 
 func resourceDatasetCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	workspaceId := d.Get("workspace_id").(string)
 
@@ -238,7 +238,7 @@ func resourceDatasetCreate(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceDatasetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -329,7 +329,7 @@ To fix this, add the missing workspace_id to terraform state:
 }
 
 func resourceDatasetUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -392,7 +392,7 @@ func resourceDatasetUpdate(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceDatasetDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
