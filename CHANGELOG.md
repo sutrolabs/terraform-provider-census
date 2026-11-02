@@ -10,10 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Source group ID**: Added `group_id` to `census_source`.
+- **Source region, notification emails and bring your own bucket**: Added `region`, `notification_emails` and `storage_backend` to `census_source`.
 
 ### Changed
 - **`census_destination` and `census_workspace` are frozen** (resources and data sources): creating one now fails; read, update and delete make no API calls, so removing one no longer touches Fivetran Activations; the data sources return only their `id`, with a warning. Use `census_activation` in place of `census_destination`; workspaces are no longer needed.
 - **`census_source` uses the v2 API**: Sources no longer need a workspace, and are imported by source ID alone (`terraform import census_source.warehouse 67890`).
+- **`census_source` state is upgraded automatically**: once upgraded, it can't be used with v0.2.x of the provider.
 
 ### Removed
 - **`workspace_id` on `census_source`** (resource and data source): sources no longer belong to a workspace. Remove the argument from your configuration, and any references to `census_source.<name>.workspace_id`; Terraform reports `Unsupported argument` until you do. Existing state needs no migration.
