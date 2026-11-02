@@ -1,0 +1,20 @@
+CHANGELOG.md
+  s_3b97bd00220ba0::t_3430ed5d6dd1ed 15
+  s_3b97bd00220ba0::t_d42040980cadc2 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b128e44345a91fe66c37fe9414d179606b799228",
+  "prompts": {},
+  "sessions": {
+    "s_3b97bd00220ba0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "974851d5-703c-48fc-961e-c236cc04157c",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
