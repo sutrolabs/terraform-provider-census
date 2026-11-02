@@ -9,9 +9,9 @@ import (
 
 func resourceWorkspace() *schema.Resource {
 	return &schema.Resource{
-		DeprecationMessage: "Workspace management has been removed from the version of the Census API this provider targets. You may continue to include census_workspace resources in your configuration, but no resources will be managed in the Census API, and attempting to create a new workspace will fail. You can safely remove census_workspace resources from your configuration without triggering any changes to your Census account. Do not include census_workspace resources in new configurations.",
+		DeprecationMessage: "This resource is deprecated and no longer manages anything in Fivetran Activations. Workspaces are no longer needed; remove it from your configuration.",
 
-		Description: "Manages a Census workspace.",
+		Description: "Previously managed a workspace in Fivetran Activations (Census).",
 
 		CreateContext: resourceWorkspaceCreate,
 		ReadContext:   resourceWorkspaceRead,

@@ -9,9 +9,9 @@ import (
 
 func dataSourceWorkspace() *schema.Resource {
 	return &schema.Resource{
-		DeprecationMessage: "Workspace management has been removed from the version of the Census API this provider targets. You may continue to include census_workspace data sources in your configurations, but no data will be fetched from the Census API. Do not include census_workspace data sources in new configurations.",
+		DeprecationMessage: "This data source is deprecated and no longer returns data from Fivetran Activations. Workspaces are no longer needed; remove it from your configuration.",
 
-		Description: "Retrieves information about a Census workspace.",
+		Description: "Previously retrieved a workspace from Fivetran Activations (Census).",
 
 		ReadContext: dataSourceWorkspaceRead,
 
@@ -49,5 +49,10 @@ func dataSourceWorkspace() *schema.Resource {
 
 func dataSourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	d.SetId(d.Get("id").(string))
-	return nil
+
+	return diag.Diagnostics{{
+		Severity: diag.Warning,
+		Summary:  "census_workspace data source is deprecated",
+		Detail:   "This data source no longer queries Fivetran Activations and returns only its id. Workspaces are no longer needed; remove it from your configuration.",
+	}}
 }
