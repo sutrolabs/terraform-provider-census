@@ -1,0 +1,36 @@
+census/tests/provider/acceptance/resource_workspace_test.go
+  s_3b97bd00220ba0::t_3a511829678fd6 4,11-13,15-16,19-21,23-24
+census/tests/provider/acceptance/data_source_workspace_test.go
+  s_3b97bd00220ba0::t_3a511829678fd6 10-12,18-22,24-25
+docs/resources/workspace.md
+  s_3b97bd00220ba0::t_30cebf4925f57f 3,5,7,9-17,21,23-25,27,29-30,34
+docs/data-sources/workspace.md
+  s_3b97bd00220ba0::t_626ae07ed90cbc 3,5-11,23,27-28
+census/provider/data_source_workspace.go
+  s_3b97bd00220ba0::t_3a511829678fd6 12,14,52-57
+census/provider/workspace_freeze_test.go
+  s_3b97bd00220ba0::t_3a511829678fd6 1-76
+census/provider/resource_workspace.go
+  s_3b97bd00220ba0::t_3a511829678fd6 12,14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "224498c0e01249d61bd86e4966f14b637663c13f",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_3b97bd00220ba0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "974851d5-703c-48fc-961e-c236cc04157c",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
