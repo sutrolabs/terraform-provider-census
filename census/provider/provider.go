@@ -3,12 +3,14 @@ package provider
 import (
 	"context"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/sutrolabs/terraform-provider-census/census/client"
+	v2 "github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 const (
@@ -17,6 +19,14 @@ const (
 	// DefaultBaseURL is the default base URL for US region
 	DefaultBaseURL = "https://app.getcensus.com/api/v1"
 )
+
+// clients is the provider meta: every resource shares it. v1 and v2 run side
+// by side until every resource has been migrated to v2, after which V1 goes
+// away.
+type clients struct {
+	V1 *client.Client
+	V2 *v2.Client
+}
 
 // Version is the provider release version, sent to Census in the User-Agent.
 // main sets it from its build-time version.
@@ -107,10 +117,28 @@ func configure(ctx context.Context, d *schema.ResourceData, userAgent string) (i
 		UserAgent:            userAgent,
 	}
 
-	client, err := client.NewClient(config)
+	v1Client, err := client.NewClient(config)
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
 
-	return client, diags
+	v2Client, err := v2.NewClient(&v2.Config{
+		PersonalAccessToken: personalToken,
+		BaseURL:             v2BaseURL(d.Get("base_url").(string)),
+	})
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	return &clients{V1: v1Client, V2: v2Client}, diags
+}
+
+// v2BaseURL resolves the v2 API root. v2 has no regional endpoints, so
+// `region` is ignored; a `base_url` override (e.g. pointing at staging) is
+// honored by swapping its trailing /api/v1 for /api/v2.
+func v2BaseURL(baseURLOverride string) string {
+	if baseURLOverride == "" {
+		return v2.BaseURL
+	}
+	return strings.TrimSuffix(strings.TrimSuffix(baseURLOverride, "/"), "/api/v1") + "/api/v2"
 }

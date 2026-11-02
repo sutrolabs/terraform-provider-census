@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 func TestResourceReads_GatewayTimeoutPreservesState(t *testing.T) {
@@ -183,7 +184,7 @@ func TestResourceReads_EmptyBodyIsError(t *testing.T) {
 	}
 }
 
-func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *client.Client {
+func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *clients {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -202,21 +203,13 @@ func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *clien
 	}))
 	t.Cleanup(server.Close)
 
-	apiClient, err := client.NewClient(&client.Config{
-		BaseURL:             server.URL,
-		PersonalAccessToken: "personal-token",
-	})
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	return apiClient
+	return newTestClients(t, server.URL)
 }
 
 // newEmptyBodyReadTestClient is like newReadTestClient, but responds to
 // resourcePath with a 200 and a zero-length body instead of an error status
 // — the "API returned successfully but with nil data" scenario.
-func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *client.Client {
+func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *clients {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -234,15 +227,7 @@ func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *client.Clien
 	}))
 	t.Cleanup(server.Close)
 
-	apiClient, err := client.NewClient(&client.Config{
-		BaseURL:             server.URL,
-		PersonalAccessToken: "personal-token",
-	})
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	return apiClient
+	return newTestClients(t, server.URL)
 }
 
 func testDestinationResourceData(t *testing.T) *schema.ResourceData {
@@ -310,4 +295,29 @@ func testWorkspaceResourceData(t *testing.T) *schema.ResourceData {
 	d.SetId("69962")
 
 	return d
+}
+
+// newTestClients builds the provider meta with both the v1 and v2 clients
+// pointed at the same test server, since resource paths are the same
+// relative to either API root.
+func newTestClients(t *testing.T, baseURL string) *clients {
+	t.Helper()
+
+	v1Client, err := client.NewClient(&client.Config{
+		BaseURL:             baseURL,
+		PersonalAccessToken: "personal-token",
+	})
+	if err != nil {
+		t.Fatalf("failed to create v1 client: %v", err)
+	}
+
+	v2Client, err := v2.NewClient(&v2.Config{
+		BaseURL:             baseURL,
+		PersonalAccessToken: "personal-token",
+	})
+	if err != nil {
+		t.Fatalf("failed to create v2 client: %v", err)
+	}
+
+	return &clients{V1: v1Client, V2: v2Client}
 }
