@@ -1,0 +1,26 @@
+.github/workflows/test.yml
+  s_d5b7375a6f20ed::t_26945912e1a195 10
+  s_d5b7375a6f20ed::t_6af5f597eff390 162-167
+  h_96efa7013a7935 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b1ce9a8a59300aea5bfe660ce31f9bcfd7a1e838",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_d5b7375a6f20ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bf5b01f7-df2e-4fa8-ab0a-c31b0dac7569",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
