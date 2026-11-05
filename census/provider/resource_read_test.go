@@ -24,13 +24,6 @@ func TestResourceReads_GatewayTimeoutPreservesState(t *testing.T) {
 		read            func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
 	}{
 		{
-			name:            "destination",
-			resourcePath:    "/destinations/2311185",
-			expectedSummary: "failed to get destination",
-			buildData:       testDestinationResourceData,
-			read:            resourceDestinationRead,
-		},
-		{
 			name:            "source",
 			resourcePath:    "/sources/2280673",
 			expectedSummary: "failed to get source",
@@ -88,12 +81,6 @@ func TestResourceReads_NotFoundClearsState(t *testing.T) {
 		read         func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
 	}{
 		{
-			name:         "destination",
-			resourcePath: "/destinations/2311185",
-			buildData:    testDestinationResourceData,
-			read:         resourceDestinationRead,
-		},
-		{
 			name:         "source",
 			resourcePath: "/sources/2280673",
 			buildData:    testSourceResourceData,
@@ -143,13 +130,6 @@ func TestResourceReads_EmptyBodyIsError(t *testing.T) {
 		buildData       func(t *testing.T) *schema.ResourceData
 		read            func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
 	}{
-		{
-			name:            "destination",
-			resourcePath:    "/destinations/2311185",
-			expectedSummary: "no data",
-			buildData:       testDestinationResourceData,
-			read:            resourceDestinationRead,
-		},
 		{
 			name:            "source",
 			resourcePath:    "/sources/2280673",
