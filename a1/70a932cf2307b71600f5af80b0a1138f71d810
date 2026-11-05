@@ -1,8 +1,9 @@
 CHANGELOG.md
   s_c4dc2e7beb0de0::t_531bd3f327eb37 11,14
+  s_c4dc2e7beb0de0::t_5494a98b79ec53 13,18
 census/provider/data_source_source.go
   s_c4dc2e7beb0de0::t_34493abf2e9fee 10-11,28-35,99,106,114
-  s_c4dc2e7beb0de0::t_bd11d308f5e968 5,37-54,115-117,128-146
+  s_c4dc2e7beb0de0::t_bd11d308f5e968 5,37-54,115-117,115-116,128-146
 census/provider/resource_source.go
   s_c4dc2e7beb0de0::t_4eb517f914c406 10,23,200,209,213-215,217,226,236,243,245,252-253,260,271-273,282,295-296,298,303-304,306,313,322,329,331,340-346,363-364,366-371,373-374,376-380,382-384,387
   s_c4dc2e7beb0de0::t_aff050febfa913 26-34,45-165,170-198,261-262,274-276,348-362
@@ -20,7 +21,7 @@ docs/resources/source.md
   s_c4dc2e7beb0de0::t_6e73bbfe6278d3 11-12,15-20,29-31,48-50,69-70,98-99,120-121,139-140,143-144,154-155,218-219,226-227,236,239,242,251-252
   s_c4dc2e7beb0de0::t_526a3b4ee8f5a8 167-193,210-217
 census/provider/data_source_source_test.go
-  s_c4dc2e7beb0de0::t_7f562c07c7322b 1-68
+  s_c4dc2e7beb0de0::t_7f562c07c7322b 1-68,1-58
 ---
 {
   "schema_version": "authorship/3.0.0",
