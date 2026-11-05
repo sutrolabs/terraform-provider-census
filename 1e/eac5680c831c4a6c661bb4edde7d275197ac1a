@@ -1,0 +1,57 @@
+docs/resources/destination.md
+  s_3b97bd00220ba0::t_ad96b0d47034f6 47,62-63
+  s_3b97bd00220ba0::t_002e3547438f7d 7,15,19-21,23,25-29,31,33-40,48-51,53,55
+  s_3b97bd00220ba0::t_5b9ba6f3048e23 3,5,9,11-13,17,32,41,45,60
+  s_3b97bd00220ba0::t_59b4ddc4e3c0eb 56
+docs/data-sources/destination.md
+  s_3b97bd00220ba0::t_002e3547438f7d 17,23,28
+  s_3b97bd00220ba0::t_59b4ddc4e3c0eb 29
+  s_3b97bd00220ba0::t_ad96b0d47034f6 4,24
+  s_3b97bd00220ba0::t_5b9ba6f3048e23 3,5-11
+census/provider/data_source_destination.go
+  s_3b97bd00220ba0::t_5b9ba6f3048e23 12,78
+  s_3b97bd00220ba0::t_060515e1915057 77
+  s_3b97bd00220ba0::t_d458488f73e6b2 13,26-27,73,75-76,79
+  s_3b97bd00220ba0::t_4eb4784bf94c35 14
+census/tests/provider/acceptance/resource_destination_test.go
+  s_3b97bd00220ba0::t_66ab1b503a0920 4,11-13,19,24,27
+CHANGELOG.md
+  s_3b97bd00220ba0::t_574395f3530a35 9-11,13-17
+  s_3b97bd00220ba0::t_9922d0f2156ddf 12
+census/tests/provider/acceptance/data_source_destination_test.go
+  s_3b97bd00220ba0::t_99cbbcbad3bb2c 10-12,18-22,24-25
+census/provider/resource_destination.go
+  h_96efa7013a7935 12,14
+  s_3b97bd00220ba0::t_d458488f73e6b2 13,22,25-28,37-39,98,106
+census/provider/destination_freeze_test.go
+  s_3b97bd00220ba0::t_158dff0a1b6773 1-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1eeac5680c831c4a6c661bb4edde7d275197ac1a",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_3b97bd00220ba0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "974851d5-703c-48fc-961e-c236cc04157c",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    },
+    "s_c4dc2e7beb0de0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c57be8f6-71dd-4447-893f-51149084ea92",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
