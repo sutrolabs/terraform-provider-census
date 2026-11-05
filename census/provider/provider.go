@@ -129,5 +129,5 @@ func configure(ctx context.Context, d *schema.ResourceData, userAgent string) (i
 		return nil, diag.FromErr(err)
 	}
 
-	return &clients{ V1: v1Client, V2: v2Client }, diags
+	return &clients{V1: v1Client, V2: v2Client}, diags
 }

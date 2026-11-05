@@ -37,7 +37,7 @@ type Config struct {
 	PersonalAccessToken string
 	// BaseURL is the API root. Always "https://app.getcensus.com/api/v2" in
 	// production — v2 has no regional endpoints, unlike v1.
-	BaseURL string
+	BaseURL   string
 	UserAgent string
 	// HTTPClient overrides the default *http.Client. Mainly for tests; nil
 	// uses a default client with defaultHTTPTimeout.
