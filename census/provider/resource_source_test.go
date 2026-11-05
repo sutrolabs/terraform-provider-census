@@ -815,3 +815,57 @@ func writeJSON(t *testing.T, w http.ResponseWriter, statusCode int, payload inte
 		t.Fatalf("failed to encode response: %v", err)
 	}
 }
+
+func TestResourceSourceStateUpgradeV0_FillsMissingNotificationEmails(t *testing.T) {
+	t.Parallel()
+
+	rawState := map[string]interface{}{
+		"id":           "207672",
+		"workspace_id": "6646",
+		"name":         "pre_migration_fixture_redshift",
+	}
+
+	got, err := resourceSourceStateUpgradeV0(context.Background(), rawState, nil)
+	if err != nil {
+		t.Fatalf("upgrade failed: %v", err)
+	}
+
+	if emails, ok := got["notification_emails"].([]interface{}); !ok || len(emails) != 0 {
+		t.Fatalf("expected notification_emails to be an empty list, got %#v", got["notification_emails"])
+	}
+	if got["workspace_id"] != "6646" || got["name"] != "pre_migration_fixture_redshift" {
+		t.Fatalf("expected existing attributes to be preserved, got %#v", got)
+	}
+}
+
+func TestResourceSourceStateUpgradeV0_KeepsExistingNotificationEmails(t *testing.T) {
+	t.Parallel()
+
+	got, err := resourceSourceStateUpgradeV0(context.Background(), map[string]interface{}{
+		"notification_emails": []interface{}{"alerts@example.com"},
+	}, nil)
+	if err != nil {
+		t.Fatalf("upgrade failed: %v", err)
+	}
+
+	if emails := got["notification_emails"].([]interface{}); len(emails) != 1 || emails[0] != "alerts@example.com" {
+		t.Fatalf("expected existing notification_emails to be preserved, got %#v", emails)
+	}
+}
+
+func TestResourceSourceV0Schema_OmitsAttributesAddedInV1(t *testing.T) {
+	t.Parallel()
+
+	v0 := resourceSourceV0().Schema
+	for _, k := range sourceAttributesAddedInV1 {
+		if _, ok := v0[k]; ok {
+			t.Errorf("expected v0 schema not to contain %s", k)
+		}
+	}
+	if _, ok := v0["connection_config"]; !ok {
+		t.Fatal("expected v0 schema to keep pre-existing attributes")
+	}
+	if resourceSource().SchemaVersion != 1 {
+		t.Fatalf("expected census_source SchemaVersion 1, got %d", resourceSource().SchemaVersion)
+	}
+}
