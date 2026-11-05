@@ -4,11 +4,10 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
-# Prevent concurrent integration tests from conflicting
-# Queue commits to main, cancel in-progress PR runs
+# Queue commits to main, cancel in-progress PR runs when a newer commit is pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -159,6 +158,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [lint, unit-tests, build]
+
+    # Integration tests share one Census staging environment, so only one
+    # run may execute at a time across all PRs and main
+    concurrency:
+      group: ${{ github.workflow }}-integration-tests
+      cancel-in-progress: false
 
     steps:
       - name: Check out code
