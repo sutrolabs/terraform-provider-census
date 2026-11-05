@@ -8,17 +8,16 @@ Manages a Census data source connection. Sources connect to data warehouses like
 
 ```hcl
 resource "census_source" "warehouse" {
-  workspace_id = census_workspace.main.id
-  name         = "Production Warehouse"
-  type         = "snowflake"
+  name = "Production Warehouse"
+  type = "snowflake"
 
   connection_config = {
-    account        = "abc12345.us-east-1"
-    warehouse      = "COMPUTE_WH"
-    database       = "PRODUCTION"
-    username       = "census_user"
-    password       = var.snowflake_password
-    role           = "CENSUS_ROLE"
+    account   = "abc12345.us-east-1"
+    warehouse = "COMPUTE_WH"
+    database  = "PRODUCTION"
+    username  = "census_user"
+    password  = var.snowflake_password
+    role      = "CENSUS_ROLE"
   }
 }
 ```
@@ -27,10 +26,9 @@ resource "census_source" "warehouse" {
 
 ```hcl
 resource "census_source" "warehouse_basic" {
-  workspace_id = census_workspace.main.id
-  name         = "Warehouse Source (Basic Engine)"
-  type         = "snowflake"
-  sync_engine  = "basic"
+  name        = "Warehouse Source (Basic Engine)"
+  type        = "snowflake"
+  sync_engine = "basic"
 
   connection_config = {
     account   = "abc12345.us-east-1"
@@ -47,10 +45,9 @@ resource "census_source" "warehouse_basic" {
 
 ```hcl
 resource "census_source" "warehouse_with_writeback" {
-  workspace_id = census_workspace.main.id
-  name         = "Production Warehouse"
-  type         = "snowflake"
-  sync_engine  = "advanced"
+  name        = "Production Warehouse"
+  type        = "snowflake"
+  sync_engine = "advanced"
 
   warehouse_writeback_retention_in_days = 30
 
@@ -69,9 +66,8 @@ resource "census_source" "warehouse_with_writeback" {
 
 ```hcl
 resource "census_source" "warehouse_keypair" {
-  workspace_id = census_workspace.main.id
-  name         = "Production Warehouse (Keypair)"
-  type         = "snowflake"
+  name = "Production Warehouse (Keypair)"
+  type = "snowflake"
 
   connection_config = {
     account                = "abc12345.us-east-1"
@@ -99,9 +95,8 @@ Terraform applies the new values.
 ```hcl
 # Snowflake keypair example
 resource "census_source" "warehouse_keypair_wo" {
-  workspace_id = census_workspace.main.id
-  name         = "Production Warehouse (Keypair, write-only)"
-  type         = "snowflake"
+  name = "Production Warehouse (Keypair, write-only)"
+  type = "snowflake"
 
   connection_config = {
     account     = "abc12345.us-east-1"
@@ -122,9 +117,8 @@ resource "census_source" "warehouse_keypair_wo" {
 
 # The same argument works for any connector, e.g. a password-based source:
 resource "census_source" "postgres_wo" {
-  workspace_id = census_workspace.main.id
-  name         = "Production Database (write-only secret)"
-  type         = "postgres"
+  name = "Production Database (write-only secret)"
+  type = "postgres"
 
   connection_config = {
     host     = "postgres.example.com"
@@ -142,13 +136,12 @@ resource "census_source" "postgres_wo" {
 
 ```hcl
 resource "census_source" "bigquery" {
-  workspace_id = census_workspace.main.id
-  name         = "Analytics BigQuery"
-  type         = "big_query"
+  name = "Analytics BigQuery"
+  type = "big_query"
 
   connection_config = {
-    project_id = "my-gcp-project"
-    dataset_id = "analytics"
+    project_id          = "my-gcp-project"
+    dataset_id          = "analytics"
     service_account_key = var.gcp_service_account_key
   }
 }
@@ -158,9 +151,8 @@ resource "census_source" "bigquery" {
 
 ```hcl
 resource "census_source" "postgres" {
-  workspace_id = census_workspace.main.id
-  name         = "Production Database"
-  type         = "postgres"
+  name = "Production Database"
+  type = "postgres"
 
   connection_config = {
     host     = "postgres.example.com"
@@ -174,7 +166,6 @@ resource "census_source" "postgres" {
 
 ## Argument Reference
 
-* `workspace_id` - (Required, Forces new resource) The ID of the workspace this source belongs to.
 * `name` - (Required) The name of the source.
 * `type` - (Required, Forces new resource) The type of data source connector. Supported types include:
   - `snowflake`
@@ -189,12 +180,16 @@ resource "census_source" "postgres" {
 * `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema. Secret values may instead be supplied through the write-only `connection_config_wo` argument below so they are not persisted in Terraform state or plan files.
 * `connection_config_wo` - (Optional, Write-only, Sensitive) A `jsonencode`-d object of secret connection credentials (e.g. `password`, Snowflake `private_key_pkcs8` / `private_key_passphrase`, BigQuery `service_account_key`, etc.). Requires Terraform 1.11+. Its value is never stored in Terraform state or plan. Each key is merged into `connection_config` on create and update, taking precedence over the same key set in `connection_config`. Must be used together with `connection_config_wo_version`.
 * `connection_config_wo_version` - (Optional) Trigger for updating the write-only `connection_config_wo` argument. Because write-only values are never stored in state, Terraform cannot detect when they change. Increment this integer whenever you change `connection_config_wo` so the current write-only values are re-applied on the next apply.
+* `auto_refresh_tables` - (Optional) Whether to refresh the source's table list after it is created, and after its connection changes. Defaults to `false`.
+* `workspace_id` - (Optional, Computed, **Deprecated**) Ignored. Sources are managed with the personal access token alone, so this no longer needs to be set; remove it from your configuration. Existing values in state are left untouched.
 
 ## Attribute Reference
 
 In addition to all arguments above, the following attributes are exported:
 
 * `id` - The ID of the source.
+* `group_id` - The group ID of the source, used to reference it from activations and datasets.
+* `created_at` - When the source was created.
 * `status` - The current status of the source. **Deprecated:** This field is unsupported and will be removed in a future version.
 * `test_status` - The test status of the source connection. **Deprecated:** This field is unsupported and will be removed in a future version.
 * `last_tested` - Timestamp when the source was last tested. **Deprecated:** This field is unsupported and will be removed in a future version.
@@ -203,17 +198,13 @@ In addition to all arguments above, the following attributes are exported:
 
 ## Import
 
-Sources can be imported using the workspace ID and source ID separated by a colon:
+Sources can be imported using the source ID:
 
 ```shell
-terraform import census_source.warehouse "workspace_id:source_id"
+terraform import census_source.warehouse 67890
 ```
 
-For example:
-
-```shell
-terraform import census_source.warehouse "12345:67890"
-```
+The `workspace_id:source_id` format used by earlier provider versions is no longer accepted.
 
 ## Notes
 
@@ -222,8 +213,8 @@ terraform import census_source.warehouse "12345:67890"
 * `connection_config_wo` is fully optional and backwards compatible: existing configurations that keep secrets in `connection_config` continue to work unchanged. When a key is set in both `connection_config_wo` and `connection_config`, the `connection_config_wo` value takes precedence.
 * Value typing in `connection_config_wo`: write each credential as its natural HCL type inside `jsonencode({ ... })` and that type is preserved (strings stay strings, numbers stay numbers, booleans stay booleans, objects and lists stay structured). Unlike `connection_config`, scalar string secrets are never re-typed — a `password` of `"123456"` is sent as the string `"123456"`, not the number `123456`. A structured credential that is supplied as a JSON *string* (for example `service_account_key = file("service-account.json")`, or a nested `jsonencode(...)`) is parsed back into a real object/array before being sent to Census, so you do not need to `jsondecode` it yourself. The only value that is re-typed is a string whose entire content is a JSON object or array; an ordinary secret string is left exactly as written.
 * Recommended usage: keep non-secret settings in `connection_config`, put secret values in `connection_config_wo`, and bump `connection_config_wo_version` every time you rotate a secret.
-* Source types and required credential fields are validated against the Census API's `/source_types` endpoint.
-* After creation, the provider automatically triggers a table refresh to discover available tables.
+* Source types and required credential fields are validated against the Census API's `/source_types/{service_name}` endpoint before the source is created or its connection changes.
+* When `auto_refresh_tables` is `true`, the provider triggers a table refresh after creation (and after connection changes) so available tables are discovered.
 * `sync_engine` is a create-time setting. The Census API rejects in-place sync engine changes with a 4xx response, so Terraform recreates the source when this field changes.
 * Leaving `sync_engine` unset creates new sources with the advanced engine by default, but preserves the current engine for existing managed sources to avoid unexpected replacements during provider upgrades.
 * If you already use `sync_engine`, set it explicitly in configuration so future provider upgrades cannot infer a different value from a changing default.

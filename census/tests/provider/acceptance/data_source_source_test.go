@@ -24,7 +24,7 @@ func TestAccDataSourceSource_Basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.census_source.test", "id"),
 					resource.TestCheckResourceAttrSet("data.census_source.test", "created_at"),
 					resource.TestCheckResourceAttrPair("data.census_source.test", "id", "census_source.test", "id"),
-					resource.TestCheckResourceAttrPair("data.census_source.test", "workspace_id", "census_source.test", "workspace_id"),
+					resource.TestCheckResourceAttrPair("data.census_source.test", "group_id", "census_source.test", "group_id"),
 				),
 			},
 		},
@@ -33,12 +33,7 @@ func TestAccDataSourceSource_Basic(t *testing.T) {
 
 func testAccDataSourceSourceConfig_basic(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Data Source"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_%s"
   type = "redshift"
 
@@ -52,8 +47,7 @@ resource "census_source" "test" {
 }
 
 data "census_source" "test" {
-  id           = census_source.test.id
-  workspace_id = census_workspace.test.id
+  id = census_source.test.id
 }
 `,
 		rName,
