@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.0.0] - Unreleased
+
+### Changed
+- **`census_destination` is frozen** (resource and data source): creating one now fails; read, update and delete make no API calls; the data source returns only its `id`, with a warning. Use `census_activation` instead.
+
+### Deprecated
+- `census_destination` (resource and data source).
+
+
 ## [0.2.21] - 2026-10-26
 
 ### Added

@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -10,7 +9,9 @@ import (
 
 func dataSourceDestination() *schema.Resource {
 	return &schema.Resource{
-		Description: "Use this data source to get information about a Census destination connection.",
+		DeprecationMessage: "This data source is deprecated and no longer returns data from Fivetran Activations. Use the census_activation data source instead.",
+
+		Description: "Use this data source to get information about a Fivetran Activations (Census) destination connection.",
 
 		ReadContext: dataSourceDestinationRead,
 
@@ -22,8 +23,8 @@ func dataSourceDestination() *schema.Resource {
 			},
 			"workspace_id": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The ID of the workspace this destination belongs to.",
+				Optional:    true,
+				Description: "The ID of the workspace this destination belongs to. Ignored.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -69,42 +70,11 @@ func dataSourceDestination() *schema.Resource {
 }
 
 func dataSourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*clients).V1
+	d.SetId(d.Get("id").(string))
 
-	id, err := strconv.Atoi(d.Get("id").(string))
-	if err != nil {
-		return diag.Errorf("invalid destination ID: %s", d.Get("id").(string))
-	}
-
-	workspaceId := d.Get("workspace_id").(string)
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	// Get workspace token using personal access token
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.Errorf("failed to get workspace API key for workspace %d: %v", workspaceIdInt, err)
-	}
-
-	// Get the destination using the workspace token
-	destination, err := apiClient.GetDestinationWithToken(ctx, id, workspaceToken)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(strconv.Itoa(destination.ID))
-	// Note: workspace_id is a Required input field, don't overwrite it with API response
-	d.Set("name", destination.Name)
-	d.Set("type", destination.Type)
-	d.Set("created_at", destination.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
-
-	// status, test_status, last_tested and updated_at are deprecated: the API does not support them.
-	// They are set to the same values they have always had (empty, and the zero timestamp for updated_at).
-	d.Set("status", "")
-	d.Set("test_status", "")
-	d.Set("updated_at", "0001-01-01T00:00:00Z")
-
-	return nil
+	return diag.Diagnostics{{
+		Severity: diag.Warning,
+		Summary:  "census_destination data source is deprecated",
+		Detail:   "This data source no longer queries Fivetran Activations and returns only its id. Use the census_activation data source instead.",
+	}}
 }
