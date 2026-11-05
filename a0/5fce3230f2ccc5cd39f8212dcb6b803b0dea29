@@ -5,6 +5,11 @@ census/tests/provider/regression/plan_nodiff_test.go
   s_c4dc2e7beb0de0::t_34a0d1279f22af 13,52,73-76,89-106
 census/tests/provider/regression/plan_delete_test.go
   s_c4dc2e7beb0de0::t_34a0d1279f22af 71
+census/provider/resource_source_test.go
+  s_c4dc2e7beb0de0::t_bc587a83ba6687 813,819
+census/provider/resource_read_test.go
+  s_c4dc2e7beb0de0::t_bc587a83ba6687 14,187,206,212,230,299-322
+  s_c4dc2e7beb0de0::t_6d4f954592eca3 323
 ---
 {
   "schema_version": "authorship/3.0.0",
