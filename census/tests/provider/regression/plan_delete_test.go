@@ -68,16 +68,7 @@ func TestPreMigrationFixture_PlansCleanlyWithCurrentSchema(t *testing.T) {
 	// Read the fixture's own resource addresses before planning, so we can
 	// confirm afterward that every one of them was actually planned for
 	// deletion — not just that whatever the plan did contain was all deletes.
-	priorState, err := tf.Show(ctx)
-	if err != nil {
-		t.Fatalf("failed to read fixture state via terraform show: %v", err)
-	}
-	expectedAddresses := map[string]bool{}
-	if priorState.Values != nil && priorState.Values.RootModule != nil {
-		for _, r := range priorState.Values.RootModule.Resources {
-			expectedAddresses[r.Address] = true
-		}
-	}
+	expectedAddresses := fixtureResourceAddresses(t, fixtureState)
 	if len(expectedAddresses) == 0 {
 		t.Fatal("fixture state contains no resources — nothing to validate")
 	}
