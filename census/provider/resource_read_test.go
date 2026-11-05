@@ -210,7 +210,7 @@ func TestResourceReads_EmptyBodyIsError(t *testing.T) {
 	}
 }
 
-func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *client.Client {
+func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *clients {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -237,13 +237,13 @@ func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *clien
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	return apiClient
+	return &clients{V1: apiClient}
 }
 
 // newEmptyBodyReadTestClient is like newReadTestClient, but responds to
 // resourcePath with a 200 and a zero-length body instead of an error status
 // — the "API returned successfully but with nil data" scenario.
-func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *client.Client {
+func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *clients {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -269,7 +269,7 @@ func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *client.Clien
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	return apiClient
+	return &clients{V1: apiClient}
 }
 
 func testDestinationResourceData(t *testing.T) *schema.ResourceData {

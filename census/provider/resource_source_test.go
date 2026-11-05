@@ -810,7 +810,7 @@ func runSourceCreateRequestTest(t *testing.T, retention *int) (client.SourceConn
 	return captured, diags, d
 }
 
-func newSourceTestClient(t *testing.T, handler http.HandlerFunc) *client.Client {
+func newSourceTestClient(t *testing.T, handler http.HandlerFunc) *clients {
 	t.Helper()
 
 	server := httptest.NewServer(handler)
@@ -824,7 +824,7 @@ func newSourceTestClient(t *testing.T, handler http.HandlerFunc) *client.Client 
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	return apiClient
+	return &clients{V1: apiClient}
 }
 
 func buildSourceResponse(sourceID int, syncEngine string) map[string]interface{} {
