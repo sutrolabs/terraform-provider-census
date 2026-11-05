@@ -1,148 +1,28 @@
 package acceptance
 
 import (
-	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
-func TestResourceWorkspace_basic(t *testing.T) {
+// census_workspace is frozen: it stays in the provider's schema so existing
+// state keeps working, but it can no longer be created or managed.
+func TestAccResourceWorkspace_CreateFails(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers:    provider_test.TestAccProviders,
-		CheckDestroy: testAccCheckWorkspaceDestroy,
+		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
+		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccWorkspaceConfig_basic("test-workspace"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckWorkspaceExists("census_workspace.test"),
-					resource.TestCheckResourceAttr("census_workspace.test", "name", "test-workspace"),
-					resource.TestCheckResourceAttr("census_workspace.test", "notification_emails.#", "1"),
-					resource.TestCheckResourceAttr("census_workspace.test", "notification_emails.0", "test@example.com"),
-				),
-			},
-		},
-	})
-}
-
-func TestResourceWorkspace_update(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers:    provider_test.TestAccProviders,
-		CheckDestroy: testAccCheckWorkspaceDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccWorkspaceConfig_basic("test-workspace"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckWorkspaceExists("census_workspace.test"),
-					resource.TestCheckResourceAttr("census_workspace.test", "name", "test-workspace"),
-				),
-			},
-			{
-				Config: testAccWorkspaceConfig_updated("test-workspace-updated"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckWorkspaceExists("census_workspace.test"),
-					resource.TestCheckResourceAttr("census_workspace.test", "name", "test-workspace-updated"),
-					resource.TestCheckResourceAttr("census_workspace.test", "notification_emails.#", "2"),
-				),
-			},
-		},
-	})
-}
-
-func TestResourceWorkspace_withAPIKey(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { provider_test.TestAccPreCheck(t) },
-		Providers:    provider_test.TestAccProviders,
-		CheckDestroy: testAccCheckWorkspaceDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccWorkspaceConfig_withAPIKey("test-workspace-api"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckWorkspaceExists("census_workspace.test"),
-					resource.TestCheckResourceAttr("census_workspace.test", "name", "test-workspace-api"),
-					resource.TestCheckResourceAttr("census_workspace.test", "return_workspace_api_key", "true"),
-					resource.TestCheckResourceAttrSet("census_workspace.test", "api_key"),
-				),
-			},
-		},
-	})
-}
-
-func TestResourceWorkspace_Import(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers:    provider_test.TestAccProviders,
-		CheckDestroy: testAccCheckWorkspaceDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccWorkspaceConfig_basic("test-workspace-import"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckWorkspaceExists("census_workspace.test"),
-					resource.TestCheckResourceAttr("census_workspace.test", "name", "test-workspace-import"),
-				),
-			},
-			{
-				ResourceName:      "census_workspace.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				// api_key is only available during creation with return_workspace_api_key=true
-				ImportStateVerifyIgnore: []string{"api_key", "return_workspace_api_key"},
-			},
-		},
-	})
-}
-
-func testAccCheckWorkspaceDestroy(s *terraform.State) error {
-	// This would normally check that the workspace has been destroyed
-	// For now, we'll just return nil since we don't have a real API to test against
-	return nil
-}
-
-func testAccCheckWorkspaceExists(resourceName string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", resourceName)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource ID not set")
-		}
-
-		// This would normally check that the workspace exists in the API
-		// For now, we'll just return nil since we don't have a real API to test against
-		return nil
-	}
-}
-
-func testAccWorkspaceConfig_basic(name string) string {
-	return fmt.Sprintf(`
+				Config: `
 resource "census_workspace" "test" {
-  name = "%s"
-  notification_emails = ["test@example.com"]
+  name = "test-workspace"
 }
-`, name)
-}
-
-func testAccWorkspaceConfig_updated(name string) string {
-	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "%s"
-  notification_emails = ["test@example.com", "test2@example.com"]
-}
-`, name)
-}
-
-func testAccWorkspaceConfig_withAPIKey(name string) string {
-	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "%s"
-  notification_emails = ["test@example.com"]
-  return_workspace_api_key = true
-}
-`, name)
+`,
+				ExpectError: regexp.MustCompile(`census_workspace can no longer be created`),
+			},
+		},
+	})
 }

@@ -1,46 +1,38 @@
 # census_workspace Resource
 
-Manages a Census workspace. Workspaces in Census are containers that organize your data syncs, destinations, and sources.
+~> **Deprecated:** This resource is deprecated and no longer manages anything in Fivetran Activations. Workspaces are no longer needed; remove it from your configuration.
 
-## Example Usage
+Previously managed a workspace in Fivetran Activations. The provider now authenticates with a personal access token alone, and sources, activations and syncs no longer belong to a workspace.
 
-```hcl
-resource "census_workspace" "example" {
-  name = "Production Workspace"
-  notification_emails = [
-    "alerts@company.com",
-    "data-team@company.com"
-  ]
-  return_workspace_api_key = true
-}
-```
+## Behavior
+
+This resource remains in the provider only so that existing state and configurations keep working. It will not be removed.
+
+* **Create** fails with an error.
+* **Read, Update and Delete** do nothing and make no API calls. Changing the configuration of an existing `census_workspace` has no effect. Running `terraform destroy`, or removing the block, leaves the workspace in Fivetran Activations untouched.
+* All arguments are retained so existing configurations continue to validate, but none of them are sent to Fivetran Activations.
+
+## Migrating
+
+Remove the `census_workspace` block from your configuration, along with any `workspace_id = census_workspace.<name>.id` references on other resources, which are now ignored. No changes are made in Fivetran Activations.
 
 ## Argument Reference
 
-* `name` - (Required) The name of the workspace. Must be unique within the organization.
-* `notification_emails` - (Optional) A list of email addresses that will receive alerts from the workspace.
-* `return_workspace_api_key` - (Optional) Whether to return the workspace API key in the response during creation. Defaults to `false`.
+All arguments are ignored.
+
+* `name` - (Optional) Ignored.
+* `notification_emails` - (Optional) Ignored.
+* `return_workspace_api_key` - (Optional) Ignored.
 
 ## Attribute Reference
 
-In addition to all arguments above, the following attributes are exported:
-
-* `id` - The ID of the workspace.
-* `organization_id` - The ID of the organization the workspace belongs to.
-* `created_at` - The timestamp when the workspace was created.
-* `api_key` - The API key of the workspace. Only available during creation if `return_workspace_api_key` is `true`. This value is sensitive.
+* `id` - The ID of the workspace, as recorded in state.
+* `organization_id`, `created_at`, `api_key` - Values recorded in state by earlier provider versions. Never refreshed.
 
 ## Import
 
-Workspaces can be imported using their ID:
+Existing workspaces can be imported by ID. Importing only records the ID in state; nothing is read from Fivetran Activations.
 
 ```bash
 terraform import census_workspace.example 123
 ```
-
-## Notes
-
-- The `api_key` attribute is only populated during resource creation when `return_workspace_api_key` is set to `true`.
-- The API key is marked as sensitive and will not be displayed in Terraform output unless explicitly requested.
-- Workspace names must be unique within your Census organization.
-- Deleting a workspace will also delete all associated syncs, destinations, and sources. Use caution when destroying workspace resources.

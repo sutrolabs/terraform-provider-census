@@ -9,10 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - Unreleased
 
 ### Changed
-- **`census_destination` is frozen** (resource and data source): creating one now fails; read, update and delete make no API calls; the data source returns only its `id`, with a warning. Use `census_activation` instead.
+- **`census_destination` and `census_workspace` are frozen** (resources and data sources): creating one now fails; read, update and delete make no API calls, so removing one no longer touches Fivetran Activations; the data sources return only their `id`, with a warning. Use `census_activation` in place of `census_destination`; workspaces are no longer needed.
 
 ### Deprecated
-- `census_destination` (resource and data source).
+- `census_destination` and `census_workspace` (resources and data sources).
 
 
 ## [0.2.21] - 2026-10-26
