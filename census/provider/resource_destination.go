@@ -103,7 +103,7 @@ func resourceDestination() *schema.Resource {
 }
 
 func resourceDestinationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	workspaceId := d.Get("workspace_id").(string)
 	name := d.Get("name").(string)
@@ -160,7 +160,7 @@ func resourceDestinationCreate(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -217,7 +217,7 @@ func resourceDestinationRead(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceDestinationUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -287,7 +287,7 @@ func resourceDestinationUpdate(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceDestinationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V1
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 const (
@@ -17,6 +18,11 @@ const (
 	// DefaultBaseURL is the default base URL for US region
 	DefaultBaseURL = "https://app.getcensus.com/api/v1"
 )
+
+type clients struct {
+	V1 *client.Client
+	V2 *v2.Client
+}
 
 // Version is the provider release version, sent to Census in the User-Agent.
 // main sets it from its build-time version.
@@ -99,7 +105,7 @@ func configure(ctx context.Context, d *schema.ResourceData, userAgent string) (i
 		}
 	}
 
-	config := &client.Config{
+	v1Config := &client.Config{
 		PersonalAccessToken:  personalToken,
 		WorkspaceAccessToken: "", // No longer used - workspace tokens are fetched dynamically
 		BaseURL:              baseURL,
@@ -107,10 +113,21 @@ func configure(ctx context.Context, d *schema.ResourceData, userAgent string) (i
 		UserAgent:            userAgent,
 	}
 
-	client, err := client.NewClient(config)
+	v1Client, err := client.NewClient(v1Config)
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
 
-	return client, diags
+	v2Config := &v2.Config{
+		PersonalAccessToken: personalToken,
+		BaseURL:             v2.BaseURL,
+		UserAgent:           userAgent,
+	}
+
+	v2Client, err := v2.NewClient(v2Config)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	return &clients{V1: v1Client, V2: v2Client}, diags
 }
