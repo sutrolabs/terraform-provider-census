@@ -7,47 +7,24 @@ import (
 	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
-func TestAccDataSourceWorkspace_Basic(t *testing.T) {
+// census_workspace is frozen: the data source makes no API call and returns
+// only the id it was given (plus a warning).
+func TestAccDataSourceWorkspace_Frozen(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
 		Providers: provider_test.TestAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceWorkspaceConfig_basic(),
+				Config: `
+data "census_workspace" "test" {
+  id = "12345"
+}
+`,
 				Check: resource.ComposeTestCheckFunc(
-					// Verify data source attributes
-					resource.TestCheckResourceAttr("data.census_workspace.test", "name", "Test Workspace - Data Source"),
-					resource.TestCheckResourceAttrSet("data.census_workspace.test", "id"),
-					resource.TestCheckResourceAttrSet("data.census_workspace.test", "organization_id"),
-					resource.TestCheckResourceAttrSet("data.census_workspace.test", "created_at"),
-
-					// Verify data source matches resource
-					resource.TestCheckResourceAttrPair(
-						"data.census_workspace.test", "id",
-						"census_workspace.test", "id",
-					),
-					resource.TestCheckResourceAttrPair(
-						"data.census_workspace.test", "name",
-						"census_workspace.test", "name",
-					),
-					resource.TestCheckResourceAttrPair(
-						"data.census_workspace.test", "organization_id",
-						"census_workspace.test", "organization_id",
-					),
+					resource.TestCheckResourceAttr("data.census_workspace.test", "id", "12345"),
+					resource.TestCheckResourceAttr("data.census_workspace.test", "name", ""),
 				),
 			},
 		},
 	})
-}
-
-func testAccDataSourceWorkspaceConfig_basic() string {
-	return `
-resource "census_workspace" "test" {
-  name = "Test Workspace - Data Source"
-}
-
-data "census_workspace" "test" {
-  id = census_workspace.test.id
-}
-`
 }
