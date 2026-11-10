@@ -16,6 +16,7 @@ CHANGELOG.md
   s_c4dc2e7beb0de0::t_531bd3f327eb37 11-12,14,17
 census/provider/resource_source.go
   s_c4dc2e7beb0de0::t_4eb517f914c406 10,23,193,202,206-208,210,219,229,236,238,245-246,253,272,285-286,288,293-294,296,303,312,319,321,330-336,353-354,356-361,363-364,366-370,372-374,377
+  s_b7f447bfdd0216::t_b2ac2a0e6b76ff 26-34,45-90,92-171,173-189,254-255,264-266,338-351
 census/tests/provider/acceptance/resource_source_test.go
   s_c4dc2e7beb0de0::t_8d3399d0b66083 25
 ---
@@ -30,6 +31,14 @@ census/tests/provider/acceptance/resource_source_test.go
     }
   },
   "sessions": {
+    "s_b7f447bfdd0216": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1bf07fd1-4958-43d5-bb30-e8b019c952f6",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    },
     "s_c4dc2e7beb0de0": {
       "agent_id": {
         "tool": "claude",
