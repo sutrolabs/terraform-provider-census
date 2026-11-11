@@ -1,5 +1,5 @@
-// Package v2 is a self-contained Go client for the Census v2 API
-// (https://app.getcensus.com/api/v2). It has no dependency on the v1 client
+// Package v2 is a self-contained Go client for the Fivetran Activations v2
+// API. The caller supplies the API root (Config.BaseURL). It has no dependency on the v1 client
 // in census/client — v1 is slated for deletion once every resource has been
 // migrated to this package, so nothing in this package may import it.
 //
@@ -19,9 +19,6 @@ import (
 	"time"
 )
 
-// BaseURL is the only v2 API root — no regional variants exist, unlike v1.
-const BaseURL = "https://app.getcensus.com/api/v2"
-
 const (
 	defaultHTTPTimeout = 60 * time.Second
 	retryBudgetTimeout = 5 * time.Minute // total time budget for retrying 429s
@@ -35,8 +32,8 @@ const (
 type Config struct {
 	// PersonalAccessToken authenticates every request. Required.
 	PersonalAccessToken string
-	// BaseURL is the API root. Always "https://app.getcensus.com/api/v2" in
-	// production — v2 has no regional endpoints, unlike v1.
+	// BaseURL is the API root, e.g. "https://app.getcensus.com/api/v2".
+	// Required.
 	BaseURL   string
 	UserAgent string
 	// HTTPClient overrides the default *http.Client. Mainly for tests; nil
