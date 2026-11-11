@@ -279,48 +279,6 @@ func (c *Client) RefreshDestinationObjectsWithToken(ctx context.Context, destina
 	return nil
 }
 
-// GetDestinationRefreshStatus checks the status of an object refresh
-func (c *Client) GetDestinationRefreshStatus(ctx context.Context, destinationID int) (*RefreshStatus, error) {
-	return c.GetDestinationRefreshStatusWithToken(ctx, destinationID, "")
-}
-
-// GetDestinationRefreshStatusWithToken checks the status of an object refresh using a specific workspace token
-func (c *Client) GetDestinationRefreshStatusWithToken(ctx context.Context, destinationID int, workspaceToken string) (*RefreshStatus, error) {
-	path := fmt.Sprintf("/destinations/%d/refresh_objects_status", destinationID)
-	resp, err := c.makeRequestWithToken(ctx, http.MethodGet, path, nil, TokenTypeWorkspace, workspaceToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make get refresh status request: %w", err)
-	}
-
-	var result RefreshStatusResponse
-	if err := c.handleResponse(resp, &result); err != nil {
-		return nil, fmt.Errorf("failed to get refresh status: %w", err)
-	}
-
-	return &result.Data, nil
-}
-
-// CreateDestinationConnectLink creates a connect link for destination reauthorization
-func (c *Client) CreateDestinationConnectLink(ctx context.Context, destinationID int) (*ConnectLink, error) {
-	return c.CreateDestinationConnectLinkWithToken(ctx, destinationID, "")
-}
-
-// CreateDestinationConnectLinkWithToken creates a connect link for destination reauthorization using a specific workspace token
-func (c *Client) CreateDestinationConnectLinkWithToken(ctx context.Context, destinationID int, workspaceToken string) (*ConnectLink, error) {
-	path := fmt.Sprintf("/destinations/%d/connect_links", destinationID)
-	resp, err := c.makeRequestWithToken(ctx, http.MethodPost, path, nil, TokenTypeWorkspace, workspaceToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make create connect link request: %w", err)
-	}
-
-	var result ConnectLinkResponse
-	if err := c.handleResponse(resp, &result); err != nil {
-		return nil, fmt.Errorf("failed to create connect link: %w", err)
-	}
-
-	return &result.Data, nil
-}
-
 // ConnectorField represents a field configuration for a connector type
 type ConnectorField struct {
 	ID                    string      `json:"id"`

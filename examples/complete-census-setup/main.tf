@@ -56,7 +56,6 @@ resource "census_workspace" "revops_prod" {
 # Each source belongs to exactly one workspace
 
 resource "census_source" "marketing_prod_postgres" {
-  workspace_id = census_workspace.marketing_prod.id
 
   name = "Marketing Production Postgres Warehouse"
   type = "postgres"
@@ -66,7 +65,6 @@ resource "census_source" "marketing_prod_postgres" {
 }
 
 resource "census_source" "revops_prod_postgres" {
-  workspace_id = census_workspace.revops_prod.id
 
   name = "RevOps Production Postgres Warehouse"
   type = "postgres"
@@ -76,7 +74,6 @@ resource "census_source" "revops_prod_postgres" {
 }
 
 resource "census_source" "marketing_staging_postgres" {
-  workspace_id = census_workspace.marketing_staging.id
 
   name = "Marketing Staging Postgres Warehouse"
   type = "postgres"
@@ -86,7 +83,6 @@ resource "census_source" "marketing_staging_postgres" {
 }
 
 resource "census_source" "marketing_staging_warehouse" {
-  workspace_id = census_workspace.marketing_staging.id
 
   name = "Marketing Staging Redshift Warehouse"
   type = "redshift"
@@ -96,7 +92,6 @@ resource "census_source" "marketing_staging_warehouse" {
 }
 
 resource "census_source" "marketing_prod_warehouse" {
-  workspace_id = census_workspace.marketing_prod.id
 
   name = "Marketing Production Redshift Warehouse"
   type = "redshift"
@@ -106,7 +101,6 @@ resource "census_source" "marketing_prod_warehouse" {
 }
 
 resource "census_source" "revops_prod_warehouse" {
-  workspace_id = census_workspace.revops_prod.id
 
   name = "RevOps Production Redshift Warehouse"
   type = "redshift"
@@ -116,7 +110,6 @@ resource "census_source" "revops_prod_warehouse" {
 }
 
 resource "census_source" "marketing_prod_snowflake" {
-  workspace_id = census_workspace.marketing_prod.id
 
   name = "Marketing Production Snowflake Warehouse"
   type = "snowflake"
@@ -776,20 +769,18 @@ output "sources_info" {
   description = "Information about all created sources"
   value = {
     marketing_prod_warehouse = {
-      id           = census_source.marketing_prod_warehouse.id
-      name         = census_source.marketing_prod_warehouse.name
-      type         = census_source.marketing_prod_warehouse.type
-      status       = census_source.marketing_prod_warehouse.status
-      created_at   = census_source.marketing_prod_warehouse.created_at
-      workspace_id = census_source.marketing_prod_warehouse.workspace_id
+      id         = census_source.marketing_prod_warehouse.id
+      name       = census_source.marketing_prod_warehouse.name
+      type       = census_source.marketing_prod_warehouse.type
+      status     = census_source.marketing_prod_warehouse.status
+      created_at = census_source.marketing_prod_warehouse.created_at
     }
     revops_prod_warehouse = {
-      id           = census_source.revops_prod_warehouse.id
-      name         = census_source.revops_prod_warehouse.name
-      type         = census_source.revops_prod_warehouse.type
-      status       = census_source.revops_prod_warehouse.status
-      created_at   = census_source.revops_prod_warehouse.created_at
-      workspace_id = census_source.revops_prod_warehouse.workspace_id
+      id         = census_source.revops_prod_warehouse.id
+      name       = census_source.revops_prod_warehouse.name
+      type       = census_source.revops_prod_warehouse.type
+      status     = census_source.revops_prod_warehouse.status
+      created_at = census_source.revops_prod_warehouse.created_at
     }
   }
 }
