@@ -1,0 +1,51 @@
+census/provider/resource_read_test.go
+  s_c4dc2e7beb0de0::t_3a572ccdfba525 14,206,230,298-321
+  s_c4dc2e7beb0de0::t_7e607b33dde6d1 322
+census/provider/data_source_source.go
+  s_c4dc2e7beb0de0::t_34493abf2e9fee 9-10,25-28,92,99,107
+census/tests/provider/acceptance/data_source_source_test.go
+  s_c4dc2e7beb0de0::t_88134e0360e015 27,50
+docs/resources/source.md
+  s_c4dc2e7beb0de0::t_6e73bbfe6278d3 11-12,15-20,29-31,48-50,69-70,98-99,120-121,139-140,143-144,154-155,218,225-226,235,238,241,250-251
+census/provider/resource_source_test.go
+  s_c4dc2e7beb0de0::t_3a572ccdfba525 787
+  s_c4dc2e7beb0de0::t_d129b320b9e2c4 15,377,467-468,531-532,664,670,673-676,685,717,720,722,726,729-732,741
+docs/data-sources/source.md
+  s_c4dc2e7beb0de0::t_5debfd53a7752f 9,12-13,30,34,38
+CHANGELOG.md
+  s_c4dc2e7beb0de0::t_531bd3f327eb37 11-12,14,17
+census/provider/resource_source.go
+  s_c4dc2e7beb0de0::t_4eb517f914c406 10,23,193,202,206-208,210,219,229,236,238,245-246,253,272,285-286,288,293-294,296,303,312,319,321,330-336,353-354,356-361,363-364,366-370,372-374,377
+  s_b7f447bfdd0216::t_b2ac2a0e6b76ff 26-34,45-90,92-171,173-189,254-255,264-266,338-351
+census/tests/provider/acceptance/resource_source_test.go
+  s_c4dc2e7beb0de0::t_8d3399d0b66083 25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cde46e3c303ca1effde9bf2cdbae4069c4558910",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_b7f447bfdd0216": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1bf07fd1-4958-43d5-bb30-e8b019c952f6",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    },
+    "s_c4dc2e7beb0de0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c57be8f6-71dd-4447-893f-51149084ea92",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": null
+    }
+  }
+}
