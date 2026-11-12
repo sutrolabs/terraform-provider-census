@@ -1,0 +1,83 @@
+docs/resources/activation.md
+  s_294efb4a71017f::t_c86deff0b290ec 43
+  s_8baa4945c15c54::t_661ad79bbf43a8 54,57
+  s_294efb4a71017f::t_ce7ec16074cc15 1-2,4-22,27-29,34-36,44-48,50-53,55-56,58-59
+  s_25c993d5afba3c::t_71b13fcec214ce 3,23-26,30-33,37-42,49,60
+docs/data-sources/activation.md
+  s_25c993d5afba3c::t_f382d247149739 8-9,12,22,28,30,32-36
+  s_294efb4a71017f::t_9f518dd312aa15 1-2,4-7,10-11,14-19,21,25-27,31
+  s_8baa4945c15c54::t_1bccfab50e9121 23,29
+  s_8baa4945c15c54::t_661ad79bbf43a8 3,13,20,24
+census/client/v2/activation_test.go
+  s_25c993d5afba3c::t_2abdb193a80526 14,38,41,72,78-80,179,182,187-209,228,252
+  s_8baa4945c15c54::t_299642642be684 175-176
+  s_8baa4945c15c54::t_57b7a0f7c511e1 184-186,213-214,217,219-221,224,226,229,233,235,238-239,244,246-247,250
+  s_294efb4a71017f::t_7f27f60aadc35d 1-13,15-37,39-40,42-71,73-77,81-174,177-178,180-181,183,210-212,215-216,218,222-223,225,227,230-232,234,236-237,240-243,245,248-249,251,253-254
+census/client/v2/envelope.go
+  s_8baa4945c15c54::t_0797190f4f7a4b 25,30,34-37
+census/provider/resource_activation_test.go
+  s_8baa4945c15c54::t_0e8f2f443b27c9 440
+  s_294efb4a71017f::t_6cf74d351f040a 345,396
+  s_294efb4a71017f::t_5f9a8f35b6703d 1-31,33-298,328-329,385-389,393,419-439,441-442,445-447,449-451,453-540
+  s_25c993d5afba3c::t_bb18244d3f52c3 32,299-327,330-344,346-384,390-392,394-395,397-418,443-444,448,452
+census/provider/provider.go
+  s_294efb4a71017f::t_5d50872fca8a62 67,75
+census/client/v2/activation.go
+  s_25c993d5afba3c::t_fbc3e891c9f249 11-12,60-63,70-71,73,77,95
+  s_8baa4945c15c54::t_0797190f4f7a4b 131-132,134,137-140,142-143,156-160,171,177
+  s_8baa4945c15c54::t_299642642be684 133
+  s_294efb4a71017f::t_7364da711e4496 13
+  s_294efb4a71017f::t_718f61238b0b90 1-10,14-59,64-69,72,74-76,78-94,96-130,135-136,141,144-155,161-170,172-176,178-180
+census/provider/data_source_activation.go
+  s_8baa4945c15c54::t_bb13fb3a9496cf 14,24,29-30,33-37,64
+  s_294efb4a71017f::t_74189c7080ae45 1-13,15-23,25-28,31-32,38-63,65-73
+docs/README.md
+  s_25c993d5afba3c::t_192a26c57aac94 11
+  s_294efb4a71017f::t_4a7fad85b1a61f 22
+CHANGELOG.md
+  s_8baa4945c15c54::t_661ad79bbf43a8 12
+  s_294efb4a71017f::t_4a7fad85b1a61f 11,13
+census/provider/resource_activation.go
+  s_25c993d5afba3c::t_96295c80314fb6 19,34,40,46,53,59,74-75,81,86,91,116,121,129-136,158-159,166-173,193,236-243,245,248-249
+  s_294efb4a71017f::t_a43adcb4059f70 30,61-69,71
+  s_8baa4945c15c54::t_bb13fb3a9496cf 194-196,202,207,216-217,220,223-225,230,233
+  s_294efb4a71017f::t_f29b8fa3f1bf86 1-18,20-29,31-33,35-39,41-45,47-52,54-58,60,70,72-73,76-80,82-85,87-90,92-115,117-120,122-128,137-157,160-164,174-192,197-201,203-206,208-215,218-219,221-222,226-229,231-232,234-235,244,246-247,250-325
+  s_294efb4a71017f::t_cb56718b4a956d 165
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "174b1e1a301a45ec30da2d058c56e546e894a25e",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_25c993d5afba3c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cd3c8329-60b3-488f-87db-425a2a855aca",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": null
+    },
+    "s_294efb4a71017f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "604be2ba-3ed6-4e30-8b0b-f4edf0409163",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    },
+    "s_8baa4945c15c54": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bbd6318e-08f2-4b37-8f28-3dcfd54da65d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": null
+    }
+  }
+}
