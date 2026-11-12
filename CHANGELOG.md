@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0] - Unreleased
 
+### Added
+- **`census_activation` resource and data source**, for use in place of `census_destination`. An activation pairs a source (`group_id`) with a destination; creating one also creates its destination connection. Changing `group_id` or `type` replaces it. Import an activation by ID, or by `<group_id>:<destination_id>` for a destination previously managed with `census_destination`; the data source supports the same two lookups.
+
 ### Changed
 - **`census_destination` and `census_workspace` are frozen** (resources and data sources): creating one now fails; read, update and delete make no API calls, so removing one no longer touches Fivetran Activations; the data sources return only their `id`, with a warning. Use `census_activation` in place of `census_destination`; workspaces are no longer needed.
 
