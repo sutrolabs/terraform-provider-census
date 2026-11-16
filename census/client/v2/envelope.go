@@ -22,15 +22,19 @@ type Pagination struct {
 }
 
 // ListOptions are the common page/per_page/order query parameters accepted
-// by v2 list endpoints.
+// by v2 list endpoints, plus any endpoint-specific filters.
 type ListOptions struct {
 	Page    int
 	PerPage int
 	Order   string
+	Filters map[string]string
 }
 
 func (o ListOptions) params() map[string]string {
-	params := make(map[string]string)
+	params := make(map[string]string, len(o.Filters)+3)
+	for k, v := range o.Filters {
+		params[k] = v
+	}
 	if o.Page > 0 {
 		params["page"] = strconv.Itoa(o.Page)
 	}
