@@ -164,6 +164,33 @@ resource "census_source" "postgres" {
 }
 ```
 
+### Source With a Custom Storage Bucket (BYOB)
+
+```hcl
+resource "census_source" "warehouse_byob" {
+  name = "Production Warehouse"
+  type = "snowflake"
+
+  connection_config = {
+    account   = "abc12345.us-east-1"
+    warehouse = "COMPUTE_WH"
+    database  = "PRODUCTION"
+    username  = "census_user"
+    password  = var.snowflake_password
+  }
+
+  storage_backend = {
+    type        = "s3"
+    bucket_name = "my-census-bucket"
+    role_arn    = "arn:aws:iam::123456789012:role/census-role"
+    external_id = "census-external-id"
+  }
+
+  region              = "AWS-US-EAST-1"
+  notification_emails = ["data-alerts@example.com"]
+}
+```
+
 ## Argument Reference
 
 * `name` - (Required) The name of the source.
@@ -180,6 +207,14 @@ resource "census_source" "postgres" {
 * `connection_config` - (Required, Sensitive) Map of credentials for connecting to the source. Supports strings, numbers, and booleans. The required fields vary by source type and are validated against the Census API schema. Secret values may instead be supplied through the write-only `connection_config_wo` argument below so they are not persisted in Terraform state or plan files.
 * `connection_config_wo` - (Optional, Write-only, Sensitive) A `jsonencode`-d object of secret connection credentials (e.g. `password`, Snowflake `private_key_pkcs8` / `private_key_passphrase`, BigQuery `service_account_key`, etc.). Requires Terraform 1.11+. Its value is never stored in Terraform state or plan. Each key is merged into `connection_config` on create and update, taking precedence over the same key set in `connection_config`. Must be used together with `connection_config_wo_version`.
 * `connection_config_wo_version` - (Optional) Trigger for updating the write-only `connection_config_wo` argument. Because write-only values are never stored in state, Terraform cannot detect when they change. Increment this integer whenever you change `connection_config_wo` so the current write-only values are re-applied on the next apply.
+* `region` - (Optional, Computed) The region the source runs in, e.g. `AWS-US-EAST-1`. Region availability depends on your account tier. Leave unset to use the account default; the value Census assigns is then read back into state.
+* `notification_emails` - (Optional, Computed) Email addresses that receive sync alerts for this source. Leave unset to keep whatever is configured in Census.
+* `storage_backend` - (Optional, Sensitive) A custom storage bucket for the source (bring your own bucket), as a map with `type` set to `s3`, `gcs`, or `azure` plus that backend's fields:
+  - `s3`: `bucket_name` (required), `role_arn`, `external_id`
+  - `gcs`: `bucket_name` (required), `project_id`, `service_account_email`, `service_account_key`
+  - `azure`: `storage_account_name` (required), `storage_container_name` (required), `sas_token`
+
+  Like `connection_config`, it is not read back from the API, so changes made outside Terraform are not detected. Use the `census_source` data source to see the live value.
 * `auto_refresh_tables` - (Optional) Whether to refresh the source's table list after it is created, and after its connection changes. Defaults to `false`.
 
 ## Attribute Reference
