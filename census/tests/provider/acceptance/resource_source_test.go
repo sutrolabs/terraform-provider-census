@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
@@ -23,7 +22,7 @@ func TestAccResourceSource_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("census_source.test", "name", fmt.Sprintf("Test_Redshift_Source_%s", rName)),
 					resource.TestCheckResourceAttr("census_source.test", "type", "redshift"),
 					resource.TestCheckResourceAttrSet("census_source.test", "id"),
-					resource.TestCheckResourceAttrSet("census_source.test", "workspace_id"),
+					resource.TestCheckResourceAttrSet("census_source.test", "group_id"),
 					resource.TestCheckResourceAttrSet("census_source.test", "created_at"),
 				),
 			},
@@ -57,12 +56,7 @@ func TestAccResourceSource_Update(t *testing.T) {
 
 func testAccResourceSourceConfig_redshift(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Source"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_%s"
   type = "redshift"
 
@@ -88,12 +82,7 @@ resource "census_source" "test" {
 
 func testAccResourceSourceConfig_redshiftUpdated(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Source"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Updated_Redshift_Source_%s"
   type = "redshift"
 
@@ -134,26 +123,11 @@ func TestAccResourceSource_Import(t *testing.T) {
 				ResourceName:      "census_source.test",
 				ImportState:       true,
 				ImportStateVerify: true,
-				ImportStateIdFunc: testAccSourceImportStateIdFunc("census_source.test"),
 				// connection_config contains sensitive data that isn't returned by the API
 				ImportStateVerifyIgnore: []string{"connection_config", "auto_refresh_tables"},
 			},
 		},
 	})
-}
-
-// Helper to construct composite ID for import (workspace_id:source_id)
-func testAccSourceImportStateIdFunc(resourceName string) resource.ImportStateIdFunc {
-	return func(s *terraform.State) (string, error) {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return "", fmt.Errorf("Not found: %s", resourceName)
-		}
-
-		return fmt.Sprintf("%s:%s",
-			rs.Primary.Attributes["workspace_id"],
-			rs.Primary.ID), nil
-	}
 }
 
 // Helper function to get environment variable with default value

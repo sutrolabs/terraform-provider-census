@@ -20,9 +20,8 @@ resource "census_workspace" "staging_test" {
 
 # Create a data source (warehouse connection)
 resource "census_source" "warehouse" {
-  workspace_id = census_workspace.staging_test.id
-  name         = var.source_label
-  type         = var.source_type
+  name = var.source_label
+  type = var.source_type
 
   connection_config = var.source_credentials
 }

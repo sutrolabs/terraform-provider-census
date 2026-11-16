@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 func TestResourceSourceSchema_WriteOnlyConnectionConfig(t *testing.T) {
@@ -374,15 +374,10 @@ func TestResourceSourceCreate_UsesBasicSyncEngineWhenConfigured(t *testing.T) {
 func TestResourceSourceRead_UpdatesSyncEngineFromAPI(t *testing.T) {
 	t.Parallel()
 
-	const (
-		workspaceID = 69962
-		sourceID    = 2280673
-	)
+	const sourceID = 2280673
 
 	apiClient := newSourceTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/workspaces/69962/api_key":
-			writeJSON(t, w, http.StatusOK, map[string]string{"api_key": "workspace-token"})
 		case "/sources/2280673":
 			if r.Method != http.MethodGet {
 				t.Fatalf("unexpected method for %s: %s", r.URL.Path, r.Method)
@@ -394,7 +389,6 @@ func TestResourceSourceRead_UpdatesSyncEngineFromAPI(t *testing.T) {
 	})
 
 	d := schema.TestResourceDataRaw(t, resourceSource().Schema, map[string]interface{}{
-		"workspace_id":      strconv.Itoa(workspaceID),
 		"name":              "Warehouse Source",
 		"type":              "snowflake",
 		"connection_config": map[string]interface{}{"account": "acct"},
@@ -470,15 +464,12 @@ func TestResourceSourceRead_PopulatesWarehouseWritebackFromAPI(t *testing.T) {
 	t.Parallel()
 
 	const (
-		workspaceID = 69962
-		sourceID    = 2280673
-		retention   = 45
+		sourceID  = 2280673
+		retention = 45
 	)
 
 	apiClient := newSourceTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/workspaces/69962/api_key":
-			writeJSON(t, w, http.StatusOK, map[string]string{"api_key": "workspace-token"})
 		case "/sources/2280673":
 			if r.Method != http.MethodGet {
 				t.Fatalf("unexpected method for %s: %s", r.URL.Path, r.Method)
@@ -493,7 +484,6 @@ func TestResourceSourceRead_PopulatesWarehouseWritebackFromAPI(t *testing.T) {
 	})
 
 	d := schema.TestResourceDataRaw(t, resourceSource().Schema, map[string]interface{}{
-		"workspace_id":      strconv.Itoa(workspaceID),
 		"name":              "Warehouse Source",
 		"type":              "snowflake",
 		"connection_config": map[string]interface{}{"account": "acct"},
@@ -538,15 +528,12 @@ func TestResourceSourceRead_NoDriftWhenWritebackPresentInAPIButAbsentFromConfig(
 	t.Parallel()
 
 	const (
-		workspaceID = 69962
-		sourceID    = 2280673
-		retention   = 30
+		sourceID  = 2280673
+		retention = 30
 	)
 
 	apiClient := newSourceTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/workspaces/69962/api_key":
-			writeJSON(t, w, http.StatusOK, map[string]string{"api_key": "workspace-token"})
 		case "/sources/2280673":
 			if r.Method != http.MethodGet {
 				t.Fatalf("unexpected method for %s: %s", r.URL.Path, r.Method)
@@ -563,7 +550,6 @@ func TestResourceSourceRead_NoDriftWhenWritebackPresentInAPIButAbsentFromConfig(
 	// Simulate a source already in state from a previous apply, with the
 	// warehouse_writeback_retention_in_days argument NOT in the .tf.
 	d := schema.TestResourceDataRaw(t, resourceSource().Schema, map[string]interface{}{
-		"workspace_id":      strconv.Itoa(workspaceID),
 		"name":              "Warehouse Source",
 		"type":              "snowflake",
 		"connection_config": map[string]interface{}{"account": "acct"},
@@ -600,7 +586,6 @@ func TestGetConfiguredWarehouseWritebackRetention(t *testing.T) {
 			t.Parallel()
 
 			raw := map[string]interface{}{
-				"workspace_id":      "69962",
 				"name":              "Warehouse Source",
 				"type":              "snowflake",
 				"connection_config": map[string]interface{}{"account": "acct"},
@@ -657,7 +642,6 @@ func TestGetConfiguredSourceSyncEngine(t *testing.T) {
 			t.Parallel()
 
 			raw := map[string]interface{}{
-				"workspace_id":      "69962",
 				"name":              "Warehouse Source",
 				"type":              "snowflake",
 				"connection_config": map[string]interface{}{"account": "acct"},
@@ -677,26 +661,19 @@ func TestGetConfiguredSourceSyncEngine(t *testing.T) {
 func runSourceCreateTest(t *testing.T, syncEngine string) (string, diag.Diagnostics, *schema.ResourceData) {
 	t.Helper()
 
-	const (
-		workspaceID = 69962
-		sourceID    = 2280673
-	)
+	const sourceID = 2280673
 
 	var capturedSyncEngine string
 
 	apiClient := newSourceTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/workspaces/69962/api_key":
-			writeJSON(t, w, http.StatusOK, map[string]string{"api_key": "workspace-token"})
-		case "/source_types":
+		case "/source_types/snowflake":
 			writeJSON(t, w, http.StatusOK, map[string]interface{}{
 				"status": "success",
-				"data": []map[string]interface{}{
-					{
-						"service_name": "snowflake",
-						"configuration_fields": map[string]interface{}{
-							"fields": []map[string]interface{}{},
-						},
+				"data": map[string]interface{}{
+					"service_name": "snowflake",
+					"configuration_fields": map[string]interface{}{
+						"fields": []map[string]interface{}{},
 					},
 				},
 			})
@@ -705,7 +682,7 @@ func runSourceCreateTest(t *testing.T, syncEngine string) (string, diag.Diagnost
 				t.Fatalf("unexpected method for %s: %s", r.URL.Path, r.Method)
 			}
 
-			var req client.CreateSourceRequest
+			var req v2.CreateSourceRequest
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				t.Fatalf("failed to decode create source request: %v", err)
 			}
@@ -723,7 +700,6 @@ func runSourceCreateTest(t *testing.T, syncEngine string) (string, diag.Diagnost
 	})
 
 	raw := map[string]interface{}{
-		"workspace_id":      strconv.Itoa(workspaceID),
 		"name":              "Warehouse Source",
 		"type":              "snowflake",
 		"connection_config": map[string]interface{}{"account": "acct"},
@@ -738,29 +714,22 @@ func runSourceCreateTest(t *testing.T, syncEngine string) (string, diag.Diagnost
 	return capturedSyncEngine, diags, d
 }
 
-func runSourceCreateRequestTest(t *testing.T, retention *int) (client.SourceConnection, diag.Diagnostics, *schema.ResourceData) {
+func runSourceCreateRequestTest(t *testing.T, retention *int) (v2.SourceConnection, diag.Diagnostics, *schema.ResourceData) {
 	t.Helper()
 
-	const (
-		workspaceID = 69962
-		sourceID    = 2280673
-	)
+	const sourceID = 2280673
 
-	var captured client.SourceConnection
+	var captured v2.SourceConnection
 
 	apiClient := newSourceTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/workspaces/69962/api_key":
-			writeJSON(t, w, http.StatusOK, map[string]string{"api_key": "workspace-token"})
-		case "/source_types":
+		case "/source_types/snowflake":
 			writeJSON(t, w, http.StatusOK, map[string]interface{}{
 				"status": "success",
-				"data": []map[string]interface{}{
-					{
-						"service_name": "snowflake",
-						"configuration_fields": map[string]interface{}{
-							"fields": []map[string]interface{}{},
-						},
+				"data": map[string]interface{}{
+					"service_name": "snowflake",
+					"configuration_fields": map[string]interface{}{
+						"fields": []map[string]interface{}{},
 					},
 				},
 			})
@@ -769,7 +738,7 @@ func runSourceCreateRequestTest(t *testing.T, retention *int) (client.SourceConn
 				t.Fatalf("unexpected method for %s: %s", r.URL.Path, r.Method)
 			}
 
-			var req client.CreateSourceRequest
+			var req v2.CreateSourceRequest
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				t.Fatalf("failed to decode create source request: %v", err)
 			}
@@ -795,7 +764,6 @@ func runSourceCreateRequestTest(t *testing.T, retention *int) (client.SourceConn
 	})
 
 	raw := map[string]interface{}{
-		"workspace_id":      strconv.Itoa(workspaceID),
 		"name":              "Warehouse Source",
 		"type":              "snowflake",
 		"connection_config": map[string]interface{}{"account": "acct"},
@@ -816,15 +784,7 @@ func newSourceTestClient(t *testing.T, handler http.HandlerFunc) *clients {
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 
-	apiClient, err := client.NewClient(&client.Config{
-		BaseURL:             server.URL,
-		PersonalAccessToken: "personal-token",
-	})
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	return &clients{V1: apiClient}
+	return newTestClients(t, server.URL)
 }
 
 func buildSourceResponse(sourceID int, syncEngine string) map[string]interface{} {
@@ -853,5 +813,59 @@ func writeJSON(t *testing.T, w http.ResponseWriter, statusCode int, payload inte
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		t.Fatalf("failed to encode response: %v", err)
+	}
+}
+
+func TestResourceSourceStateUpgradeV0_FillsMissingNotificationEmails(t *testing.T) {
+	t.Parallel()
+
+	rawState := map[string]interface{}{
+		"id":           "207672",
+		"workspace_id": "6646",
+		"name":         "pre_migration_fixture_redshift",
+	}
+
+	got, err := resourceSourceStateUpgradeV0(context.Background(), rawState, nil)
+	if err != nil {
+		t.Fatalf("upgrade failed: %v", err)
+	}
+
+	if emails, ok := got["notification_emails"].([]interface{}); !ok || len(emails) != 0 {
+		t.Fatalf("expected notification_emails to be an empty list, got %#v", got["notification_emails"])
+	}
+	if got["workspace_id"] != "6646" || got["name"] != "pre_migration_fixture_redshift" {
+		t.Fatalf("expected existing attributes to be preserved, got %#v", got)
+	}
+}
+
+func TestResourceSourceStateUpgradeV0_KeepsExistingNotificationEmails(t *testing.T) {
+	t.Parallel()
+
+	got, err := resourceSourceStateUpgradeV0(context.Background(), map[string]interface{}{
+		"notification_emails": []interface{}{"alerts@example.com"},
+	}, nil)
+	if err != nil {
+		t.Fatalf("upgrade failed: %v", err)
+	}
+
+	if emails := got["notification_emails"].([]interface{}); len(emails) != 1 || emails[0] != "alerts@example.com" {
+		t.Fatalf("expected existing notification_emails to be preserved, got %#v", emails)
+	}
+}
+
+func TestResourceSourceV0Schema_OmitsAttributesAddedInV1(t *testing.T) {
+	t.Parallel()
+
+	v0 := resourceSourceV0().Schema
+	for _, k := range sourceAttributesAddedInV1 {
+		if _, ok := v0[k]; ok {
+			t.Errorf("expected v0 schema not to contain %s", k)
+		}
+	}
+	if _, ok := v0["connection_config"]; !ok {
+		t.Fatal("expected v0 schema to keep pre-existing attributes")
+	}
+	if resourceSource().SchemaVersion != 1 {
+		t.Fatalf("expected census_source SchemaVersion 1, got %d", resourceSource().SchemaVersion)
 	}
 }

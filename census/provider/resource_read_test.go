@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 func TestResourceReads_GatewayTimeoutPreservesState(t *testing.T) {
@@ -202,15 +203,7 @@ func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *clien
 	}))
 	t.Cleanup(server.Close)
 
-	apiClient, err := client.NewClient(&client.Config{
-		BaseURL:             server.URL,
-		PersonalAccessToken: "personal-token",
-	})
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	return &clients{V1: apiClient}
+	return newTestClients(t, server.URL)
 }
 
 // newEmptyBodyReadTestClient is like newReadTestClient, but responds to
@@ -234,15 +227,7 @@ func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *clients {
 	}))
 	t.Cleanup(server.Close)
 
-	apiClient, err := client.NewClient(&client.Config{
-		BaseURL:             server.URL,
-		PersonalAccessToken: "personal-token",
-	})
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	return &clients{V1: apiClient}
+	return newTestClients(t, server.URL)
 }
 
 func testDestinationResourceData(t *testing.T) *schema.ResourceData {
@@ -263,7 +248,6 @@ func testSourceResourceData(t *testing.T) *schema.ResourceData {
 	t.Helper()
 
 	d := schema.TestResourceDataRaw(t, resourceSource().Schema, map[string]interface{}{
-		"workspace_id":      "69962",
 		"name":              "Test Source",
 		"type":              "snowflake",
 		"connection_config": map[string]interface{}{"account": "acct"},
@@ -310,4 +294,29 @@ func testWorkspaceResourceData(t *testing.T) *schema.ResourceData {
 	d.SetId("69962")
 
 	return d
+}
+
+// newTestClients builds the provider meta with both the v1 and v2 clients
+// pointed at the same test server, since resource paths are the same
+// relative to either API root.
+func newTestClients(t *testing.T, baseURL string) *clients {
+	t.Helper()
+
+	v1Client, err := client.NewClient(&client.Config{
+		BaseURL:             baseURL,
+		PersonalAccessToken: "personal-token",
+	})
+	if err != nil {
+		t.Fatalf("failed to create v1 client: %v", err)
+	}
+
+	v2Client, err := v2.NewClient(&v2.Config{
+		BaseURL:             baseURL,
+		PersonalAccessToken: "personal-token",
+	})
+	if err != nil {
+		t.Fatalf("failed to create v2 client: %v", err)
+	}
+
+	return &clients{V1: v1Client, V2: v2Client}
 }
