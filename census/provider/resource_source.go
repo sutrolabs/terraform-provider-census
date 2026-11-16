@@ -160,10 +160,6 @@ func sourceSchemaMap() map[string]*schema.Schema {
 	}
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 1109816 ([RD-1315074] Add region, notification_emails and storage_backend to census_source (#64))
 // sourceAttributesAddedInV1 are the attributes the v2 API cutover added to
 // census_source. Every other attribute kept its type, so v0 is the current
 // schema without these.
