@@ -272,7 +272,6 @@ object of secret credentials that works for any source type. Bump
 re-applies it.
 ```hcl
 resource "census_source" "warehouse" {
-  workspace_id = census_workspace.data_team.id
   name         = "Production Warehouse (Keypair)"
   type         = "snowflake"
 

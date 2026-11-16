@@ -2,14 +2,12 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 func resourceSource() *schema.Resource {
@@ -22,7 +20,7 @@ func resourceSource() *schema.Resource {
 		DeleteContext: resourceSourceDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceSourceImport,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
@@ -41,11 +39,10 @@ func resourceSource() *schema.Resource {
 				Computed:    true,
 				Description: "The ID of the source.",
 			},
-			"workspace_id": {
+			"group_id": {
 				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The ID of the workspace this source belongs to.",
+				Computed:    true,
+				Description: "The group ID of the source, used to reference it from activations and datasets.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -131,61 +128,33 @@ func resourceSource() *schema.Resource {
 }
 
 func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*clients).V1
+	apiClient := meta.(*clients).V2
 
-	workspaceId := d.Get("workspace_id").(string)
-	name := d.Get("name").(string)
 	sourceType := d.Get("type").(string)
-	syncEngine := getConfiguredSourceSyncEngine(d)
 	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
 	if err := applyWriteOnlyCredentials(d, connectionConfig); err != nil {
 		return diag.FromErr(err)
 	}
 
-	// Get the workspace API key dynamically using the personal access token
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.Errorf("failed to get workspace API key for workspace %d: %v", workspaceIdInt, err)
-	}
-	if workspaceToken == "" {
-		return diag.Errorf("workspace API key is empty for workspace %d", workspaceIdInt)
-	}
-
 	// Validate source credentials against source type requirements
-	if err := apiClient.ValidateSourceCredentials(ctx, sourceType, connectionConfig, workspaceToken); err != nil {
+	if err := v2.ValidateSourceCredentials(ctx, apiClient, sourceType, connectionConfig); err != nil {
 		return diag.Errorf("source credential validation failed: %v", err)
 	}
 
-	req := &client.CreateSourceRequest{
-		Connection: client.SourceConnection{
-			Name:                              name, // Set name inside connection per API requirements
-			Type:                              sourceType,
-			SyncEngine:                        syncEngine,
-			WarehouseWritebackRetentionInDays: getConfiguredWarehouseWritebackRetention(d),
-			Credentials:                       connectionConfig,
-		},
-	}
+	connection := expandSourceConnection(d, connectionConfig)
+	connection.Type = sourceType
+	connection.SyncEngine = getConfiguredSourceSyncEngine(d)
 
-	// Use the dynamically retrieved workspace token
-	source, err := apiClient.CreateSourceWithToken(ctx, req, workspaceToken)
+	source, err := v2.CreateSource(ctx, apiClient, &v2.CreateSourceRequest{Connection: connection})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.Itoa(source.ID))
 
-	// Explicitly set workspace_id from our input since API doesn't return it
-	d.Set("workspace_id", workspaceId)
-
 	// Optionally refresh tables after creation
 	if d.Get("auto_refresh_tables").(bool) {
-		if err := apiClient.RefreshSourceTablesWithToken(ctx, source.ID, workspaceToken); err != nil {
-			// Log the error but don't fail the creation
+		if err := v2.RefreshSourceTables(ctx, apiClient, source.ID); err != nil {
 			// The source was created successfully, table refresh is optional
 			return diag.Errorf("source created successfully but table refresh failed: %v", err)
 		}
@@ -195,61 +164,31 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceSourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*clients).V1
+	apiClient := meta.(*clients).V2
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.Errorf("invalid source ID: %s", d.Id())
 	}
 
-	// Get workspace token dynamically if we have workspace_id
-	workspaceId := d.Get("workspace_id").(string)
-	var source *client.Source
-	if workspaceId != "" {
-		workspaceIdInt, convErr := strconv.Atoi(workspaceId)
-		if convErr != nil {
-			return diag.Errorf("invalid workspace ID: %s", workspaceId)
-		}
-
-		workspaceToken, tokenErr := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if tokenErr != nil {
-			return diag.FromErr(tokenErr)
-		}
-
-		source, err = apiClient.GetSourceWithToken(ctx, id, workspaceToken)
-	} else {
-		// workspace_id missing - this is a legacy resource that needs manual fixing
-		// The simplest fix is to manually add workspace_id to terraform state
-		return diag.Errorf(`workspace_id is required but missing from resource state. 
-
-To fix this, add the missing workspace_id to terraform state:
-  terraform state rm census_source.marketing_prod_warehouse
-  terraform import census_source.marketing_prod_warehouse 69962:2280673
-
-Where 69962 is the workspace_id for marketing_prod workspace.`)
-	}
-
+	source, err := v2.GetSource(ctx, apiClient, id)
 	if err != nil {
-		// Check if source was not found
-		if IsNotFoundError(err) {
+		if v2.IsNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
 		return diag.FromErr(err)
 	}
 
-	// Only update workspace_id if API returned it, otherwise preserve what's in state
-	if source.WorkspaceID != "" {
-		d.Set("workspace_id", source.WorkspaceID)
-	}
-	if syncEngine := getSourceSyncEngine(source); syncEngine != "" {
-		d.Set("sync_engine", syncEngine)
+	if source.SyncEngine != "" {
+		d.Set("sync_engine", source.SyncEngine)
 	}
 	if source.WarehouseWritebackRetentionInDays != nil {
 		d.Set("warehouse_writeback_retention_in_days", *source.WarehouseWritebackRetentionInDays)
 	}
 	d.Set("name", source.Name)
 	d.Set("type", source.Type)
+	d.Set("group_id", source.GroupID)
 	d.Set("created_at", source.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
 
 	// status, test_status, last_tested and updated_at are deprecated: the API does not support them.
@@ -265,25 +204,74 @@ Where 69962 is the workspace_id for marketing_prod workspace.`)
 	return nil
 }
 
-func getSourceSyncEngine(source *client.Source) string {
-	if source == nil {
-		return ""
+func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	apiClient := meta.(*clients).V2
+
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return diag.Errorf("invalid source ID: %s", d.Id())
 	}
 
-	if source.SyncEngine != "" {
-		return source.SyncEngine
+	sourceType := d.Get("type").(string)
+	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
+	if err := applyWriteOnlyCredentials(d, connectionConfig); err != nil {
+		return diag.FromErr(err)
 	}
 
-	if source.Connection == nil {
-		return ""
+	// Validate when the connection changes, including when write-only
+	// credentials are rotated via connection_config_wo_version.
+	if sourceConnectionChanged(d) {
+		if err := v2.ValidateSourceCredentials(ctx, apiClient, sourceType, connectionConfig); err != nil {
+			return diag.Errorf("source credential validation failed: %v", err)
+		}
 	}
 
-	syncEngine, ok := source.Connection["sync_engine"].(string)
-	if !ok {
-		return ""
+	// Type and sync_engine cannot be modified after creation.
+	connection := expandSourceConnection(d, connectionConfig)
+
+	if _, err := v2.UpdateSource(ctx, apiClient, id, &v2.UpdateSourceRequest{Connection: connection}); err != nil {
+		return diag.FromErr(err)
 	}
 
-	return syncEngine
+	// Refresh tables if requested and connection changed, including when
+	// write-only credentials are rotated via connection_config_wo_version.
+	if sourceConnectionChanged(d) && d.Get("auto_refresh_tables").(bool) {
+		if err := v2.RefreshSourceTables(ctx, apiClient, id); err != nil {
+			return diag.Errorf("source updated successfully but table refresh failed: %v", err)
+		}
+	}
+
+	return resourceSourceRead(ctx, d, meta)
+}
+
+func resourceSourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	apiClient := meta.(*clients).V2
+
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return diag.Errorf("invalid source ID: %s", d.Id())
+	}
+
+	if err := v2.DeleteSource(ctx, apiClient, id); err != nil {
+		// If source is already deleted, don't return error
+		if v2.IsNotFoundError(err) {
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+// expandSourceConnection builds the attributes shared by create and update.
+func expandSourceConnection(d *schema.ResourceData, credentials map[string]interface{}) v2.SourceConnection {
+	connection := v2.SourceConnection{
+		Name:                              d.Get("name").(string),
+		WarehouseWritebackRetentionInDays: getConfiguredWarehouseWritebackRetention(d),
+		Credentials:                       credentials,
+	}
+
+	return connection
 }
 
 func getConfiguredSourceSyncEngine(d *schema.ResourceData) string {
@@ -308,131 +296,4 @@ func getConfiguredWarehouseWritebackRetention(d *schema.ResourceData) *int {
 	}
 
 	return &retention
-}
-
-func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*clients).V1
-
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return diag.Errorf("invalid source ID: %s", d.Id())
-	}
-
-	// Get current values for structured update
-	name := d.Get("name").(string)
-	sourceType := d.Get("type").(string)
-	connectionConfig := expandConnectionConfig(d.Get("connection_config").(map[string]interface{}))
-	if err := applyWriteOnlyCredentials(d, connectionConfig); err != nil {
-		return diag.FromErr(err)
-	}
-	workspaceId := d.Get("workspace_id").(string)
-
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	// Always build complete connection structure for updates. Validate when the
-	// connection changes, including when write-only credentials are rotated via
-	// connection_config_wo_version.
-	if sourceConnectionChanged(d) {
-		if err := apiClient.ValidateSourceCredentials(ctx, sourceType, connectionConfig, workspaceToken); err != nil {
-			return diag.Errorf("source credential validation failed: %v", err)
-		}
-	}
-
-	req := &client.UpdateSourceRequest{
-		Connection: client.SourceConnection{
-			Name: name, // Set name in connection structure per API requirements
-			// Note: Type and SyncEngine cannot be modified after creation per Census API
-			WarehouseWritebackRetentionInDays: getConfiguredWarehouseWritebackRetention(d),
-			Credentials:                       connectionConfig,
-		},
-	}
-
-	// Use the workspace token for the update
-	_, err = apiClient.UpdateSourceWithToken(ctx, id, req, workspaceToken)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	// Refresh tables if requested and connection changed, including when
-	// write-only credentials are rotated via connection_config_wo_version.
-	if sourceConnectionChanged(d) && d.Get("auto_refresh_tables").(bool) {
-		if err := apiClient.RefreshSourceTablesWithToken(ctx, id, workspaceToken); err != nil {
-			// Log the error but don't fail the update
-			return diag.Errorf("source updated successfully but table refresh failed: %v", err)
-		}
-	}
-
-	return resourceSourceRead(ctx, d, meta)
-}
-
-func resourceSourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*clients).V1
-
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return diag.Errorf("invalid source ID: %s", d.Id())
-	}
-
-	// Get workspace token dynamically if we have workspace_id
-	workspaceId := d.Get("workspace_id").(string)
-	if workspaceId != "" {
-		workspaceIdInt, err := strconv.Atoi(workspaceId)
-		if err != nil {
-			return diag.Errorf("invalid workspace ID: %s", workspaceId)
-		}
-
-		workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		err = apiClient.DeleteSourceWithToken(ctx, id, workspaceToken)
-	} else {
-		// In PAT-only architecture, workspace_id is required for delete operations
-		return diag.Errorf("workspace_id is required but missing from resource state - please reimport this resource")
-	}
-
-	if err != nil {
-		// If source is already deleted, don't return error
-		if IsNotFoundError(err) {
-			return nil
-		}
-		return diag.FromErr(err)
-	}
-
-	return nil
-}
-
-func resourceSourceImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	// Support composite format: workspace_id:source_id
-	parts := strings.Split(d.Id(), ":")
-
-	if len(parts) == 2 {
-		// Format: workspace_id:source_id
-		workspaceId := parts[0]
-		sourceId := parts[1]
-
-		d.SetId(sourceId)
-		d.Set("workspace_id", workspaceId)
-
-		return []*schema.ResourceData{d}, nil
-	} else if len(parts) == 1 {
-		// Legacy format - provide helpful error
-		return nil, fmt.Errorf(`import requires workspace_id. Use format: workspace_id:source_id
-
-Example:
-  terraform import census_source.snowflake_basic 69962:828
-
-Where 69962 is the workspace_id and 828 is the source_id.`)
-	}
-
-	return nil, fmt.Errorf("invalid import format. Use: workspace_id:source_id")
 }
