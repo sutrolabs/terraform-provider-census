@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - Unreleased
 
 ### Added
+- **`census_activation` resource and data source**, for use in place of `census_destination`. An activation pairs a source (`group_id`) with a destination; creating one also creates its destination connection. Changing `group_id` or `type` replaces it. Import an activation by ID, or by `<group_id>:<destination_id>` for a destination previously managed with `census_destination`; the data source supports the same two lookups.
 - **Source group ID**: Added `group_id` to `census_source`.
 - **Source region, notification emails and bring your own bucket**: Added `region`, `notification_emails` and `storage_backend` to `census_source`.
 
