@@ -146,17 +146,17 @@ type CreateSyncRequest struct {
 	Mappings              []MappingAttributes        `json:"mappings"`
 
 	Label                   string                 `json:"label,omitempty"`
-	AlertAttributes         []AlertAttribute        `json:"alert_attributes,omitempty"`
-	AdvancedConfiguration   map[string]interface{}  `json:"advanced_configuration,omitempty"`
-	Mode                    *SyncMode               `json:"mode,omitempty"`
-	Paused                  bool                    `json:"paused,omitempty"`
-	FieldBehavior           string                  `json:"field_behavior,omitempty"`
-	FieldNormalization      string                  `json:"field_normalization,omitempty"`
-	FieldOrder              string                  `json:"field_order,omitempty"`
-	SyncBehaviorFamily      string                  `json:"sync_behavior_family,omitempty"`
-	HighWaterMarkAttribute  string                  `json:"high_water_mark_attribute,omitempty"`
-	HistoricalSyncOperation string                  `json:"historical_sync_operation,omitempty"`
-	MirrorStrategy          string                  `json:"mirror_strategy,omitempty"`
+	AlertAttributes         []AlertAttribute       `json:"alert_attributes,omitempty"`
+	AdvancedConfiguration   map[string]interface{} `json:"advanced_configuration,omitempty"`
+	Mode                    *SyncMode              `json:"mode,omitempty"`
+	Paused                  bool                   `json:"paused,omitempty"`
+	FieldBehavior           string                 `json:"field_behavior,omitempty"`
+	FieldNormalization      string                 `json:"field_normalization,omitempty"`
+	FieldOrder              string                 `json:"field_order,omitempty"`
+	SyncBehaviorFamily      string                 `json:"sync_behavior_family,omitempty"`
+	HighWaterMarkAttribute  string                 `json:"high_water_mark_attribute,omitempty"`
+	HistoricalSyncOperation string                 `json:"historical_sync_operation,omitempty"`
+	MirrorStrategy          string                 `json:"mirror_strategy,omitempty"`
 }
 
 // UpdateSyncRequest is the body for PATCH /syncs/{sync_id}. No field is

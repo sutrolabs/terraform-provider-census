@@ -118,10 +118,10 @@ func TestCreateSync_SendsBodyAndReturnsIDs(t *testing.T) {
 		t.Fatalf("unexpected request %s %s", gotMethod, gotPath)
 	}
 	want := map[string]interface{}{
-		"activation_id":           "example_activation_id",
-		"operation":               "upsert",
-		"source_attributes":       map[string]interface{}{"object": map[string]interface{}{"type": "dataset", "id": float64(123)}},
-		"destination_attributes":  map[string]interface{}{"object": "Contact"},
+		"activation_id":          "example_activation_id",
+		"operation":              "upsert",
+		"source_attributes":      map[string]interface{}{"object": map[string]interface{}{"type": "dataset", "id": float64(123)}},
+		"destination_attributes": map[string]interface{}{"object": "Contact"},
 		"mappings": []interface{}{
 			map[string]interface{}{
 				"from":                  map[string]interface{}{"type": "column", "data": "email"},
