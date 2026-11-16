@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Sync is a Census sync as returned by the v2 /syncs endpoints
+// Sync is a Fivetran Activations sync as returned by the v2 /syncs endpoints
 // (apidocs/v2/paths/syncs.yaml, apidocs/v2/components/syncs.yaml). Unlike
 // v1, a sync is identified by its activation_id rather than a
 // workspace/source/destination connection triple.
@@ -208,7 +208,7 @@ func CreateSync(ctx context.Context, c *Client, req *CreateSyncRequest) (*Sync, 
 		return nil, fmt.Errorf("failed to create sync: %w", err)
 	}
 	if result.SyncID == 0 {
-		return nil, fmt.Errorf("Census API returned a successful create response without a sync ID — the sync may have been created anyway; check Census before retrying to avoid a duplicate")
+		return nil, fmt.Errorf("Fivetran Activations API returned a successful create response without a sync ID — the sync may have been created anyway; check Fivetran before retrying to avoid a duplicate")
 	}
 	return &Sync{ID: result.SyncID, ActivationID: result.ActivationID}, nil
 }
