@@ -56,7 +56,7 @@ make test-coverage
 
 ```bash
 # Run a specific test
-go test ./census/tests/provider/acceptance -v -run TestAccResourceSync_Basic
+go test ./census/tests/acceptance -v -run TestAccResourceSync_Basic
 
 # Run with verbose output
 go test ./... -v -short

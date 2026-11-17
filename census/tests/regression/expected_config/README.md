@@ -2,10 +2,10 @@
 
 Real Terraform files declaring, with literal values only (no variables, no
 real credentials), what the CURRENT provider schema expects in order to
-reproduce every resource recorded in `census/tests/fixtures/pre_migration.tfstate`
+reproduce every resource recorded in `census/tests/regression/fixtures/pre_migration.tfstate`
 with zero drift. Used by `TestPreMigrationFixture_PlansWithNoChangesAgainstExpectedConfig`.
 
-This is **not** the same thing as `census/tests/fixtures/pre_migration/*.tf` —
+This is **not** the same thing as `census/tests/regression/fixtures/pre_migration/*.tf` —
 that config is what actually created the fixture, under whatever schema
 existed at capture time, and should stay untouched as a historical record.
 This directory tracks the *current* schema instead, and has to be updated by

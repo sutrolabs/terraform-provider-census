@@ -7,14 +7,13 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	provider_test "github.com/sutrolabs/terraform-provider-census/census/tests/provider"
 )
 
 func TestAccResourceSource_Basic(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSourceConfig_redshift(rName),
@@ -33,8 +32,8 @@ func TestAccResourceSource_Basic(t *testing.T) {
 func TestAccResourceSource_Update(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSourceConfig_redshift(rName),
@@ -109,8 +108,8 @@ resource "census_source" "test" {
 func TestAccResourceSource_Import(t *testing.T) {
 	rName := acctest.RandString(6)
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { provider_test.TestAccPreCheckIntegration(t) },
-		Providers: provider_test.TestAccProviders,
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSourceConfig_redshift(rName),
