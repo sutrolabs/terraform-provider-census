@@ -4,7 +4,7 @@
 
 A real, redacted Terraform state snapshot (`connection_config` and `api_key`
 values blanked) produced by applying `pre_migration/` against the current
-(v1-backed) provider. Used by `census/tests/provider/regression/` as a
+(v1-backed) provider. Used by `census/tests/regression/` as a
 before-and-after baseline: a provider build should be able to `plan` against
 this state with no unexpected changes.
 
