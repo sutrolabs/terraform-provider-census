@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 // Helper functions for flattening complex types (API response -> Terraform state)
@@ -139,6 +140,75 @@ func FlattenRunMode(mode *client.SyncMode) []interface{} {
 		if mode.Triggers.SyncSequence != nil {
 			seqMap := map[string]interface{}{
 				"sync_id": mode.Triggers.SyncSequence.SyncId,
+			}
+			triggersMap["sync_sequence"] = []interface{}{seqMap}
+		}
+
+		modeMap["triggers"] = []interface{}{triggersMap}
+	}
+
+	return []interface{}{modeMap}
+}
+
+// FlattenRunMode converts API SyncMode struct to Terraform run_mode config
+func FlattenRunModeV2(mode *v2.SyncMode) []interface{} {
+	if mode == nil {
+		return []interface{}{}
+	}
+
+	modeMap := map[string]interface{}{
+		"type": mode.Type,
+	}
+
+	// Flatten triggers if present
+	if mode.Triggers != nil {
+		triggersMap := map[string]interface{}{}
+
+		// Flatten schedule trigger
+		if mode.Triggers.Schedule != nil {
+			scheduleMap := map[string]interface{}{
+				"frequency": mode.Triggers.Schedule.Frequency,
+			}
+
+			if mode.Triggers.Schedule.CronExpression != "" {
+				scheduleMap["cron_expression"] = mode.Triggers.Schedule.CronExpression
+			} else {
+				if mode.Triggers.Schedule.Day != "" {
+					scheduleMap["day"] = mode.Triggers.Schedule.Day
+				}
+				if mode.Triggers.Schedule.Hour != 0 {
+					scheduleMap["hour"] = mode.Triggers.Schedule.Hour
+				}
+				if mode.Triggers.Schedule.Minute != 0 {
+					scheduleMap["minute"] = mode.Triggers.Schedule.Minute
+				}
+			}
+
+			triggersMap["schedule"] = []interface{}{scheduleMap}
+		}
+
+		// Flatten dbt_cloud trigger
+		if mode.Triggers.DbtCloud != nil {
+			dbtMap := map[string]interface{}{
+				"project_id": mode.Triggers.DbtCloud.ProjectID,
+				"job_id":     mode.Triggers.DbtCloud.JobID,
+			}
+			triggersMap["dbt_cloud"] = []interface{}{dbtMap}
+		}
+
+		// Flatten fivetran trigger
+		if mode.Triggers.Fivetran != nil {
+			fivetranMap := map[string]interface{}{
+				"job_id":   mode.Triggers.Fivetran.JobID,
+				"job_name": mode.Triggers.Fivetran.JobName,
+			}
+			triggersMap["fivetran"] = []interface{}{fivetranMap}
+		}
+
+		// Flatten sync_sequence trigger
+		if mode.Triggers.SyncSequence != nil {
+			seqMap := map[string]interface{}{
+				"sync_id": mode.Triggers.SyncSequence.SyncID,
 			}
 			triggersMap["sync_sequence"] = []interface{}{seqMap}
 		}
