@@ -1,4 +1,4 @@
-package unit_test
+package provider
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/sutrolabs/terraform-provider-census/census/client"
-	"github.com/sutrolabs/terraform-provider-census/census/provider"
 )
 
 // Unit tests for sync resource helper functions
@@ -98,7 +97,7 @@ func TestExpandFieldMappings_Direct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(context.Background(), tt.input)
+			result := ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -150,7 +149,7 @@ func TestExpandFieldMappings_Constant(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(context.Background(), tt.input)
+			result := ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -185,7 +184,7 @@ func TestExpandFieldMappings_LiquidTemplate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(context.Background(), tt.input)
+			result := ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -220,7 +219,7 @@ func TestExpandFieldMappings_SyncMetadata(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(context.Background(), tt.input)
+			result := ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -229,7 +228,7 @@ func TestExpandFieldMappings_SyncMetadata(t *testing.T) {
 }
 
 func TestExpandFieldMappings_Empty(t *testing.T) {
-	result := provider.ExpandFieldMappings(context.Background(), []interface{}{})
+	result := ExpandFieldMappings(context.Background(), []interface{}{})
 	if len(result) != 0 {
 		t.Errorf("ExpandFieldMappings(empty) should return empty slice, got %d items", len(result))
 	}
@@ -274,7 +273,7 @@ func TestFlattenFieldMappings_Direct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.FlattenFieldMappings(tt.input)
+			result := FlattenFieldMappings(tt.input)
 			if len(result) != tt.expected {
 				t.Errorf("FlattenFieldMappings() returned %d items, want %d", len(result), tt.expected)
 			}
@@ -294,7 +293,7 @@ func TestFlattenFieldMappings_Direct(t *testing.T) {
 }
 
 func TestFlattenFieldMappings_Empty(t *testing.T) {
-	result := provider.FlattenFieldMappings([]client.FieldMapping{})
+	result := FlattenFieldMappings([]client.FieldMapping{})
 	if len(result) != 0 {
 		t.Errorf("FlattenFieldMappings(empty) should return empty slice, got %d items", len(result))
 	}
@@ -490,7 +489,7 @@ func TestExpandAlerts_Basic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandAlerts(context.Background(), tt.input)
+			result := ExpandAlerts(context.Background(), tt.input)
 			if len(result) != tt.expected {
 				t.Errorf("ExpandAlerts() returned %d items, want %d", len(result), tt.expected)
 			}
@@ -499,7 +498,7 @@ func TestExpandAlerts_Basic(t *testing.T) {
 }
 
 func TestExpandAlerts_Empty(t *testing.T) {
-	result := provider.ExpandAlerts(context.Background(), []interface{}{})
+	result := ExpandAlerts(context.Background(), []interface{}{})
 	if result == nil {
 		t.Errorf("ExpandAlerts(empty) should return empty slice, got nil")
 	}
@@ -579,7 +578,7 @@ func TestExpandAlerts_EmptyStrings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandAlerts(context.Background(), tt.input)
+			result := ExpandAlerts(context.Background(), tt.input)
 			if len(result) != tt.expected {
 				t.Errorf("ExpandAlerts() returned %d items, want %d", len(result), tt.expected)
 			}
@@ -633,7 +632,7 @@ func TestExpandStringMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandStringMap(tt.input)
+			result := ExpandStringMap(tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandStringMap() got = %+v, want %+v", result, tt.expected)
 			}
@@ -693,7 +692,7 @@ func TestCleanEmptyStrings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.CleanEmptyStrings(tt.input)
+			result := CleanEmptyStrings(tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("CleanEmptyStrings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -764,7 +763,7 @@ func TestExpandFieldMappings_NoPrimaryIdentifier(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(context.Background(), tt.input)
+			result := ExpandFieldMappings(context.Background(), tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
 			}
@@ -817,7 +816,7 @@ func TestExpandFieldMappings_GoogleSheetsScenario(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ExpandFieldMappings(context.Background(), tt.input)
+			result := ExpandFieldMappings(context.Background(), tt.input)
 			if len(result) != tt.expected {
 				t.Errorf("ExpandFieldMappings() returned %d mappings, want %d", len(result), tt.expected)
 			}
@@ -873,7 +872,7 @@ func TestResourceSyncStateUpgradeV0(t *testing.T) {
 	}
 
 	// Call the upgrade function
-	upgradedState, err := provider.ResourceSyncStateUpgradeV0(nil, v0State, nil)
+	upgradedState, err := ResourceSyncStateUpgradeV0(nil, v0State, nil)
 
 	// Assertions
 	if err != nil {
@@ -924,7 +923,7 @@ func TestResourceSyncStateUpgradeV0(t *testing.T) {
 
 func TestResourceSyncV0SchemaCompatibility(t *testing.T) {
 	// Verify that v0 schema uses TypeSet for alerts
-	v0Resource := provider.ResourceSyncV0()
+	v0Resource := ResourceSyncV0()
 	if v0Resource == nil {
 		t.Errorf("v0 resource should not be nil")
 		return
@@ -952,7 +951,7 @@ func TestResourceSyncV0SchemaCompatibility(t *testing.T) {
 
 func TestResourceSyncV1SchemaCompatibility(t *testing.T) {
 	// Verify that v1 schema (current) uses TypeList for alerts
-	v1Resource := provider.ResourceSync()
+	v1Resource := ResourceSync()
 	if v1Resource == nil {
 		t.Errorf("v1 resource should not be nil")
 		return
@@ -1075,7 +1074,7 @@ func TestConvertFieldMappingsToMappingAttributes_Constant(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ConvertFieldMappingsToMappingAttributes(tt.input)
+			result := ConvertFieldMappingsToMappingAttributes(tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("convertFieldMappingsToMappingAttributes() got = %+v, want %+v", result, tt.expected)
 			}
@@ -1134,7 +1133,7 @@ func TestConvertFieldMappingsToMappingAttributes_Direct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.ConvertFieldMappingsToMappingAttributes(tt.input)
+			result := ConvertFieldMappingsToMappingAttributes(tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("convertFieldMappingsToMappingAttributes() got = %+v, want %+v", result, tt.expected)
 			}
@@ -1206,7 +1205,7 @@ func TestConvertFieldMappingsToMappingAttributes_Mixed(t *testing.T) {
 		},
 	}
 
-	result := provider.ConvertFieldMappingsToMappingAttributes(input)
+	result := ConvertFieldMappingsToMappingAttributes(input)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("convertFieldMappingsToMappingAttributes() got = %+v, want %+v", result, expected)
 	}
@@ -1233,7 +1232,7 @@ func TestConvertFieldMappingsToMappingAttributes_LiquidTemplate(t *testing.T) {
 		},
 	}
 
-	result := provider.ConvertFieldMappingsToMappingAttributes(input)
+	result := ConvertFieldMappingsToMappingAttributes(input)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("convertFieldMappingsToMappingAttributes() got = %+v, want %+v", result, expected)
 	}
@@ -1271,7 +1270,7 @@ func TestConvertMappingAttributesToFieldMappings_LiquidTemplate(t *testing.T) {
 		},
 	}
 
-	result := provider.ConvertMappingAttributesToFieldMappings(input)
+	result := ConvertMappingAttributesToFieldMappings(input)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("ConvertMappingAttributesToFieldMappings() got = %+v, want %+v", result, expected)
 	}
@@ -1305,7 +1304,7 @@ func TestConvertMappingAttributesToFieldMappings_Constant(t *testing.T) {
 		},
 	}
 
-	result := provider.ConvertMappingAttributesToFieldMappings(input)
+	result := ConvertMappingAttributesToFieldMappings(input)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("ConvertMappingAttributesToFieldMappings() got = %+v, want %+v", result, expected)
 	}
@@ -1336,7 +1335,7 @@ func TestConvertMappingAttributesToFieldMappings_SyncMetadata(t *testing.T) {
 		},
 	}
 
-	result := provider.ConvertMappingAttributesToFieldMappings(input)
+	result := ConvertMappingAttributesToFieldMappings(input)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("ConvertMappingAttributesToFieldMappings() got = %+v, want %+v", result, expected)
 	}
@@ -1369,7 +1368,7 @@ func TestConvertMappingAttributesToFieldMappings_SegmentMembership(t *testing.T)
 		},
 	}
 
-	result := provider.ConvertMappingAttributesToFieldMappings(input)
+	result := ConvertMappingAttributesToFieldMappings(input)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("ConvertMappingAttributesToFieldMappings() got = %+v, want %+v", result, expected)
 	}
@@ -1406,10 +1405,10 @@ func TestConvertMappingAttributesToFieldMappings_RoundTrip(t *testing.T) {
 	}
 
 	// Convert to MappingAttributes (what we send to API)
-	mappingAttrs := provider.ConvertFieldMappingsToMappingAttributes(original)
+	mappingAttrs := ConvertFieldMappingsToMappingAttributes(original)
 
 	// Convert back to FieldMapping (what we read from API)
-	result := provider.ConvertMappingAttributesToFieldMappings(mappingAttrs)
+	result := ConvertMappingAttributesToFieldMappings(mappingAttrs)
 
 	// Should match original (with "from" field empty for non-direct mappings)
 	expected := []client.FieldMapping{
@@ -1497,7 +1496,7 @@ func TestConvertMappingAttributesToFieldMappings_CompoundKey(t *testing.T) {
 		},
 	}
 
-	result := provider.ConvertMappingAttributesToFieldMappings(input)
+	result := ConvertMappingAttributesToFieldMappings(input)
 	if len(result) != len(expected) {
 		t.Errorf("Expected %d mappings, got %d", len(expected), len(result))
 	}
@@ -1567,7 +1566,7 @@ func TestConvertMappingAttributesToFieldMappings_WithCompoundKey(t *testing.T) {
 		},
 	}
 
-	result := provider.ConvertMappingAttributesToFieldMappings(input)
+	result := ConvertMappingAttributesToFieldMappings(input)
 
 	// Verify we have all 4 mappings
 	if len(result) != 4 {
