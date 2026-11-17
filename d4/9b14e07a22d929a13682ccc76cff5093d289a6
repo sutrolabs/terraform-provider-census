@@ -1,0 +1,66 @@
+.gitignore
+  s_bbd75069a60af1::t_5eaff42e479c21 20-21
+census/tests/acceptance/data_source_sync_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-162
+census/tests/regression/helpers_test.go
+  s_bbd75069a60af1::t_5eaff42e479c21 1-153
+census/tests/acceptance/resource_workspace_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-27
+census/client/client_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 5,181-357
+census/tests/regression/fixtures/README.md
+  s_bbd75069a60af1::t_5eaff42e479c21 1-38
+census/tests/acceptance/resource_source_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-138
+census/provider/resource_sync_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-1744
+census/tests/acceptance/data_source_dataset_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-104
+census/tests/regression/plan_nodiff_test.go
+  s_bbd75069a60af1::t_5eaff42e479c21 1-106
+TESTING.md
+  s_bbd75069a60af1::t_5eaff42e479c21 59
+census/tests/acceptance/helpers.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-70
+Makefile
+  s_bbd75069a60af1::t_5eaff42e479c21 22,32,37
+.vscode/settings.json
+  s_bbd75069a60af1::t_67433a854a887c 1-7
+census/provider/provider_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-17
+census/tests/acceptance/data_source_workspace_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-29
+census/tests/acceptance/resource_dataset_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-802
+census/tests/acceptance/resource_destination_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-30
+census/tests/regression/expected_config/README.md
+  s_bbd75069a60af1::t_5eaff42e479c21 1-20
+census/tests/acceptance/data_source_source_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-59
+census/tests/acceptance/data_source_destination_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-29
+census/tests/regression/fixtures/pre_migration/README.md
+  s_bbd75069a60af1::t_5eaff42e479c21 1-18,20-78
+  s_bbd75069a60af1::t_0fc2f1684ab80f 19
+census/tests/acceptance/resource_sync_integration_test.go
+  s_bbd75069a60af1::t_b68cdb689529c1 1-776
+.github/workflows/test.yml
+  s_bbd75069a60af1::t_5eaff42e479c21 153,197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d49b14e07a22d929a13682ccc76cff5093d289a6",
+  "prompts": {},
+  "sessions": {
+    "s_bbd75069a60af1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8834dd54-dab2-47e3-bb7f-0bd6a8f483a3",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
