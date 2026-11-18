@@ -22,8 +22,7 @@ func TestAccDataSourceDataset_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("data.census_dataset.test", "name", "Test Dataset - Data Source"),
 					resource.TestCheckResourceAttr("data.census_dataset.test", "type", "sql"),
 					resource.TestCheckResourceAttrSet("data.census_dataset.test", "id"),
-					resource.TestCheckResourceAttrSet("data.census_dataset.test", "workspace_id"),
-					resource.TestCheckResourceAttrSet("data.census_dataset.test", "source_id"),
+					resource.TestCheckResourceAttrSet("data.census_dataset.test", "group_id"),
 					resource.TestCheckResourceAttrSet("data.census_dataset.test", "query"),
 
 					// Verify data source matches resource
@@ -32,8 +31,8 @@ func TestAccDataSourceDataset_Basic(t *testing.T) {
 						"census_dataset.test", "id",
 					),
 					resource.TestCheckResourceAttrPair(
-						"data.census_dataset.test", "workspace_id",
-						"census_dataset.test", "workspace_id",
+						"data.census_dataset.test", "group_id",
+						"census_dataset.test", "group_id",
 					),
 					resource.TestCheckResourceAttrPair(
 						"data.census_dataset.test", "name",
@@ -51,12 +50,7 @@ func TestAccDataSourceDataset_Basic(t *testing.T) {
 
 func testAccDataSourceDatasetConfig_basic(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Dataset Data Source"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_%s"
   type = "redshift"
 
@@ -72,11 +66,10 @@ resource "census_source" "test" {
 }
 
 resource "census_dataset" "test" {
-  workspace_id = census_workspace.test.id
   name         = "Test Dataset - Data Source"
   type         = "sql"
   description  = "Test dataset for data source testing"
-  source_id    = census_source.test.id
+  group_id     = census_source.test.group_id
 
   query = <<-SQL
     SELECT
@@ -90,8 +83,7 @@ resource "census_dataset" "test" {
 }
 
 data "census_dataset" "test" {
-  id           = census_dataset.test.id
-  workspace_id = census_workspace.test.id
+  id = census_dataset.test.id
 }
 `,
 		rName,

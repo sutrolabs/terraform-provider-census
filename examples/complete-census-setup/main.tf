@@ -157,12 +157,11 @@ resource "census_destination" "marketing_staging_crm" {
 # Datasets allow you to define custom SQL queries against your sources
 
 resource "census_dataset" "active_users" {
-  workspace_id = census_workspace.marketing_prod.id
-  name         = "Active Users"
-  type         = "sql"
-  description  = "Filtered dataset of active users for marketing campaigns"
+  name        = "Active Users"
+  type        = "sql"
+  description = "Filtered dataset of active users for marketing campaigns"
 
-  source_id = census_source.marketing_prod_warehouse.id
+  group_id = census_source.marketing_prod_warehouse.group_id
 
   query = <<-SQL
     SELECT
@@ -179,12 +178,11 @@ resource "census_dataset" "active_users" {
 }
 
 resource "census_dataset" "high_value_customers" {
-  workspace_id = census_workspace.marketing_prod.id
-  name         = "High Value Customers"
-  type         = "sql"
-  description  = "Customers with lifetime value > $1000"
+  name        = "High Value Customers"
+  type        = "sql"
+  description = "Customers with lifetime value > $1000"
 
-  source_id = census_source.marketing_prod_warehouse.id
+  group_id = census_source.marketing_prod_warehouse.group_id
 
   query = <<-SQL
     SELECT
@@ -202,12 +200,11 @@ resource "census_dataset" "high_value_customers" {
 }
 
 resource "census_dataset" "all_users" {
-  workspace_id = census_workspace.marketing_prod.id
-  name         = "All Users"
-  type         = "sql"
-  description  = "Simple dataset with all user data for syncing"
+  name        = "All Users"
+  type        = "sql"
+  description = "Simple dataset with all user data for syncing"
 
-  source_id = census_source.marketing_prod_warehouse.id
+  group_id = census_source.marketing_prod_warehouse.group_id
 
   query = <<-SQL
     SELECT * FROM users
@@ -216,8 +213,7 @@ resource "census_dataset" "all_users" {
 
 # Example: Use data source to reference an existing dataset
 # data "census_dataset" "existing_dataset" {
-#   id           = "123"
-#   workspace_id = census_workspace.marketing_prod.id
+#   id = "123"
 # }
 
 # ==============================================================================

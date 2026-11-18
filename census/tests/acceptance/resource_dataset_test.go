@@ -23,8 +23,7 @@ func TestAccResourceDataset_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("census_dataset.test", "type", "sql"),
 					resource.TestCheckResourceAttr("census_dataset.test", "description", "Dataset for testing purposes"),
 					resource.TestCheckResourceAttrSet("census_dataset.test", "id"),
-					resource.TestCheckResourceAttrSet("census_dataset.test", "workspace_id"),
-					resource.TestCheckResourceAttrSet("census_dataset.test", "source_id"),
+					resource.TestCheckResourceAttrSet("census_dataset.test", "group_id"),
 					resource.TestCheckResourceAttrSet("census_dataset.test", "query"),
 					resource.TestCheckResourceAttrSet("census_dataset.test", "created_at"),
 				),
@@ -84,12 +83,7 @@ func TestAccResourceDataset_WithSync(t *testing.T) {
 
 func testAccResourceDatasetConfig_basic(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Dataset"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_%s"
   type = "redshift"
 
@@ -105,11 +99,10 @@ resource "census_source" "test" {
 }
 
 resource "census_dataset" "test" {
-  workspace_id = census_workspace.test.id
   name         = "Test Active Users Dataset"
   type         = "sql"
   description  = "Dataset for testing purposes"
-  source_id    = census_source.test.id
+  group_id     = census_source.test.group_id
 
   query = <<-SQL
     SELECT
@@ -134,12 +127,7 @@ resource "census_dataset" "test" {
 
 func testAccResourceDatasetConfig_updated(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Dataset"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_%s"
   type = "redshift"
 
@@ -155,11 +143,10 @@ resource "census_source" "test" {
 }
 
 resource "census_dataset" "test" {
-  workspace_id = census_workspace.test.id
   name         = "Updated Users Dataset"
   type         = "sql"
   description  = "Updated dataset description"
-  source_id    = census_source.test.id
+  group_id     = census_source.test.group_id
 
   query = <<-SQL
     SELECT
@@ -190,7 +177,6 @@ resource "census_workspace" "test" {
 }
 
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_%s"
   type = "redshift"
 
@@ -220,11 +206,10 @@ resource "census_destination" "test" {
 }
 
 resource "census_dataset" "test" {
-  workspace_id = census_workspace.test.id
   name         = "All Users Dataset"
   type         = "sql"
   description  = "Simple dataset with all user data for syncing"
-  source_id    = census_source.test.id
+  group_id     = census_source.test.group_id
 
   query = <<-SQL
     SELECT
@@ -337,27 +322,12 @@ func TestAccResourceDataset_Import(t *testing.T) {
 				ResourceName:      "census_dataset.test",
 				ImportState:       true,
 				ImportStateVerify: true,
-				ImportStateIdFunc: testAccDatasetImportStateIdFunc("census_dataset.test"),
 				ImportStateVerifyIgnore: []string{
 					"wait_for_metadata_refresh", // Optional field with default, not persisted in state after creation
 				},
 			},
 		},
 	})
-}
-
-// Helper to construct composite ID for import (workspace_id:dataset_id)
-func testAccDatasetImportStateIdFunc(resourceName string) resource.ImportStateIdFunc {
-	return func(s *terraform.State) (string, error) {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return "", fmt.Errorf("Not found: %s", resourceName)
-		}
-
-		return fmt.Sprintf("%s:%s",
-			rs.Primary.Attributes["workspace_id"],
-			rs.Primary.ID), nil
-	}
 }
 
 // create a basic dataset with metadata refresh
@@ -436,12 +406,7 @@ func TestAccResourceDataset_SyncAfterMetadataWait(t *testing.T) {
 
 func testAccResourceDatasetConfig_withMetadataWait(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Dataset Metadata Wait"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_Metadata_Wait_%s"
   type = "redshift"
 
@@ -457,11 +422,10 @@ resource "census_source" "test" {
 }
 
 resource "census_dataset" "test_with_wait" {
-  workspace_id = census_workspace.test.id
   name         = "Test Dataset With Metadata Wait"
   type         = "sql"
   description  = "Testing metadata refresh wait"
-  source_id    = census_source.test.id
+  group_id     = census_source.test.group_id
 
   query = <<-SQL
     SELECT
@@ -491,7 +455,6 @@ resource "census_workspace" "test" {
 }
 
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_Sync_%s"
   type = "redshift"
 
@@ -521,10 +484,9 @@ resource "census_destination" "test" {
 }
 
 resource "census_dataset" "test_for_sync" {
-  workspace_id = census_workspace.test.id
   name         = "Test Dataset For Sync"
   type         = "sql"
-  source_id    = census_source.test.id
+  group_id     = census_source.test.group_id
 
   query = <<-SQL
     SELECT
@@ -699,12 +661,7 @@ func TestAccResourceDataset_UpdateFieldsWithoutMetadataRefreshChange(t *testing.
 
 func testAccResourceDatasetConfig_metadataRefreshUpdate(rName string, name string, waitForMetadata bool) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Dataset Metadata Update"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_Update_%s"
   type = "redshift"
 
@@ -720,10 +677,9 @@ resource "census_source" "test" {
 }
 
 resource "census_dataset" "test_update" {
-  workspace_id = census_workspace.test.id
   name         = "%s"
   type         = "sql"
-  source_id    = census_source.test.id
+  group_id     = census_source.test.group_id
 
   query = <<-SQL
     SELECT
@@ -750,12 +706,7 @@ resource "census_dataset" "test_update" {
 
 func testAccResourceDatasetConfig_metadataRefreshUpdateWithDescription(rName string, name string, description string, waitForMetadata bool) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Dataset Metadata Update"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_Update_%s"
   type = "redshift"
 
@@ -771,11 +722,10 @@ resource "census_source" "test" {
 }
 
 resource "census_dataset" "test_update" {
-  workspace_id = census_workspace.test.id
   name         = "%s"
   description  = "%s"
   type         = "sql"
-  source_id    = census_source.test.id
+  group_id     = census_source.test.group_id
 
   query = <<-SQL
     SELECT

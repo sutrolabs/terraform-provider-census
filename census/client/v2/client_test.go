@@ -354,32 +354,3 @@ func TestDelete(t *testing.T) {
 		t.Fatalf("Delete failed: %v", err)
 	}
 }
-
-func TestGetSourceGroupID(t *testing.T) {
-	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/sources/4" {
-			t.Fatalf("expected /sources/4, got %s", r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"status":"success","data":{"id":4,"group_id":"wandering_aimlessly"}}`))
-	})
-
-	groupID, err := GetSourceGroupID(context.Background(), c, 4)
-	if err != nil {
-		t.Fatalf("GetSourceGroupID failed: %v", err)
-	}
-	if groupID != "wandering_aimlessly" {
-		t.Fatalf("expected group_id wandering_aimlessly, got %q", groupID)
-	}
-}
-
-func TestGetSourceGroupID_MissingGroupID(t *testing.T) {
-	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"status":"success","data":{"id":4,"group_id":""}}`))
-	})
-
-	if _, err := GetSourceGroupID(context.Background(), c, 4); err == nil {
-		t.Fatal("expected error when group_id is empty")
-	}
-}

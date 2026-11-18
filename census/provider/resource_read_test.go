@@ -261,11 +261,10 @@ func testDatasetResourceData(t *testing.T) *schema.ResourceData {
 	t.Helper()
 
 	d := schema.TestResourceDataRaw(t, resourceDataset().Schema, map[string]interface{}{
-		"workspace_id": "69962",
-		"name":         "Test Dataset",
-		"type":         "sql",
-		"query":        "select 1",
-		"source_id":    123,
+		"name":     "Test Dataset",
+		"type":     "sql",
+		"query":    "select 1",
+		"group_id": "wandering_aimlessly",
 	})
 	d.SetId("44001")
 
