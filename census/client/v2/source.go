@@ -46,10 +46,6 @@ type SourceConnection struct {
 	Credentials                       map[string]interface{} `json:"credentials"`
 }
 
-type sourceGroupID struct {
-	GroupID string `json:"group_id"`
-}
-
 func sourcePath(sourceID int) string {
 	return fmt.Sprintf("/sources/%d", sourceID)
 }
@@ -112,19 +108,4 @@ func RefreshSourceTables(ctx context.Context, c *Client, sourceID int) error {
 		return fmt.Errorf("failed to refresh tables: %w", err)
 	}
 	return nil
-}
-
-// GetSourceGroupID resolves a source's group_id — the string identifier v2
-// uses in place of v1's numeric workspace/destination coupling (see
-// Activation.group_id in apidocs/v2/components/activations.yaml). Needed by
-// Stage 4 (activation import) and Stage 7 (dataset group_id resolution).
-func GetSourceGroupID(ctx context.Context, c *Client, sourceID int) (string, error) {
-	source, err := Get[sourceGroupID](ctx, c, sourcePath(sourceID), sourceWhat(sourceID))
-	if err != nil {
-		return "", err
-	}
-	if source.GroupID == "" {
-		return "", fmt.Errorf("source %d has no group_id in its API response", sourceID)
-	}
-	return source.GroupID, nil
 }
