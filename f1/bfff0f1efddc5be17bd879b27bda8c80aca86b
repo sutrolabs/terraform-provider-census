@@ -1,0 +1,67 @@
+census/tests/acceptance/resource_dataset_test.go
+  s_907ccf4dddb4d7::t_d219d8fd3d20dc 26
+  s_907ccf4dddb4d7::t_720250641addad 105,149,212,428,489,682,728
+census/tests/acceptance/data_source_dataset_test.go
+  s_907ccf4dddb4d7::t_d219d8fd3d20dc 25,34-35
+  s_907ccf4dddb4d7::t_720250641addad 72
+  s_907ccf4dddb4d7::t_003e666a071870 86
+docs/resources/dataset.md
+  s_907ccf4dddb4d7::t_720250641addad 12,34,58
+  s_907ccf4dddb4d7::t_f7477be2940eea 87
+  h_96efa7013a7935 3,91,105,118-119
+  s_907ccf4dddb4d7::t_adb86331ee5e1e 11,32-33,56-57,109,112
+  h_96efa7013a7935 121
+census/provider/resource_dataset.go
+  s_907ccf4dddb4d7::t_ab26b7197da228 13,26,57-58,123-124,140-141,146,150
+  s_907ccf4dddb4d7::t_35f9220ec4b321 177,179-182,186-187,190,201,210,217,219,226-227,229,235,242,248-249,256-257,267,277,284-287,294-300,302-307,309-314,316-325,328
+  s_907ccf4dddb4d7::t_878759559e3688 192-194
+  s_907ccf4dddb4d7::t_c6bbccb2464009 61,183
+  s_907ccf4dddb4d7::t_58e9d81428b9be 62-66
+CHANGELOG.md
+  s_907ccf4dddb4d7::t_f7477be2940eea 15,21,25
+  h_96efa7013a7935 24
+examples/complete-census-setup/main.tf
+  s_907ccf4dddb4d7::t_f62fb5a37deae5 160-162,181-183,203-205,216
+  s_907ccf4dddb4d7::t_f7477be2940eea 164,185,207
+docs/data-sources/dataset.md
+  h_96efa7013a7935 3
+  s_907ccf4dddb4d7::t_adb86331ee5e1e 9,31
+census/provider/data_source_dataset.go
+  s_907ccf4dddb4d7::t_d5cb968fc4ed11 9-10,45-46,48,94,101,107-108
+census/provider/resource_read_test.go
+  s_907ccf4dddb4d7::t_e451faef6a30a0 264-267
+census/client/v2/dataset_test.go
+  s_907ccf4dddb4d7::t_169505d1875659 1-238,240-242,244-246
+  s_907ccf4dddb4d7::t_8a25afbda37474 243
+  s_907ccf4dddb4d7::t_92990565de4dce 239
+census/tests/regression/expected_config/dataset.tf
+  s_907ccf4dddb4d7::t_64a8bd506b6890 5
+  s_907ccf4dddb4d7::t_003e666a071870 2-4
+census/client/v2/dataset.go
+  s_907ccf4dddb4d7::t_169c637c9256de 1,5,11,15-21,26,32-33,36,39,42-43,50-51,54-55,58-60,64,67,70-72,76-77,79,82-84,88,91-94,99-104,106,112-125,128-131,133,135-137,139-142
+  h_96efa7013a7935 65
+census/provider/resource_dataset_test.go
+  s_907ccf4dddb4d7::t_e451faef6a30a0 36,57-59,66
+  s_907ccf4dddb4d7::t_327d7f3258a5bd 1-35,37-56,60-65,67-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f1bfff0f1efddc5be17bd879b27bda8c80aca86b",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_907ccf4dddb4d7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "eed70d30-6a80-4be3-a46c-38f364c687b1",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": null
+    }
+  }
+}
