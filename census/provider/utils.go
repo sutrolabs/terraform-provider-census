@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 // writeOnlyConnectionConfigAttr is the write-only argument that carries a
@@ -116,7 +116,7 @@ func writeOnlyConnectionConfigJSON(rawConfig cty.Value) (string, bool) {
 
 // IsNotFoundError checks if an error is a 404 Not Found error
 func IsNotFoundError(err error) bool {
-	var apiErr *client.APIError
+	var apiErr *v2.APIError
 	if errors.As(err, &apiErr) {
 		return apiErr.StatusCode == 404
 	}

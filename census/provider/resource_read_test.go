@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
 	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
@@ -301,14 +300,6 @@ func testWorkspaceResourceData(t *testing.T) *schema.ResourceData {
 func newTestClients(t *testing.T, baseURL string) *clients {
 	t.Helper()
 
-	v1Client, err := client.NewClient(&client.Config{
-		BaseURL:             baseURL,
-		PersonalAccessToken: "personal-token",
-	})
-	if err != nil {
-		t.Fatalf("failed to create v1 client: %v", err)
-	}
-
 	v2Client, err := v2.NewClient(&v2.Config{
 		BaseURL:             baseURL,
 		PersonalAccessToken: "personal-token",
@@ -317,5 +308,5 @@ func newTestClients(t *testing.T, baseURL string) *clients {
 		t.Fatalf("failed to create v2 client: %v", err)
 	}
 
-	return &clients{V1: v1Client, V2: v2Client}
+	return &clients{V2: v2Client}
 }
