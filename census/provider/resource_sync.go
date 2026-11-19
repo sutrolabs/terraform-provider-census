@@ -3,10 +3,14 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 // syncSchemaMap returns the schema map for the sync resource
@@ -18,11 +22,11 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 			Computed:    true,
 			Description: "The ID of the sync.",
 		},
-		"workspace_id": {
+		"activation_id": {
 			Type:        schema.TypeString,
 			Required:    true,
 			ForceNew:    true,
-			Description: "The ID of the workspace this sync belongs to.",
+			Description: "The ID of the activation this sync belongs to. The API does not support changing a sync's activation, so changing this forces replacement.",
 		},
 		"label": {
 			Type:        schema.TypeString,
@@ -36,11 +40,6 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 			Description: "Source-specific configuration (e.g., SQL query, table selection).",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"connection_id": {
-						Type:        schema.TypeInt,
-						Required:    true,
-						Description: "The ID of the source connection.",
-					},
 					"cohort_id": {
 						Type:        schema.TypeInt,
 						Optional:    true,
@@ -93,14 +92,9 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 			Type:        schema.TypeList,
 			Optional:    true,
 			MaxItems:    1,
-			Description: "Destination-specific configuration (e.g., object, connection_id).",
+			Description: "Destination-specific configuration (e.g., object).",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"connection_id": {
-						Type:        schema.TypeInt,
-						Required:    true,
-						Description: "The ID of the destination connection.",
-					},
 					"object": {
 						Type:        schema.TypeString,
 						Required:    true,
@@ -217,6 +211,14 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 						Optional:    true,
 						Default:     false,
 						Description: "Whether the destination field type should automatically follow changes to the source column type.",
+					},
+					"operation": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Description: "For array fields, how new values are merged with existing ones: 'append' (add to the existing array) or 'set' (replace it). Only applicable when array_field is true.",
+						ValidateFunc: validation.StringInSlice([]string{
+							"append", "set",
+						}, false),
 					},
 				},
 			},
@@ -372,9 +374,9 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 					"type": {
 						Type:        schema.TypeString,
 						Required:    true,
-						Description: "Mode type: 'live' for continuous syncing or 'triggered' for event-based syncing.",
+						Description: "Mode type. Only 'triggered' is valid: Census has fully sunset live/continuous-mode syncs.",
 						ValidateFunc: validation.StringInSlice([]string{
-							"live", "triggered",
+							"triggered",
 						}, false),
 					},
 					"triggers": {
@@ -535,15 +537,22 @@ func ResourceSync() *schema.Resource {
 		DeleteContext: resourceSyncDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceSyncImport,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
-		SchemaVersion: 1,
+		CustomizeDiff: validateSyncHasPrimaryIdentifier,
+
+		SchemaVersion: 2,
 		StateUpgraders: []schema.StateUpgrader{
 			{
 				Type:    ResourceSyncV0().CoreConfigSchema().ImpliedType(),
 				Upgrade: ResourceSyncStateUpgradeV0,
 				Version: 0,
+			},
+			{
+				Type:    (&schema.Resource{Schema: syncSchemaMap(schema.TypeList)}).CoreConfigSchema().ImpliedType(),
+				Upgrade: ResourceSyncStateUpgradeV1,
+				Version: 1,
 			},
 		},
 
@@ -565,6 +574,76 @@ func ResourceSyncStateUpgradeV0(ctx context.Context, rawState map[string]interfa
 	// No data transformation needed - just return state unchanged
 	// Terraform will re-interpret it with the new schema
 	return rawState, nil
+}
+
+// ResourceSyncStateUpgradeV1 backfills activation_id for syncs created before
+// the v2 migration introduced it. State written under the old
+// workspace_id/connection_id-based schema has no activation_id at all, and
+// since the field is now Required+ForceNew, leaving it empty would force
+// every pre-existing sync to be destroyed and recreated on the first apply
+// after upgrading. Looking the sync up by ID and copying back its current
+// activation_id makes the upgrade an in-place no-op instead.
+func ResourceSyncStateUpgradeV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	if rawState == nil {
+		return rawState, nil
+	}
+
+	if activationID, ok := rawState["activation_id"].(string); ok && activationID != "" {
+		return rawState, nil
+	}
+
+	idStr, ok := rawState["id"].(string)
+	if !ok || idStr == "" {
+		return rawState, nil
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return rawState, nil
+	}
+
+	apiClient := meta.(*clients).V2
+
+	sync, err := v2.GetSync(ctx, apiClient, id)
+	if err != nil {
+		if v2.IsNotFoundError(err) {
+			return rawState, nil
+		}
+		return nil, fmt.Errorf("failed to backfill activation_id for sync %s during state upgrade: %w", idStr, err)
+	}
+
+	rawState["activation_id"] = sync.ActivationID
+	return rawState, nil
+}
+
+// validateSyncHasPrimaryIdentifier rejects a plan where field_mapping is
+// non-empty but none of its entries have is_primary_identifier set. The v2
+// API requires exactly one; catching this in Terraform gives a clear error
+// instead of an opaque API 400. A sync with no field_mapping at all (e.g.
+// field_behavior = "sync_all_properties") is left to the API to validate.
+func validateSyncHasPrimaryIdentifier(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+	mappings, _ := d.Get("field_mapping").([]interface{})
+	return validateFieldMappingsHavePrimaryIdentifier(mappings)
+}
+
+// validateFieldMappingsHavePrimaryIdentifier holds the actual check, split
+// out from validateSyncHasPrimaryIdentifier so it can be unit tested without
+// constructing a *schema.ResourceDiff.
+func validateFieldMappingsHavePrimaryIdentifier(mappings []interface{}) error {
+	if len(mappings) == 0 {
+		return nil
+	}
+
+	for _, m := range mappings {
+		mapping, ok := m.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if isPrimary, ok := mapping["is_primary_identifier"].(bool); ok && isPrimary {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("at least one field_mapping must have is_primary_identifier set to true")
 }
 
 // suppressEquivalentJSON suppresses diffs for JSON strings that are semantically equivalent

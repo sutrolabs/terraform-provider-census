@@ -2,25 +2,27 @@ package provider
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"sort"
 	"testing"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 // Unit tests for sync resource helper functions
 // These tests do NOT require API credentials or external dependencies
 
 // ============================================================================
-// Field Mapping Tests
+// Field Mapping Tests (Expand: Terraform config -> API MappingAttributes)
 // ============================================================================
 
 func TestExpandFieldMappings_Direct(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    []interface{}
-		expected []client.FieldMapping
+		expected []v2.MappingAttributes
 	}{
 		{
 			name: "direct mapping with primary identifier",
@@ -32,64 +34,45 @@ func TestExpandFieldMappings_Direct(t *testing.T) {
 					"is_primary_identifier": true,
 				},
 			},
-			expected: []client.FieldMapping{
+			expected: []v2.MappingAttributes{
 				{
-					From:                "email",
+					From:                v2.MappingFrom{Type: "column", Data: "email"},
 					To:                  "Email",
-					Type:                "direct",
 					IsPrimaryIdentifier: true,
 				},
 			},
 		},
 		{
-			name: "direct mapping without primary identifier",
+			name: "direct mapping without primary identifier (type defaults to direct)",
 			input: []interface{}{
 				map[string]interface{}{
 					"from": "first_name",
 					"to":   "FirstName",
 				},
 			},
-			expected: []client.FieldMapping{
+			expected: []v2.MappingAttributes{
 				{
-					From: "first_name",
+					From: v2.MappingFrom{Type: "column", Data: "first_name"},
 					To:   "FirstName",
-					Type: "direct", // Default
 				},
 			},
 		},
 		{
-			name: "multiple direct mappings",
+			name: "mapping with array operation",
 			input: []interface{}{
 				map[string]interface{}{
-					"from":                  "email",
-					"to":                    "Email",
-					"is_primary_identifier": true,
-				},
-				map[string]interface{}{
-					"from": "first_name",
-					"to":   "FirstName",
-				},
-				map[string]interface{}{
-					"from": "last_name",
-					"to":   "LastName",
+					"from":        "tags",
+					"to":          "Tags",
+					"array_field": true,
+					"operation":   "append",
 				},
 			},
-			expected: []client.FieldMapping{
+			expected: []v2.MappingAttributes{
 				{
-					From:                "email",
-					To:                  "Email",
-					Type:                "direct",
-					IsPrimaryIdentifier: true,
-				},
-				{
-					From: "first_name",
-					To:   "FirstName",
-					Type: "direct",
-				},
-				{
-					From: "last_name",
-					To:   "LastName",
-					Type: "direct",
+					From:       v2.MappingFrom{Type: "column", Data: "tags"},
+					To:         "Tags",
+					ArrayField: true,
+					Operation:  "append",
 				},
 			},
 		},
@@ -109,7 +92,7 @@ func TestExpandFieldMappings_Constant(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    []interface{}
-		expected []client.FieldMapping
+		expected []v2.MappingAttributes
 	}{
 		{
 			name: "constant string value",
@@ -120,16 +103,18 @@ func TestExpandFieldMappings_Constant(t *testing.T) {
 					"constant": "Website",
 				},
 			},
-			expected: []client.FieldMapping{
+			expected: []v2.MappingAttributes{
 				{
-					To:       "Source",
-					Type:     "constant",
-					Constant: "Website",
+					From: v2.MappingFrom{
+						Type: "constant_value",
+						Data: map[string]interface{}{"basic_type": "text", "value": "Website"},
+					},
+					To: "Source",
 				},
 			},
 		},
 		{
-			name: "constant numeric value",
+			name: "constant numeric value is stringified",
 			input: []interface{}{
 				map[string]interface{}{
 					"to":       "Priority",
@@ -137,11 +122,13 @@ func TestExpandFieldMappings_Constant(t *testing.T) {
 					"constant": 1,
 				},
 			},
-			expected: []client.FieldMapping{
+			expected: []v2.MappingAttributes{
 				{
-					To:       "Priority",
-					Type:     "constant",
-					Constant: 1,
+					From: v2.MappingFrom{
+						Type: "constant_value",
+						Data: map[string]interface{}{"basic_type": "text", "value": "1"},
+					},
+					To: "Priority",
 				},
 			},
 		},
@@ -158,72 +145,65 @@ func TestExpandFieldMappings_Constant(t *testing.T) {
 }
 
 func TestExpandFieldMappings_LiquidTemplate(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    []interface{}
-		expected []client.FieldMapping
-	}{
+	input := []interface{}{
+		map[string]interface{}{
+			"to":              "FullName",
+			"type":            "liquid_template",
+			"liquid_template": "{{ first_name }} {{ last_name }}",
+		},
+	}
+	expected := []v2.MappingAttributes{
 		{
-			name: "liquid template mapping",
-			input: []interface{}{
-				map[string]interface{}{
-					"to":              "FullName",
-					"type":            "liquid_template",
-					"liquid_template": "{{ first_name }} {{ last_name }}",
-				},
-			},
-			expected: []client.FieldMapping{
-				{
-					To:             "FullName",
-					Type:           "liquid_template",
-					LiquidTemplate: "{{ first_name }} {{ last_name }}",
-				},
-			},
+			From: v2.MappingFrom{Type: "liquid_template", Data: "{{ first_name }} {{ last_name }}"},
+			To:   "FullName",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ExpandFieldMappings(context.Background(), tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
-			}
-		})
+	result := ExpandFieldMappings(context.Background(), input)
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, expected)
 	}
 }
 
 func TestExpandFieldMappings_SyncMetadata(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    []interface{}
-		expected []client.FieldMapping
-	}{
+	input := []interface{}{
+		map[string]interface{}{
+			"to":                "Sync_Run_ID",
+			"type":              "sync_metadata",
+			"sync_metadata_key": "sync_run_id",
+		},
+	}
+	expected := []v2.MappingAttributes{
 		{
-			name: "sync metadata mapping",
-			input: []interface{}{
-				map[string]interface{}{
-					"to":                "Sync_Run_ID",
-					"type":              "sync_metadata",
-					"sync_metadata_key": "sync_run_id",
-				},
-			},
-			expected: []client.FieldMapping{
-				{
-					To:              "Sync_Run_ID",
-					Type:            "sync_metadata",
-					SyncMetadataKey: "sync_run_id",
-				},
-			},
+			From: v2.MappingFrom{Type: "sync_metadata", Data: "sync_run_id"},
+			To:   "Sync_Run_ID",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ExpandFieldMappings(context.Background(), tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
-			}
-		})
+	result := ExpandFieldMappings(context.Background(), input)
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, expected)
+	}
+}
+
+func TestExpandFieldMappings_SegmentMembership(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"to":                  "SegmentField",
+			"type":                "segment_membership",
+			"segment_identify_by": "name",
+		},
+	}
+	expected := []v2.MappingAttributes{
+		{
+			From: v2.MappingFrom{Type: "segment_membership", Data: map[string]interface{}{"identify_by": "name"}},
+			To:   "SegmentField",
+		},
+	}
+
+	result := ExpandFieldMappings(context.Background(), input)
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, expected)
 	}
 }
 
@@ -234,214 +214,266 @@ func TestExpandFieldMappings_Empty(t *testing.T) {
 	}
 }
 
+// ============================================================================
+// Field Mapping Tests (Flatten: API MappingAttributes -> Terraform config)
+// ============================================================================
+
 func TestFlattenFieldMappings_Direct(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    []client.FieldMapping
-		expected int // We'll check length and specific fields
-	}{
+	input := []v2.MappingAttributes{
 		{
-			name: "direct mapping with primary identifier",
-			input: []client.FieldMapping{
-				{
-					From:                "email",
-					To:                  "Email",
-					Type:                "direct",
-					IsPrimaryIdentifier: true,
-				},
-			},
-			expected: 1,
+			From:                v2.MappingFrom{Type: "column", Data: "email"},
+			To:                  "Email",
+			IsPrimaryIdentifier: true,
 		},
 		{
-			name: "multiple direct mappings",
-			input: []client.FieldMapping{
-				{
-					From:                "email",
-					To:                  "Email",
-					Type:                "direct",
-					IsPrimaryIdentifier: true,
-				},
-				{
-					From: "first_name",
-					To:   "FirstName",
-					Type: "direct",
-				},
-			},
-			expected: 2,
+			From: v2.MappingFrom{Type: "column", Data: "first_name"},
+			To:   "FirstName",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := FlattenFieldMappings(tt.input)
-			if len(result) != tt.expected {
-				t.Errorf("FlattenFieldMappings() returned %d items, want %d", len(result), tt.expected)
-			}
+	result := FlattenFieldMappings(input)
+	if len(result) != 2 {
+		t.Fatalf("FlattenFieldMappings() returned %d items, want 2", len(result))
+	}
 
-			// Check first mapping
-			if len(result) > 0 {
-				firstMapping := result[0].(map[string]interface{})
-				if firstMapping["from"] != tt.input[0].From {
-					t.Errorf("FlattenFieldMappings() first mapping from = %v, want %v", firstMapping["from"], tt.input[0].From)
-				}
-				if firstMapping["to"] != tt.input[0].To {
-					t.Errorf("FlattenFieldMappings() first mapping to = %v, want %v", firstMapping["to"], tt.input[0].To)
-				}
-			}
-		})
+	first := result[0].(map[string]interface{})
+	if first["from"] != "email" || first["to"] != "Email" || first["type"] != "direct" || first["is_primary_identifier"] != true {
+		t.Errorf("unexpected first mapping: %+v", first)
+	}
+}
+
+func TestFlattenFieldMappings_Constant(t *testing.T) {
+	input := []v2.MappingAttributes{
+		{
+			From: v2.MappingFrom{
+				Type: "constant_value",
+				Data: map[string]interface{}{"value": "Website", "basic_type": "text"},
+			},
+			To: "Source",
+		},
+	}
+
+	result := FlattenFieldMappings(input)
+	m := result[0].(map[string]interface{})
+	if m["type"] != "constant" || m["constant"] != "Website" || m["from"] != "" {
+		t.Errorf("unexpected mapping: %+v", m)
+	}
+}
+
+func TestFlattenFieldMappings_SyncMetadata(t *testing.T) {
+	input := []v2.MappingAttributes{
+		{From: v2.MappingFrom{Type: "sync_metadata", Data: "sync_run_id"}, To: "SyncRunID"},
+	}
+
+	result := FlattenFieldMappings(input)
+	m := result[0].(map[string]interface{})
+	if m["type"] != "sync_metadata" || m["sync_metadata_key"] != "sync_run_id" {
+		t.Errorf("unexpected mapping: %+v", m)
+	}
+}
+
+func TestFlattenFieldMappings_SegmentMembership(t *testing.T) {
+	input := []v2.MappingAttributes{
+		{
+			From: v2.MappingFrom{Type: "segment_membership", Data: map[string]interface{}{"identify_by": "name"}},
+			To:   "SegmentField",
+		},
+	}
+
+	result := FlattenFieldMappings(input)
+	m := result[0].(map[string]interface{})
+	if m["type"] != "segment_membership" || m["segment_identify_by"] != "name" {
+		t.Errorf("unexpected mapping: %+v", m)
+	}
+}
+
+func TestFlattenFieldMappings_LiquidTemplate(t *testing.T) {
+	input := []v2.MappingAttributes{
+		{From: v2.MappingFrom{Type: "liquid_template", Data: "{{ record['date'] | upcase }}"}, To: "FormattedDate"},
+	}
+
+	result := FlattenFieldMappings(input)
+	m := result[0].(map[string]interface{})
+	if m["type"] != "liquid_template" || m["liquid_template"] != "{{ record['date'] | upcase }}" {
+		t.Errorf("unexpected mapping: %+v", m)
+	}
+}
+
+func TestFlattenFieldMappings_Operation(t *testing.T) {
+	input := []v2.MappingAttributes{
+		{From: v2.MappingFrom{Type: "column", Data: "tags"}, To: "Tags", ArrayField: true, Operation: "append"},
+	}
+
+	result := FlattenFieldMappings(input)
+	m := result[0].(map[string]interface{})
+	if m["operation"] != "append" || m["array_field"] != true {
+		t.Errorf("unexpected mapping: %+v", m)
+	}
+}
+
+func TestFlattenFieldMappings_SyncNullValuesDefault(t *testing.T) {
+	// If the API doesn't return sync_null_values, the schema default (true) is used.
+	input := []v2.MappingAttributes{
+		{From: v2.MappingFrom{Type: "column", Data: "email"}, To: "Email"},
+	}
+
+	result := FlattenFieldMappings(input)
+	m := result[0].(map[string]interface{})
+	if m["sync_null_values"] != true {
+		t.Errorf("expected sync_null_values to default to true, got %v", m["sync_null_values"])
 	}
 }
 
 func TestFlattenFieldMappings_Empty(t *testing.T) {
-	result := FlattenFieldMappings([]client.FieldMapping{})
+	result := FlattenFieldMappings([]v2.MappingAttributes{})
 	if len(result) != 0 {
 		t.Errorf("FlattenFieldMappings(empty) should return empty slice, got %d items", len(result))
 	}
 }
 
-// ============================================================================
-// Field Mapping Ordering Tests
-// ============================================================================
-// These tests verify that field mappings are sorted by position from the Census API,
-// preventing spurious diffs when the API returns mappings in non-deterministic order.
-
-func TestSortFieldMappingsByPosition_Basic(t *testing.T) {
-	// Simulate API response with mappings in wrong order
-	mappings := []client.FieldMapping{
-		{
-			From:     "last_name",
-			To:       "LastName",
-			Position: 2,
-			Type:     "direct",
+func TestFieldMappings_RoundTrip(t *testing.T) {
+	// Terraform config -> API request -> Terraform state should round-trip
+	// every mapping type without loss (aside from "from" being empty for
+	// non-column mapping types, same as before this stage's rewrite).
+	original := []interface{}{
+		map[string]interface{}{
+			"from":                  "email",
+			"to":                    "Email",
+			"type":                  "direct",
+			"is_primary_identifier": true,
 		},
-		{
-			From:     "email",
-			To:       "Email",
-			Position: 0,
-			Type:     "direct",
+		map[string]interface{}{
+			"to":              "FormattedDate",
+			"type":            "liquid_template",
+			"liquid_template": "{{ record['date'] | upcase }}",
 		},
-		{
-			From:     "first_name",
-			To:       "FirstName",
-			Position: 1,
-			Type:     "direct",
+		map[string]interface{}{
+			"to":                "SyncTime",
+			"type":              "sync_metadata",
+			"sync_metadata_key": "sync_run_id",
+		},
+		map[string]interface{}{
+			"to":       "Source",
+			"type":     "constant",
+			"constant": "Website",
 		},
 	}
 
-	// Sort by position
+	expanded := ExpandFieldMappings(context.Background(), original)
+	flattened := FlattenFieldMappings(expanded)
+
+	for i, m := range flattened {
+		got := m.(map[string]interface{})
+		want := original[i].(map[string]interface{})
+		if got["to"] != want["to"] || got["type"] != want["type"] {
+			t.Errorf("mapping %d: got = %+v, want (at least) %+v", i, got, want)
+		}
+	}
+}
+
+// ============================================================================
+// Field Mapping Ordering and Compound Key Filtering Tests
+// ============================================================================
+// These verify the logic in resourceSyncRead that sorts mappings by
+// Census-assigned position and filters out Census-managed compound_key
+// mappings, preventing spurious diffs and untrackable state respectively.
+
+func TestSortFieldMappingsByPosition_Basic(t *testing.T) {
+	mappings := []v2.MappingAttributes{
+		{To: "LastName", Position: 2},
+		{To: "Email", Position: 0},
+		{To: "FirstName", Position: 1},
+	}
+
 	sort.Slice(mappings, func(i, j int) bool {
 		return mappings[i].Position < mappings[j].Position
 	})
 
-	// Verify result is sorted by position
-	if len(mappings) != 3 {
-		t.Errorf("Expected 3 mappings, got %d", len(mappings))
-	}
-
 	expectedOrder := []string{"Email", "FirstName", "LastName"}
-	expectedPositions := []int{0, 1, 2}
 	for i, mapping := range mappings {
 		if mapping.To != expectedOrder[i] {
-			t.Errorf("Position %d: got %s, want %s", i, mapping.To, expectedOrder[i])
-		}
-		if mapping.Position != expectedPositions[i] {
-			t.Errorf("Mapping %d: got position %d, want %d", i, mapping.Position, expectedPositions[i])
+			t.Errorf("position %d: got %s, want %s", i, mapping.To, expectedOrder[i])
 		}
 	}
 }
 
 func TestSortFieldMappingsByPosition_AlreadyOrdered(t *testing.T) {
-	// Simulate API response already in correct order
-	mappings := []client.FieldMapping{
+	mappings := []v2.MappingAttributes{
 		{To: "Email", Position: 0},
 		{To: "FirstName", Position: 1},
 		{To: "LastName", Position: 2},
 	}
 
-	// Sort by position (should be stable)
 	sort.Slice(mappings, func(i, j int) bool {
 		return mappings[i].Position < mappings[j].Position
 	})
 
-	// Verify order is unchanged
 	expectedOrder := []string{"Email", "FirstName", "LastName"}
 	for i, mapping := range mappings {
 		if mapping.To != expectedOrder[i] {
-			t.Errorf("Position %d: got %s, want %s", i, mapping.To, expectedOrder[i])
+			t.Errorf("position %d: got %s, want %s", i, mapping.To, expectedOrder[i])
 		}
-	}
-}
-
-func TestSortFieldMappingsByPosition_MixedMappingTypes(t *testing.T) {
-	// Test with various mapping types in wrong order
-	mappings := []client.FieldMapping{
-		{
-			To:             "FullName",
-			Position:       3,
-			Type:           "liquid_template",
-			LiquidTemplate: "{{ first_name }} {{ last_name }}",
-		},
-		{
-			From:                "email",
-			To:                  "Email",
-			Position:            0,
-			Type:                "direct",
-			IsPrimaryIdentifier: true,
-		},
-		{
-			To:              "SyncRunID",
-			Position:        2,
-			Type:            "sync_metadata",
-			SyncMetadataKey: "sync_run_id",
-		},
-		{
-			To:       "Source",
-			Position: 1,
-			Type:     "constant",
-			Constant: "Website",
-		},
-	}
-
-	// Sort by position
-	sort.Slice(mappings, func(i, j int) bool {
-		return mappings[i].Position < mappings[j].Position
-	})
-
-	// Verify order matches positions
-	expectedOrder := []string{"Email", "Source", "SyncRunID", "FullName"}
-	for i, mapping := range mappings {
-		if mapping.To != expectedOrder[i] {
-			t.Errorf("Position %d: got %s, want %s", i, mapping.To, expectedOrder[i])
-		}
-	}
-
-	// Verify types are preserved
-	if mappings[0].Type != "direct" || !mappings[0].IsPrimaryIdentifier {
-		t.Errorf("Email mapping should be direct type with primary identifier")
-	}
-	if mappings[1].Type != "constant" {
-		t.Errorf("Source mapping should be constant type")
-	}
-	if mappings[2].Type != "sync_metadata" {
-		t.Errorf("SyncRunID mapping should be sync_metadata type")
-	}
-	if mappings[3].Type != "liquid_template" {
-		t.Errorf("FullName mapping should be liquid_template type")
 	}
 }
 
 func TestSortFieldMappingsByPosition_EmptySlice(t *testing.T) {
-	// Empty slice
-	mappings := []client.FieldMapping{}
-
-	// Sort should not panic
+	mappings := []v2.MappingAttributes{}
 	sort.Slice(mappings, func(i, j int) bool {
 		return mappings[i].Position < mappings[j].Position
 	})
-
-	// Should still be empty
 	if len(mappings) != 0 {
-		t.Errorf("Expected 0 mappings, got %d", len(mappings))
+		t.Errorf("expected 0 mappings, got %d", len(mappings))
+	}
+}
+
+func TestFilterCompoundKeyMappings(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []v2.MappingAttributes
+		expected int
+	}{
+		{
+			name: "filter out a single compound_key mapping",
+			input: []v2.MappingAttributes{
+				{From: v2.MappingFrom{Type: "column", Data: "ID"}, To: "a", Position: 0},
+				{From: v2.MappingFrom{Type: "column", Data: "ID"}, To: "b", Position: 1},
+				{From: v2.MappingFrom{Type: "compound_key"}, To: "_census_tracking_id", Position: 2},
+			},
+			expected: 2,
+		},
+		{
+			name: "no compound_key mappings to filter",
+			input: []v2.MappingAttributes{
+				{From: v2.MappingFrom{Type: "column", Data: "email"}, To: "Email", IsPrimaryIdentifier: true},
+				{From: v2.MappingFrom{Type: "column", Data: "first_name"}, To: "FirstName"},
+			},
+			expected: 2,
+		},
+		{
+			name:     "empty input",
+			input:    []v2.MappingAttributes{},
+			expected: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userManagedMappings := make([]v2.MappingAttributes, 0, len(tt.input))
+			for _, mapping := range tt.input {
+				if mapping.From.Type != "compound_key" {
+					userManagedMappings = append(userManagedMappings, mapping)
+				}
+			}
+
+			if len(userManagedMappings) != tt.expected {
+				t.Errorf("expected %d mappings after filtering, got %d", tt.expected, len(userManagedMappings))
+			}
+			for _, mapping := range userManagedMappings {
+				if mapping.From.Type == "compound_key" {
+					t.Errorf("compound_key mapping should have been filtered: %+v", mapping)
+				}
+			}
+		})
 	}
 }
 
@@ -453,16 +485,15 @@ func TestExpandAlerts_Basic(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    []interface{}
-		expected int // Check length since AlertAttribute has Options map
+		expected int
 	}{
 		{
 			name: "basic alert",
 			input: []interface{}{
 				map[string]interface{}{
-					"type":                 "email",
-					"send_for":             "failure",
+					"type":                 "FailureAlertConfiguration",
+					"send_for":             "first_time",
 					"should_send_recovery": true,
-					"emails":               []interface{}{"admin@example.com"},
 				},
 			},
 			expected: 1,
@@ -470,18 +501,8 @@ func TestExpandAlerts_Basic(t *testing.T) {
 		{
 			name: "multiple alerts",
 			input: []interface{}{
-				map[string]interface{}{
-					"type":                 "email",
-					"send_for":             "failure",
-					"should_send_recovery": true,
-					"emails":               []interface{}{"failure@example.com"},
-				},
-				map[string]interface{}{
-					"type":                 "email",
-					"send_for":             "success",
-					"should_send_recovery": false,
-					"emails":               []interface{}{"success@example.com"},
-				},
+				map[string]interface{}{"type": "FailureAlertConfiguration", "send_for": "first_time"},
+				map[string]interface{}{"type": "RuntimeAlertConfiguration", "send_for": "every_time"},
 			},
 			expected: 2,
 		},
@@ -497,10 +518,25 @@ func TestExpandAlerts_Basic(t *testing.T) {
 	}
 }
 
+// TestExpandAlerts_OptionsNeverNil verifies that v2's requirement that every
+// alert send options (even {}) is satisfied even when the alert type has no
+// options of its own — a nil map would marshal to JSON null, which the v2
+// API rejects.
+func TestExpandAlerts_OptionsNeverNil(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{"type": "FailureAlertConfiguration", "send_for": "first_time"},
+	}
+
+	result := ExpandAlerts(context.Background(), input)
+	if result[0].Options == nil {
+		t.Error("expected Options to be a non-nil (possibly empty) map, got nil")
+	}
+}
+
 func TestExpandAlerts_Empty(t *testing.T) {
 	result := ExpandAlerts(context.Background(), []interface{}{})
 	if result == nil {
-		t.Errorf("ExpandAlerts(empty) should return empty slice, got nil")
+		t.Error("ExpandAlerts(empty) should return empty slice, got nil")
 	}
 	if len(result) != 0 {
 		t.Errorf("ExpandAlerts(empty) should return empty slice with 0 items, got %d items", len(result))
@@ -514,63 +550,38 @@ func TestExpandAlerts_EmptyStrings(t *testing.T) {
 		name     string
 		input    []interface{}
 		expected int
-		checkFn  func(*testing.T, []client.AlertAttribute)
+		checkFn  func(*testing.T, []v2.AlertAttribute)
 	}{
 		{
 			name: "alert with empty type is skipped",
 			input: []interface{}{
-				map[string]interface{}{
-					"type":                 "", // Empty string
-					"send_for":             "first_time",
-					"should_send_recovery": false,
-					"options":              map[string]interface{}{},
-				},
+				map[string]interface{}{"type": "", "send_for": "first_time", "should_send_recovery": false},
 			},
-			expected: 0, // Should be skipped
+			expected: 0,
 		},
 		{
 			name: "alert with empty send_for uses default",
 			input: []interface{}{
-				map[string]interface{}{
-					"type":                 "FailureAlertConfiguration",
-					"send_for":             "", // Empty string should trigger default
-					"should_send_recovery": true,
-					"options":              map[string]interface{}{},
-				},
+				map[string]interface{}{"type": "FailureAlertConfiguration", "send_for": "", "should_send_recovery": true},
 			},
 			expected: 1,
-			checkFn: func(t *testing.T, alerts []client.AlertAttribute) {
+			checkFn: func(t *testing.T, alerts []v2.AlertAttribute) {
 				if alerts[0].SendFor != "first_time" {
-					t.Errorf("Expected SendFor to be 'first_time' (default), got '%s'", alerts[0].SendFor)
+					t.Errorf("expected SendFor to default to 'first_time', got '%s'", alerts[0].SendFor)
 				}
 			},
 		},
 		{
 			name: "mixed valid and invalid alerts",
 			input: []interface{}{
-				map[string]interface{}{
-					"type":                 "", // Empty - should be skipped
-					"send_for":             "first_time",
-					"should_send_recovery": false,
-				},
-				map[string]interface{}{
-					"type":                 "FailureAlertConfiguration", // Valid
-					"send_for":             "every_time",
-					"should_send_recovery": true,
-				},
-				map[string]interface{}{
-					"type":                 "", // Empty - should be skipped
-					"send_for":             "",
-					"should_send_recovery": false,
-				},
+				map[string]interface{}{"type": "", "send_for": "first_time"},
+				map[string]interface{}{"type": "FailureAlertConfiguration", "send_for": "every_time"},
+				map[string]interface{}{"type": "", "send_for": ""},
 			},
-			expected: 1, // Only the valid alert should remain
-			checkFn: func(t *testing.T, alerts []client.AlertAttribute) {
-				if alerts[0].Type != "FailureAlertConfiguration" {
-					t.Errorf("Expected Type to be 'FailureAlertConfiguration', got '%s'", alerts[0].Type)
-				}
-				if alerts[0].SendFor != "every_time" {
-					t.Errorf("Expected SendFor to be 'every_time', got '%s'", alerts[0].SendFor)
+			expected: 1,
+			checkFn: func(t *testing.T, alerts []v2.AlertAttribute) {
+				if alerts[0].Type != "FailureAlertConfiguration" || alerts[0].SendFor != "every_time" {
+					t.Errorf("unexpected surviving alert: %+v", alerts[0])
 				}
 			},
 		},
@@ -589,56 +600,34 @@ func TestExpandAlerts_EmptyStrings(t *testing.T) {
 	}
 }
 
+func TestFlattenAlerts_Empty(t *testing.T) {
+	result := FlattenAlerts(nil)
+	if len(result) != 0 {
+		t.Errorf("FlattenAlerts(nil) should return empty slice, got %d items", len(result))
+	}
+}
+
+func TestFlattenAlerts_Basic(t *testing.T) {
+	input := []v2.AlertAttribute{
+		{
+			ID:                 123,
+			Type:               "FailureAlertConfiguration",
+			SendFor:            "first_time",
+			ShouldSendRecovery: true,
+			Options:            map[string]interface{}{},
+		},
+	}
+
+	result := FlattenAlerts(input)
+	m := result[0].(map[string]interface{})
+	if m["id"] != 123 || m["type"] != "FailureAlertConfiguration" || m["send_for"] != "first_time" {
+		t.Errorf("unexpected alert: %+v", m)
+	}
+}
+
 // ============================================================================
 // Utility Helper Tests
 // ============================================================================
-
-func TestExpandStringMap(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    map[string]interface{}
-		expected map[string]interface{}
-	}{
-		{
-			name:     "empty map",
-			input:    map[string]interface{}{},
-			expected: map[string]interface{}{},
-		},
-		{
-			name: "simple map",
-			input: map[string]interface{}{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			expected: map[string]interface{}{
-				"key1": "value1",
-				"key2": "value2",
-			},
-		},
-		{
-			name: "map with empty string values - kept as-is",
-			input: map[string]interface{}{
-				"key1": "value1",
-				"key2": "",
-				"key3": "value3",
-			},
-			expected: map[string]interface{}{
-				"key1": "value1",
-				"key2": "",
-				"key3": "value3",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ExpandStringMap(tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("ExpandStringMap() got = %+v, want %+v", result, tt.expected)
-			}
-		})
-	}
-}
 
 func TestCleanEmptyStrings(t *testing.T) {
 	tests := []struct {
@@ -700,139 +689,78 @@ func TestCleanEmptyStrings(t *testing.T) {
 	}
 }
 
-// ============================================================================
-// Primary Identifier Validation Tests
-// ============================================================================
-// These tests verify that client-side validation of primary identifiers has been removed.
-// The Census API now handles primary identifier validation, allowing destinations like
-// Google Sheets that don't require explicit primary identifiers.
-
-func TestExpandFieldMappings_NoPrimaryIdentifier(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    []interface{}
-		expected []client.FieldMapping
-	}{
-		{
-			name: "mappings without primary identifier - allowed for destinations like Google Sheets",
-			input: []interface{}{
-				map[string]interface{}{
-					"from": "city",
-					"to":   "City",
-					"type": "direct",
-				},
-				map[string]interface{}{
-					"from": "state",
-					"to":   "State",
-					"type": "direct",
-				},
-			},
-			expected: []client.FieldMapping{
-				{
-					From:                "city",
-					To:                  "City",
-					Type:                "direct",
-					IsPrimaryIdentifier: false,
-				},
-				{
-					From:                "state",
-					To:                  "State",
-					Type:                "direct",
-					IsPrimaryIdentifier: false,
-				},
-			},
-		},
-		{
-			name: "single mapping without primary identifier",
-			input: []interface{}{
-				map[string]interface{}{
-					"from": "email",
-					"to":   "Email",
-				},
-			},
-			expected: []client.FieldMapping{
-				{
-					From:                "email",
-					To:                  "Email",
-					Type:                "direct",
-					IsPrimaryIdentifier: false,
-				},
-			},
+func TestExpandDestinationAttributes_Basic(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"object":                "Contact",
+			"lead_union_insert_to": "Lead",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ExpandFieldMappings(context.Background(), tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("ExpandFieldMappings() got = %+v, want %+v", result, tt.expected)
-			}
-		})
+	result := ExpandDestinationAttributes(context.Background(), input)
+	if result.Object != "Contact" || result.LeadUnionInsertTo != "Lead" {
+		t.Errorf("unexpected result: %+v", result)
 	}
 }
 
-func TestExpandFieldMappings_GoogleSheetsScenario(t *testing.T) {
-	// Google Sheets syncs don't require primary identifiers
-	// This test verifies that field mappings work correctly for such destinations
+// ============================================================================
+// Primary Identifier Validation Tests
+// ============================================================================
+
+func TestExpandFieldMappings_NoPrimaryIdentifier(t *testing.T) {
+	// The Census API handles primary identifier validation at the API level
+	// (destinations like Google Sheets don't require one); expand doesn't
+	// enforce it client-side.
+	input := []interface{}{
+		map[string]interface{}{"from": "city", "to": "City"},
+		map[string]interface{}{"from": "state", "to": "State"},
+	}
+
+	result := ExpandFieldMappings(context.Background(), input)
+	for i, mapping := range result {
+		if mapping.IsPrimaryIdentifier {
+			t.Errorf("mapping %d unexpectedly has IsPrimaryIdentifier=true", i)
+		}
+	}
+}
+
+func TestValidateFieldMappingsHavePrimaryIdentifier(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    []interface{}
-		expected int // Expected number of mappings
+		name      string
+		mappings  []interface{}
+		expectErr bool
 	}{
 		{
-			name: "Google Sheets sync with replace operation - no primary identifier needed",
-			input: []interface{}{
-				map[string]interface{}{
-					"from": "city",
-					"to":   "City",
-				},
-				map[string]interface{}{
-					"from": "state",
-					"to":   "State",
-				},
-				map[string]interface{}{
-					"from": "population",
-					"to":   "Population",
-				},
+			name: "one mapping with primary identifier",
+			mappings: []interface{}{
+				map[string]interface{}{"to": "Email", "is_primary_identifier": true},
+				map[string]interface{}{"to": "Name"},
 			},
-			expected: 3,
+			expectErr: false,
 		},
 		{
-			name: "Google Sheets sync with constant values - no primary identifier",
-			input: []interface{}{
-				map[string]interface{}{
-					"from": "name",
-					"to":   "Name",
-				},
-				map[string]interface{}{
-					"type":     "constant",
-					"constant": "2024",
-					"to":       "Year",
-				},
+			name: "no mapping with primary identifier",
+			mappings: []interface{}{
+				map[string]interface{}{"to": "Email"},
+				map[string]interface{}{"to": "Name"},
 			},
-			expected: 2,
+			expectErr: true,
+		},
+		{
+			name:      "no mappings at all is allowed (e.g. sync_all_properties)",
+			mappings:  []interface{}{},
+			expectErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := ExpandFieldMappings(context.Background(), tt.input)
-			if len(result) != tt.expected {
-				t.Errorf("ExpandFieldMappings() returned %d mappings, want %d", len(result), tt.expected)
+			err := validateFieldMappingsHavePrimaryIdentifier(tt.mappings)
+			if tt.expectErr && err == nil {
+				t.Error("expected an error, got nil")
 			}
-
-			// Verify all mappings are properly expanded
-			for i, mapping := range result {
-				if mapping.To == "" {
-					t.Errorf("ExpandFieldMappings() mapping %d has empty 'to' field", i)
-				}
-			}
-
-			// Verify no primary identifiers are set
-			for i, mapping := range result {
-				if mapping.IsPrimaryIdentifier {
-					t.Errorf("ExpandFieldMappings() mapping %d unexpectedly has IsPrimaryIdentifier=true", i)
-				}
+			if !tt.expectErr && err != nil {
+				t.Errorf("expected no error, got %v", err)
 			}
 		})
 	}
@@ -845,12 +773,10 @@ func TestExpandFieldMappings_GoogleSheetsScenario(t *testing.T) {
 // works correctly for the alert field.
 
 func TestResourceSyncStateUpgradeV0(t *testing.T) {
-	// Simulate v0 state with alerts stored as they would be in TypeSet format
-	// (which is actually just a JSON array, same as TypeList)
 	v0State := map[string]interface{}{
-		"id":           "12345",
-		"label":        "Test Sync",
-		"workspace_id": "67890",
+		"id":            "12345",
+		"label":         "Test Sync",
+		"activation_id": "act_67890",
 		"alert": []interface{}{
 			map[string]interface{}{
 				"id":                   754756,
@@ -871,874 +797,192 @@ func TestResourceSyncStateUpgradeV0(t *testing.T) {
 		},
 	}
 
-	// Call the upgrade function
 	upgradedState, err := ResourceSyncStateUpgradeV0(nil, v0State, nil)
-
-	// Assertions
 	if err != nil {
-		t.Errorf("State upgrade should not return an error, got: %v", err)
+		t.Errorf("state upgrade should not return an error, got: %v", err)
 	}
-	if upgradedState == nil {
-		t.Errorf("Upgraded state should not be nil")
-	}
-
-	// Verify that the state is unchanged (since JSON format is identical)
 	if !reflect.DeepEqual(v0State, upgradedState) {
-		t.Errorf("State should be unchanged - TypeSet and TypeList have same JSON format")
+		t.Errorf("state should be unchanged - TypeSet and TypeList have same JSON format")
 	}
 
-	// Verify alert data is preserved
 	alerts, ok := upgradedState["alert"].([]interface{})
-	if !ok {
-		t.Errorf("alert should be a []interface{}")
+	if !ok || len(alerts) != 2 {
+		t.Fatalf("expected 2 alerts, got %#v", upgradedState["alert"])
 	}
-	if len(alerts) != 2 {
-		t.Errorf("Should have 2 alerts, got %d", len(alerts))
+}
+
+// TestResourceSyncStateUpgradeV1_BackfillsActivationID verifies that state
+// left over from before activation_id existed gets it filled in from a
+// GetSync lookup, so the Required+ForceNew field doesn't force a spurious
+// replace on first apply after upgrading.
+func TestResourceSyncStateUpgradeV1_BackfillsActivationID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/syncs/12345" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"success","data":{"id":12345,"activation_id":"act_real_123","created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}}`))
+	}))
+	defer server.Close()
+
+	rawState := map[string]interface{}{
+		"id":            "12345",
+		"activation_id": "",
+		"label":         "Test Sync",
 	}
 
-	// Verify first alert
-	alert1, ok := alerts[0].(map[string]interface{})
-	if !ok {
-		t.Errorf("alert[0] should be a map")
+	upgradedState, err := ResourceSyncStateUpgradeV1(context.Background(), rawState, newTestClients(t, server.URL))
+	if err != nil {
+		t.Fatalf("state upgrade should not return an error, got: %v", err)
 	}
-	if alert1["type"] != "FailureAlertConfiguration" {
-		t.Errorf("alert[0] type = %v, want FailureAlertConfiguration", alert1["type"])
+	if upgradedState["activation_id"] != "act_real_123" {
+		t.Errorf("expected activation_id to be backfilled to %q, got %#v", "act_real_123", upgradedState["activation_id"])
 	}
-	if alert1["id"] != 754756 {
-		t.Errorf("alert[0] id = %v, want 754756", alert1["id"])
+}
+
+// TestResourceSyncStateUpgradeV1_NoopWhenAlreadyPresent verifies that state
+// already carrying an activation_id (any sync created/read after this
+// migration landed) skips the lookup entirely.
+func TestResourceSyncStateUpgradeV1_NoopWhenAlreadyPresent(t *testing.T) {
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	rawState := map[string]interface{}{
+		"id":            "12345",
+		"activation_id": "act_already_set",
 	}
 
-	// Verify second alert
-	alert2, ok := alerts[1].(map[string]interface{})
-	if !ok {
-		t.Errorf("alert[1] should be a map")
+	upgradedState, err := ResourceSyncStateUpgradeV1(context.Background(), rawState, newTestClients(t, server.URL))
+	if err != nil {
+		t.Fatalf("state upgrade should not return an error, got: %v", err)
 	}
-	if alert2["type"] != "InvalidRecordPercentAlertConfiguration" {
-		t.Errorf("alert[1] type = %v, want InvalidRecordPercentAlertConfiguration", alert2["type"])
+	if called {
+		t.Error("expected GetSync not to be called when activation_id is already present")
 	}
-	if alert2["id"] != 754757 {
-		t.Errorf("alert[1] id = %v, want 754757", alert2["id"])
+	if upgradedState["activation_id"] != "act_already_set" {
+		t.Errorf("activation_id should be unchanged, got %#v", upgradedState["activation_id"])
+	}
+}
+
+// TestResourceSyncStateUpgradeV1_NotFoundTolerated verifies that a sync
+// deleted out from under Terraform doesn't hard-fail the upgrade — the
+// normal read path clears it from state on the next refresh.
+func TestResourceSyncStateUpgradeV1_NotFoundTolerated(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"not found"}`))
+	}))
+	defer server.Close()
+
+	rawState := map[string]interface{}{
+		"id":            "12345",
+		"activation_id": "",
+	}
+
+	upgradedState, err := ResourceSyncStateUpgradeV1(context.Background(), rawState, newTestClients(t, server.URL))
+	if err != nil {
+		t.Errorf("a 404 should not fail the state upgrade, got: %v", err)
+	}
+	if upgradedState["activation_id"] != "" {
+		t.Errorf("activation_id should stay empty when the sync is gone, got %#v", upgradedState["activation_id"])
+	}
+}
+
+// TestResourceSyncStateUpgradeV1_PropagatesOtherErrors verifies that
+// non-404 failures (auth, network, 5xx) fail the upgrade loudly instead of
+// silently leaving activation_id empty, which would just defer the forced
+// replace to an unpredictable later point.
+func TestResourceSyncStateUpgradeV1_PropagatesOtherErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"internal error"}`))
+	}))
+	defer server.Close()
+
+	rawState := map[string]interface{}{
+		"id":            "12345",
+		"activation_id": "",
+	}
+
+	if _, err := ResourceSyncStateUpgradeV1(context.Background(), rawState, newTestClients(t, server.URL)); err == nil {
+		t.Error("expected a non-404 API error to fail the state upgrade")
+	}
+}
+
+// TestResourceSyncStateUpgradeV1_MissingID verifies the upgrader doesn't
+// panic or call the API when id is absent or unparseable.
+func TestResourceSyncStateUpgradeV1_MissingID(t *testing.T) {
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	rawState := map[string]interface{}{
+		"activation_id": "",
+	}
+
+	upgradedState, err := ResourceSyncStateUpgradeV1(context.Background(), rawState, newTestClients(t, server.URL))
+	if err != nil {
+		t.Fatalf("state upgrade should not return an error, got: %v", err)
+	}
+	if called {
+		t.Error("expected GetSync not to be called when id is missing")
+	}
+	if upgradedState["activation_id"] != "" {
+		t.Errorf("activation_id should be unchanged, got %#v", upgradedState["activation_id"])
 	}
 }
 
 func TestResourceSyncV0SchemaCompatibility(t *testing.T) {
-	// Verify that v0 schema uses TypeSet for alerts
 	v0Resource := ResourceSyncV0()
-	if v0Resource == nil {
-		t.Errorf("v0 resource should not be nil")
-		return
-	}
-	if v0Resource.Schema == nil {
-		t.Errorf("v0 schema should not be nil")
-		return
-	}
-
 	alertSchema, exists := v0Resource.Schema["alert"]
 	if !exists {
-		t.Errorf("alert field should exist in v0 schema")
-		return
-	}
-
-	// Note: We can't directly test schema.TypeSet value since it's an internal constant
-	// But we can verify the schema is valid and has the expected structure
-	if alertSchema == nil {
-		t.Errorf("alert schema should not be nil")
+		t.Fatal("alert field should exist in v0 schema")
 	}
 	if !alertSchema.Optional {
-		t.Errorf("alert should be optional")
+		t.Error("alert should be optional")
 	}
 }
 
 func TestResourceSyncV1SchemaCompatibility(t *testing.T) {
-	// Verify that v1 schema (current) uses TypeList for alerts
 	v1Resource := ResourceSync()
-	if v1Resource == nil {
-		t.Errorf("v1 resource should not be nil")
-		return
+	if v1Resource.SchemaVersion != 2 {
+		t.Errorf("SchemaVersion = %d, want 2", v1Resource.SchemaVersion)
 	}
-	if v1Resource.SchemaVersion != 1 {
-		t.Errorf("SchemaVersion = %d, want 1", v1Resource.SchemaVersion)
-	}
-	if len(v1Resource.StateUpgraders) != 1 {
-		t.Errorf("Should have 1 StateUpgrader, got %d", len(v1Resource.StateUpgraders))
-		return
+	if len(v1Resource.StateUpgraders) != 2 {
+		t.Fatalf("should have 2 StateUpgraders, got %d", len(v1Resource.StateUpgraders))
 	}
 
-	upgrader := v1Resource.StateUpgraders[0]
-	if upgrader.Version != 0 {
-		t.Errorf("StateUpgrader Version = %d, want 0", upgrader.Version)
+	upgraderV0 := v1Resource.StateUpgraders[0]
+	if upgraderV0.Version != 0 {
+		t.Errorf("StateUpgraders[0] Version = %d, want 0", upgraderV0.Version)
 	}
-	if upgrader.Upgrade == nil {
-		t.Errorf("Upgrade function should be set")
-	}
-	// Note: Type is a cty.Type struct (not a pointer), so we can't check for nil
-	// The existence of the StateUpgrader itself confirms it's properly configured
-}
-
-// ============================================================================
-// Mapping Conversion Tests (FieldMapping → MappingAttributes)
-// ============================================================================
-
-func TestConvertFieldMappingsToMappingAttributes_Constant(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    []client.FieldMapping
-		expected []client.MappingAttributes
-	}{
-		{
-			name: "single constant string mapping",
-			input: []client.FieldMapping{
-				{
-					To:       "Source",
-					Type:     "constant",
-					Constant: "Website",
-				},
-			},
-			expected: []client.MappingAttributes{
-				{
-					From: client.MappingFrom{
-						Type: "constant_value",
-						Data: map[string]interface{}{
-							"basic_type": "text",
-							"value":      "Website",
-						},
-					},
-					To:                  "Source",
-					IsPrimaryIdentifier: false,
-				},
-			},
-		},
-		{
-			name: "multiple constant mappings with different to fields",
-			input: []client.FieldMapping{
-				{
-					To:       "AssistantName",
-					Type:     "constant",
-					Constant: "HERE is my constant value",
-				},
-				{
-					To:       "Title",
-					Type:     "constant",
-					Constant: "HERE is my constant value 2",
-				},
-			},
-			expected: []client.MappingAttributes{
-				{
-					From: client.MappingFrom{
-						Type: "constant_value",
-						Data: map[string]interface{}{
-							"basic_type": "text",
-							"value":      "HERE is my constant value",
-						},
-					},
-					To:                  "AssistantName",
-					IsPrimaryIdentifier: false,
-				},
-				{
-					From: client.MappingFrom{
-						Type: "constant_value",
-						Data: map[string]interface{}{
-							"basic_type": "text",
-							"value":      "HERE is my constant value 2",
-						},
-					},
-					To:                  "Title",
-					IsPrimaryIdentifier: false,
-				},
-			},
-		},
-		{
-			name: "constant numeric value",
-			input: []client.FieldMapping{
-				{
-					To:       "Priority",
-					Type:     "constant",
-					Constant: 1,
-				},
-			},
-			expected: []client.MappingAttributes{
-				{
-					From: client.MappingFrom{
-						Type: "constant_value",
-						Data: map[string]interface{}{
-							"basic_type": "text",
-							"value":      "1",
-						},
-					},
-					To:                  "Priority",
-					IsPrimaryIdentifier: false,
-				},
-			},
-		},
+	if upgraderV0.Upgrade == nil {
+		t.Error("StateUpgraders[0] Upgrade function should be set")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ConvertFieldMappingsToMappingAttributes(tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("convertFieldMappingsToMappingAttributes() got = %+v, want %+v", result, tt.expected)
-			}
-		})
+	upgraderV1 := v1Resource.StateUpgraders[1]
+	if upgraderV1.Version != 1 {
+		t.Errorf("StateUpgraders[1] Version = %d, want 1", upgraderV1.Version)
 	}
-}
-
-func TestConvertFieldMappingsToMappingAttributes_Direct(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    []client.FieldMapping
-		expected []client.MappingAttributes
-	}{
-		{
-			name: "direct mapping",
-			input: []client.FieldMapping{
-				{
-					From: "user_id",
-					To:   "UserID",
-					Type: "direct",
-				},
-			},
-			expected: []client.MappingAttributes{
-				{
-					From: client.MappingFrom{
-						Type: "column",
-						Data: "user_id", // Census API expects just the column name as string
-					},
-					To:                  "UserID",
-					IsPrimaryIdentifier: false,
-				},
-			},
-		},
-		{
-			name: "direct mapping with primary identifier",
-			input: []client.FieldMapping{
-				{
-					From:                "user_id",
-					To:                  "UserID",
-					Type:                "direct",
-					IsPrimaryIdentifier: true,
-				},
-			},
-			expected: []client.MappingAttributes{
-				{
-					From: client.MappingFrom{
-						Type: "column",
-						Data: "user_id", // Census API expects just the column name as string
-					},
-					To:                  "UserID",
-					IsPrimaryIdentifier: true,
-				},
-			},
-		},
+	if upgraderV1.Upgrade == nil {
+		t.Error("StateUpgraders[1] Upgrade function should be set")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := ConvertFieldMappingsToMappingAttributes(tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("convertFieldMappingsToMappingAttributes() got = %+v, want %+v", result, tt.expected)
-			}
-		})
+	if _, ok := v1Resource.Schema["activation_id"]; !ok {
+		t.Error("expected activation_id in schema")
 	}
-}
-
-func TestConvertFieldMappingsToMappingAttributes_Mixed(t *testing.T) {
-	// Test a realistic scenario with multiple mapping types
-	input := []client.FieldMapping{
-		{
-			From:                "user_id",
-			To:                  "UserID",
-			Type:                "direct",
-			IsPrimaryIdentifier: true,
-		},
-		{
-			From: "email",
-			To:   "Email",
-			Type: "direct",
-		},
-		{
-			To:       "Source",
-			Type:     "constant",
-			Constant: "Website",
-		},
-		{
-			To:              "SyncTime",
-			Type:            "sync_metadata",
-			SyncMetadataKey: "sync_run_id",
-		},
-	}
-
-	expected := []client.MappingAttributes{
-		{
-			From: client.MappingFrom{
-				Type: "column",
-				Data: "user_id", // Census API expects string for column
-			},
-			To:                  "UserID",
-			IsPrimaryIdentifier: true,
-		},
-		{
-			From: client.MappingFrom{
-				Type: "column",
-				Data: "email", // Census API expects string for column
-			},
-			To:                  "Email",
-			IsPrimaryIdentifier: false,
-		},
-		{
-			From: client.MappingFrom{
-				Type: "constant_value",
-				Data: map[string]interface{}{
-					"basic_type": "text",
-					"value":      "Website",
-				},
-			},
-			To:                  "Source",
-			IsPrimaryIdentifier: false,
-		},
-		{
-			From: client.MappingFrom{
-				Type: "sync_metadata",
-				Data: "sync_run_id", // Census API expects string for sync_metadata
-			},
-			To:                  "SyncTime",
-			IsPrimaryIdentifier: false,
-		},
-	}
-
-	result := ConvertFieldMappingsToMappingAttributes(input)
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("convertFieldMappingsToMappingAttributes() got = %+v, want %+v", result, expected)
-	}
-}
-
-func TestConvertFieldMappingsToMappingAttributes_LiquidTemplate(t *testing.T) {
-	// Test liquid template format
-	input := []client.FieldMapping{
-		{
-			To:             "FormattedDate",
-			Type:           "liquid_template",
-			LiquidTemplate: "{{ record['date'] | upcase }}",
-		},
-	}
-
-	expected := []client.MappingAttributes{
-		{
-			From: client.MappingFrom{
-				Type: "liquid_template",
-				Data: "{{ record['date'] | upcase }}", // Census API expects string directly, not wrapped in hash
-			},
-			To:                  "FormattedDate",
-			IsPrimaryIdentifier: false,
-		},
-	}
-
-	result := ConvertFieldMappingsToMappingAttributes(input)
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("convertFieldMappingsToMappingAttributes() got = %+v, want %+v", result, expected)
-	}
-}
-
-// ============================================================================
-// Reverse Mapping Conversion Tests (MappingAttributes → FieldMapping)
-// ============================================================================
-
-func TestConvertMappingAttributesToFieldMappings_LiquidTemplate(t *testing.T) {
-	// Test that we correctly extract liquid template from API response
-	// The Census API returns liquid templates as: {"liquid_template": "..."}
-	input := []client.MappingAttributes{
-		{
-			From: client.MappingFrom{
-				Type: "liquid_template",
-				Data: map[string]interface{}{
-					"liquid_template": "{{ record['date'] | upcase }}",
-				},
-			},
-			To:                  "FormattedDate",
-			IsPrimaryIdentifier: false,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	expected := []client.FieldMapping{
-		{
-			From:                "",
-			To:                  "FormattedDate",
-			Type:                "liquid_template",
-			LiquidTemplate:      "{{ record['date'] | upcase }}",
-			IsPrimaryIdentifier: false,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	result := ConvertMappingAttributesToFieldMappings(input)
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("ConvertMappingAttributesToFieldMappings() got = %+v, want %+v", result, expected)
-	}
-}
-
-func TestConvertMappingAttributesToFieldMappings_Constant(t *testing.T) {
-	// Test constant value extraction from API
-	input := []client.MappingAttributes{
-		{
-			From: client.MappingFrom{
-				Type: "constant_value",
-				Data: map[string]interface{}{
-					"value":      "Website",
-					"basic_type": "text",
-				},
-			},
-			To:                  "Source",
-			IsPrimaryIdentifier: false,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	expected := []client.FieldMapping{
-		{
-			From:                "",
-			To:                  "Source",
-			Type:                "constant",
-			Constant:            "Website",
-			IsPrimaryIdentifier: false,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	result := ConvertMappingAttributesToFieldMappings(input)
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("ConvertMappingAttributesToFieldMappings() got = %+v, want %+v", result, expected)
-	}
-}
-
-func TestConvertMappingAttributesToFieldMappings_SyncMetadata(t *testing.T) {
-	// Test sync_metadata extraction from API (returned as string)
-	input := []client.MappingAttributes{
-		{
-			From: client.MappingFrom{
-				Type: "sync_metadata",
-				Data: "sync_run_id",
-			},
-			To:                  "SyncRunID",
-			IsPrimaryIdentifier: false,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	expected := []client.FieldMapping{
-		{
-			From:                "",
-			To:                  "SyncRunID",
-			Type:                "sync_metadata",
-			SyncMetadataKey:     "sync_run_id",
-			IsPrimaryIdentifier: false,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	result := ConvertMappingAttributesToFieldMappings(input)
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("ConvertMappingAttributesToFieldMappings() got = %+v, want %+v", result, expected)
-	}
-}
-
-func TestConvertMappingAttributesToFieldMappings_SegmentMembership(t *testing.T) {
-	// Test segment_membership extraction from API
-	input := []client.MappingAttributes{
-		{
-			From: client.MappingFrom{
-				Type: "segment_membership",
-				Data: map[string]interface{}{
-					"identify_by": "name",
-				},
-			},
-			To:                  "SegmentField",
-			IsPrimaryIdentifier: false,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	expected := []client.FieldMapping{
-		{
-			From:                "",
-			To:                  "SegmentField",
-			Type:                "segment_membership",
-			SegmentIdentifyBy:   "name",
-			IsPrimaryIdentifier: false,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	result := ConvertMappingAttributesToFieldMappings(input)
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("ConvertMappingAttributesToFieldMappings() got = %+v, want %+v", result, expected)
-	}
-}
-
-func TestConvertMappingAttributesToFieldMappings_RoundTrip(t *testing.T) {
-	// Test full round-trip: FieldMapping → MappingAttributes → FieldMapping
-	original := []client.FieldMapping{
-		{
-			From:                "email",
-			To:                  "Email",
-			Type:                "direct",
-			IsPrimaryIdentifier: true,
-			SyncNullValues:      boolPtr(true),
-		},
-		{
-			To:             "FormattedDate",
-			Type:           "liquid_template",
-			LiquidTemplate: "{{ record['date'] | upcase }}",
-			SyncNullValues: boolPtr(true),
-		},
-		{
-			To:              "SyncTime",
-			Type:            "sync_metadata",
-			SyncMetadataKey: "sync_run_id",
-			SyncNullValues:  boolPtr(true),
-		},
-		{
-			To:             "Source",
-			Type:           "constant",
-			Constant:       "Website",
-			SyncNullValues: boolPtr(true),
-		},
-	}
-
-	// Convert to MappingAttributes (what we send to API)
-	mappingAttrs := ConvertFieldMappingsToMappingAttributes(original)
-
-	// Convert back to FieldMapping (what we read from API)
-	result := ConvertMappingAttributesToFieldMappings(mappingAttrs)
-
-	// Should match original (with "from" field empty for non-direct mappings)
-	expected := []client.FieldMapping{
-		{
-			From:                "email",
-			To:                  "Email",
-			Type:                "direct",
-			IsPrimaryIdentifier: true,
-			SyncNullValues:      boolPtr(true),
-		},
-		{
-			From:           "",
-			To:             "FormattedDate",
-			Type:           "liquid_template",
-			LiquidTemplate: "{{ record['date'] | upcase }}",
-			SyncNullValues: boolPtr(true),
-		},
-		{
-			From:            "",
-			To:              "SyncTime",
-			Type:            "sync_metadata",
-			SyncMetadataKey: "sync_run_id",
-			SyncNullValues:  boolPtr(true),
-		},
-		{
-			From:           "",
-			To:             "Source",
-			Type:           "constant",
-			Constant:       "Website",
-			SyncNullValues: boolPtr(true),
-		},
-	}
-
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("Round-trip conversion failed.\nGot:      %+v\nExpected: %+v", result, expected)
-	}
-}
-
-// Helper function for tests
-func boolPtr(b bool) *bool {
-	return &b
-}
-
-// ============================================================================
-// Compound Key Mapping Tests
-// ============================================================================
-// These tests verify that Census-managed compound_key mappings are properly
-// handled and filtered out to prevent drift in Terraform state.
-
-func TestConvertMappingAttributesToFieldMappings_CompoundKey(t *testing.T) {
-	// Test that compound_key type from API is properly converted
-	// Census auto-generates these for destinations like Google Ads with compound keys
-	input := []client.MappingAttributes{
-		{
-			From: client.MappingFrom{
-				Type: "compound_key",
-				Data: []interface{}{
-					map[string]interface{}{
-						"type": "column",
-						"data": "ID",
-					},
-					map[string]interface{}{
-						"type": "column",
-						"data": "ID",
-					},
-					map[string]interface{}{
-						"type": "column",
-						"data": "ID",
-					},
-				},
-			},
-			To:                  "click_conversion._census_tracking_id",
-			IsPrimaryIdentifier: true,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	expected := []client.FieldMapping{
-		{
-			From:                "[map[data:ID type:column] map[data:ID type:column] map[data:ID type:column]]",
-			To:                  "click_conversion._census_tracking_id",
-			Type:                "compound_key",
-			IsPrimaryIdentifier: true,
-			SyncNullValues:      boolPtr(true),
-		},
-	}
-
-	result := ConvertMappingAttributesToFieldMappings(input)
-	if len(result) != len(expected) {
-		t.Errorf("Expected %d mappings, got %d", len(expected), len(result))
-	}
-	if result[0].Type != "compound_key" {
-		t.Errorf("Expected Type='compound_key', got '%s'", result[0].Type)
-	}
-	if result[0].To != expected[0].To {
-		t.Errorf("Expected To='%s', got '%s'", expected[0].To, result[0].To)
-	}
-	if result[0].IsPrimaryIdentifier != expected[0].IsPrimaryIdentifier {
-		t.Errorf("Expected IsPrimaryIdentifier=%v, got %v", expected[0].IsPrimaryIdentifier, result[0].IsPrimaryIdentifier)
-	}
-}
-
-func TestConvertMappingAttributesToFieldMappings_WithCompoundKey(t *testing.T) {
-	// Test conversion of mixed mappings including a Census-managed compound_key
-	// This simulates the real API response for a Google Ads sync
-	input := []client.MappingAttributes{
-		{
-			From: client.MappingFrom{
-				Type: "column",
-				Data: "ID",
-			},
-			To:                  "click_conversion.conversion_date_time",
-			IsPrimaryIdentifier: false,
-			Position:            0,
-		},
-		{
-			From: client.MappingFrom{
-				Type: "column",
-				Data: "ID",
-			},
-			To:                  "click_conversion.gclid",
-			IsPrimaryIdentifier: false,
-			Position:            1,
-		},
-		{
-			From: client.MappingFrom{
-				Type: "column",
-				Data: "ID",
-			},
-			To:                  "click_conversion.conversion_action",
-			IsPrimaryIdentifier: false,
-			Position:            2,
-		},
-		{
-			From: client.MappingFrom{
-				Type: "compound_key",
-				Data: []interface{}{
-					map[string]interface{}{
-						"type": "column",
-						"data": "ID",
-					},
-					map[string]interface{}{
-						"type": "column",
-						"data": "ID",
-					},
-					map[string]interface{}{
-						"type": "column",
-						"data": "ID",
-					},
-				},
-			},
-			To:                  "click_conversion._census_tracking_id",
-			IsPrimaryIdentifier: true,
-			Position:            3,
-		},
-	}
-
-	result := ConvertMappingAttributesToFieldMappings(input)
-
-	// Verify we have all 4 mappings
-	if len(result) != 4 {
-		t.Errorf("Expected 4 mappings, got %d", len(result))
-	}
-
-	// Verify the compound_key mapping is at the end
-	compoundKeyMapping := result[3]
-	if compoundKeyMapping.Type != "compound_key" {
-		t.Errorf("Expected last mapping Type='compound_key', got '%s'", compoundKeyMapping.Type)
-	}
-	if compoundKeyMapping.To != "click_conversion._census_tracking_id" {
-		t.Errorf("Expected To='click_conversion._census_tracking_id', got '%s'", compoundKeyMapping.To)
-	}
-	if !compoundKeyMapping.IsPrimaryIdentifier {
-		t.Errorf("Expected compound_key mapping to be primary identifier")
-	}
-
-	// Verify the user-defined mappings are correct
-	if result[0].Type != "direct" {
-		t.Errorf("Expected mapping 0 Type='direct', got '%s'", result[0].Type)
-	}
-	if result[0].From != "ID" {
-		t.Errorf("Expected mapping 0 From='ID', got '%s'", result[0].From)
-	}
-}
-
-func TestFilterCompoundKeyMappings(t *testing.T) {
-	// Test the filtering logic that removes Census-managed compound_key mappings
-	// This simulates what happens in resourceSyncRead
-	tests := []struct {
-		name     string
-		input    []client.FieldMapping
-		expected int // Number of mappings after filtering
-	}{
-		{
-			name: "filter out single compound_key mapping",
-			input: []client.FieldMapping{
-				{
-					From:                "ID",
-					To:                  "click_conversion.conversion_date_time",
-					Type:                "direct",
-					IsPrimaryIdentifier: false,
-					Position:            0,
-				},
-				{
-					From:                "ID",
-					To:                  "click_conversion.gclid",
-					Type:                "direct",
-					IsPrimaryIdentifier: false,
-					Position:            1,
-				},
-				{
-					From:                "[map[data:ID type:column] map[data:ID type:column] map[data:ID type:column]]",
-					To:                  "click_conversion._census_tracking_id",
-					Type:                "compound_key",
-					IsPrimaryIdentifier: true,
-					Position:            2,
-				},
-			},
-			expected: 2, // Only the 2 user-defined mappings
-		},
-		{
-			name: "no compound_key mappings to filter",
-			input: []client.FieldMapping{
-				{
-					From:                "email",
-					To:                  "Email",
-					Type:                "direct",
-					IsPrimaryIdentifier: true,
-					Position:            0,
-				},
-				{
-					From:     "first_name",
-					To:       "FirstName",
-					Type:     "direct",
-					Position: 1,
-				},
-			},
-			expected: 2, // All mappings remain
-		},
-		{
-			name:     "empty input",
-			input:    []client.FieldMapping{},
-			expected: 0,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Simulate the filtering logic from resourceSyncRead
-			userManagedMappings := make([]client.FieldMapping, 0, len(tt.input))
-			for _, mapping := range tt.input {
-				if mapping.Type != "compound_key" {
-					userManagedMappings = append(userManagedMappings, mapping)
-				}
-			}
-
-			if len(userManagedMappings) != tt.expected {
-				t.Errorf("Expected %d mappings after filtering, got %d", tt.expected, len(userManagedMappings))
-			}
-
-			// Verify no compound_key mappings remain
-			for i, mapping := range userManagedMappings {
-				if mapping.Type == "compound_key" {
-					t.Errorf("Mapping %d should not be compound_key type", i)
-				}
-			}
-		})
-	}
-}
-
-func TestFilterCompoundKeyMappings_PreservesOtherMappingTypes(t *testing.T) {
-	// Verify that filtering compound_key doesn't affect other mapping types
-	input := []client.FieldMapping{
-		{
-			From:                "email",
-			To:                  "Email",
-			Type:                "direct",
-			IsPrimaryIdentifier: true,
-			Position:            0,
-		},
-		{
-			To:       "Source",
-			Type:     "constant",
-			Constant: "Website",
-			Position: 1,
-		},
-		{
-			To:              "SyncRunID",
-			Type:            "sync_metadata",
-			SyncMetadataKey: "sync_run_id",
-			Position:        2,
-		},
-		{
-			To:             "FullName",
-			Type:           "liquid_template",
-			LiquidTemplate: "{{ first_name }} {{ last_name }}",
-			Position:       3,
-		},
-		{
-			From:                "[map[data:ID type:column]]",
-			To:                  "_census_tracking_id",
-			Type:                "compound_key",
-			IsPrimaryIdentifier: true,
-			Position:            4,
-		},
-	}
-
-	// Filter out compound_key mappings
-	userManagedMappings := make([]client.FieldMapping, 0, len(input))
-	for _, mapping := range input {
-		if mapping.Type != "compound_key" {
-			userManagedMappings = append(userManagedMappings, mapping)
-		}
-	}
-
-	// Should have 4 mappings (all except compound_key)
-	if len(userManagedMappings) != 4 {
-		t.Errorf("Expected 4 mappings after filtering, got %d", len(userManagedMappings))
-	}
-
-	// Verify all mapping types are preserved
-	expectedTypes := []string{"direct", "constant", "sync_metadata", "liquid_template"}
-	for i, mapping := range userManagedMappings {
-		if mapping.Type != expectedTypes[i] {
-			t.Errorf("Mapping %d: expected type '%s', got '%s'", i, expectedTypes[i], mapping.Type)
-		}
-	}
-
-	// Verify the primary identifier is preserved
-	if !userManagedMappings[0].IsPrimaryIdentifier {
-		t.Errorf("Expected first mapping to be primary identifier")
+	if _, ok := v1Resource.Schema["workspace_id"]; ok {
+		t.Error("workspace_id should no longer be in the v2 schema")
 	}
 }

@@ -6,8 +6,11 @@ package regression_test
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -85,6 +88,42 @@ func providerBinaryPath(t *testing.T) string {
 	}
 
 	return abs
+}
+
+// fixtureSyncActivationID is the activation_id every pre-migration sync
+// fixture resolves to through fakeCensusSyncAPI below. It must match the
+// literal activation_id hardcoded in expected_config/sync.tf: the point of
+// mocking the lookup is to make the schema-version backfill land on exactly
+// the value that config already expects, so there's no diff.
+const fixtureSyncActivationID = "fake_id"
+
+// fakeCensusSyncAPI starts a local HTTP server standing in for the Census v2
+// API's GET /syncs/{id} endpoint. It exists because
+// ResourceSyncStateUpgradeV1 (the sync resource's schema-version-1-to-2 state
+// upgrader) looks up each sync's activation_id over the network when
+// upgrading pre-activation_id state — and that upgrade runs as part of
+// decoding prior state, independent of Refresh(false): Terraform always
+// calls UpgradeResourceState for any resource instance whose recorded
+// schema_version is behind the provider's current one, refresh setting
+// notwithstanding. Every request gets the same canned activation_id
+// regardless of which sync ID was requested, since all three pre-migration
+// sync fixtures are expected to land on fixtureSyncActivationID. Returns a
+// base_url to set via the CENSUS_BASE_URL environment variable.
+func fakeCensusSyncAPI(t *testing.T) string {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.URL.Path, "/api/v2/syncs/") {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{"status":"success","data":{"id":1,"activation_id":%q,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}}`, fixtureSyncActivationID)
+	}))
+	t.Cleanup(server.Close)
+
+	return server.URL
 }
 
 func writeDevOverrides(t *testing.T, workdir, providerBinary string) {

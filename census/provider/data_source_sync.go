@@ -221,7 +221,7 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.Errorf("failed to set field_mapping: %v", err)
 	}
 	if sync.Mode != nil {
-		if err := d.Set("run_mode", FlattenRunModeV2(sync.Mode)); err != nil {
+		if err := d.Set("run_mode", FlattenRunMode(sync.Mode)); err != nil {
 			return diag.Errorf("failed to set run_mode: %v", err)
 		}
 	}

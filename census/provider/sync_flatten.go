@@ -8,36 +8,111 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
 	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 // Helper functions for flattening complex types (API response -> Terraform state)
 
-func FlattenFieldMappings(mappings []client.FieldMapping) []interface{} {
+// FlattenFieldMappings converts the API's MappingAttributes directly into
+// the Terraform field_mapping blocks' flat from/to/type shape — the reverse
+// of ExpandFieldMappings, and likewise a single step rather than two (see
+// that function's comment for why there's no intermediate struct anymore).
+func FlattenFieldMappings(mappings []v2.MappingAttributes) []interface{} {
 	result := make([]interface{}, len(mappings))
-	for i, mapping := range mappings {
+	for i, ma := range mappings {
+		var mappingType string
+		var constant interface{}
+		var from string
+		var syncMetadataKey string
+		var segmentIdentifyBy string
+		var liquidTemplate string
+
+		if ma.From.Data == nil {
+			mappingType = "direct"
+		} else {
+			switch ma.From.Type {
+			case "constant_value":
+				mappingType = "constant"
+				// Census API returns: {"value": "...", "basic_type": "text"}
+				if dataMap, ok := ma.From.Data.(map[string]interface{}); ok {
+					if value, ok := dataMap["value"]; ok {
+						constant = value
+					} else {
+						constant = ma.From.Data
+					}
+				} else {
+					constant = ma.From.Data
+				}
+
+			case "sync_metadata":
+				mappingType = "sync_metadata"
+				if dataStr, ok := ma.From.Data.(string); ok {
+					syncMetadataKey = dataStr
+				} else {
+					syncMetadataKey = fmt.Sprintf("%v", ma.From.Data)
+				}
+
+			case "segment_membership":
+				mappingType = "segment_membership"
+				if dataMap, ok := ma.From.Data.(map[string]interface{}); ok {
+					if identifyBy, ok := dataMap["identify_by"].(string); ok {
+						segmentIdentifyBy = identifyBy
+					}
+				}
+
+			case "liquid_template":
+				mappingType = "liquid_template"
+				if dataStr, ok := ma.From.Data.(string); ok {
+					liquidTemplate = dataStr
+				} else if dataMap, ok := ma.From.Data.(map[string]interface{}); ok {
+					if template, ok := dataMap["liquid_template"].(string); ok {
+						liquidTemplate = template
+					}
+				}
+
+			case "compound_key":
+				// Census-managed compound key mappings (auto-generated for certain
+				// destinations) — callers are expected to filter these out before
+				// flattening; kept here for completeness if one slips through.
+				mappingType = "compound_key"
+				if dataStr, ok := ma.From.Data.(string); ok {
+					from = dataStr
+				} else {
+					from = fmt.Sprintf("%v", ma.From.Data)
+				}
+
+			default: // "column"
+				mappingType = "direct"
+				if dataStr, ok := ma.From.Data.(string); ok {
+					from = dataStr
+				} else {
+					from = fmt.Sprintf("%v", ma.From.Data)
+				}
+			}
+		}
+
 		mappingMap := map[string]interface{}{
-			"from":                  mapping.From,
-			"to":                    mapping.To,
-			"type":                  mapping.Type,
-			"constant":              mapping.Constant,
-			"sync_metadata_key":     mapping.SyncMetadataKey,
-			"segment_identify_by":   mapping.SegmentIdentifyBy,
-			"liquid_template":       mapping.LiquidTemplate,
-			"is_primary_identifier": mapping.IsPrimaryIdentifier,
-			"lookup_object":         mapping.LookupObject,
-			"lookup_field":          mapping.LookupField,
-			"preserve_values":       mapping.PreserveValues,
-			"generate_field":        mapping.GenerateField,
-			"array_field":           mapping.ArrayField,
-			"field_type":            mapping.FieldType,
-			"follow_source_type":    mapping.FollowSourceType,
+			"from":                  from,
+			"to":                    ma.To,
+			"type":                  mappingType,
+			"constant":              constant,
+			"sync_metadata_key":     syncMetadataKey,
+			"segment_identify_by":   segmentIdentifyBy,
+			"liquid_template":       liquidTemplate,
+			"is_primary_identifier": ma.IsPrimaryIdentifier,
+			"operation":             ma.Operation,
+			"lookup_object":         ma.LookupObject,
+			"lookup_field":          ma.LookupField,
+			"preserve_values":       ma.PreserveValues,
+			"generate_field":        ma.GenerateField,
+			"array_field":           ma.ArrayField,
+			"field_type":            ma.FieldType,
+			"follow_source_type":    ma.FollowSourceType,
 		}
 
 		// Always include sync_null_values explicitly to match API response
-		if mapping.SyncNullValues != nil {
-			mappingMap["sync_null_values"] = *mapping.SyncNullValues
+		if ma.SyncNullValues != nil {
+			mappingMap["sync_null_values"] = *ma.SyncNullValues
 		} else {
 			// If API didn't return it, use schema default
 			mappingMap["sync_null_values"] = true
@@ -48,7 +123,7 @@ func FlattenFieldMappings(mappings []client.FieldMapping) []interface{} {
 	return result
 }
 
-func FlattenAlerts(alerts []client.AlertAttribute) []interface{} {
+func FlattenAlerts(alerts []v2.AlertAttribute) []interface{} {
 	if len(alerts) == 0 {
 		return []interface{}{}
 	}
@@ -81,77 +156,8 @@ func FlattenAlerts(alerts []client.AlertAttribute) []interface{} {
 	return result
 }
 
-// FlattenRunMode converts API SyncMode struct to Terraform run_mode config
-func FlattenRunMode(mode *client.SyncMode) []interface{} {
-	if mode == nil {
-		return []interface{}{}
-	}
-
-	modeMap := map[string]interface{}{
-		"type": mode.Type,
-	}
-
-	// Flatten triggers if present
-	if mode.Triggers != nil {
-		triggersMap := map[string]interface{}{}
-
-		// Flatten schedule trigger
-		if mode.Triggers.Schedule != nil {
-			scheduleMap := map[string]interface{}{
-				"frequency": mode.Triggers.Schedule.Frequency,
-			}
-
-			if mode.Triggers.Schedule.CronExpression != "" {
-				scheduleMap["cron_expression"] = mode.Triggers.Schedule.CronExpression
-			} else {
-				if mode.Triggers.Schedule.Day != "" {
-					scheduleMap["day"] = mode.Triggers.Schedule.Day
-				}
-				if mode.Triggers.Schedule.Hour != 0 {
-					scheduleMap["hour"] = mode.Triggers.Schedule.Hour
-				}
-				if mode.Triggers.Schedule.Minute != 0 {
-					scheduleMap["minute"] = mode.Triggers.Schedule.Minute
-				}
-			}
-
-			triggersMap["schedule"] = []interface{}{scheduleMap}
-		}
-
-		// Flatten dbt_cloud trigger
-		if mode.Triggers.DbtCloud != nil {
-			dbtMap := map[string]interface{}{
-				"project_id": mode.Triggers.DbtCloud.ProjectId,
-				"job_id":     mode.Triggers.DbtCloud.JobId,
-			}
-			triggersMap["dbt_cloud"] = []interface{}{dbtMap}
-		}
-
-		// Flatten fivetran trigger
-		if mode.Triggers.Fivetran != nil {
-			fivetranMap := map[string]interface{}{
-				"job_id":   mode.Triggers.Fivetran.JobId,
-				"job_name": mode.Triggers.Fivetran.JobName,
-			}
-			triggersMap["fivetran"] = []interface{}{fivetranMap}
-		}
-
-		// Flatten sync_sequence trigger
-		if mode.Triggers.SyncSequence != nil {
-			seqMap := map[string]interface{}{
-				"sync_id": mode.Triggers.SyncSequence.SyncId,
-			}
-			triggersMap["sync_sequence"] = []interface{}{seqMap}
-		}
-
-		modeMap["triggers"] = []interface{}{triggersMap}
-	}
-
-	return []interface{}{modeMap}
-}
-
-// FlattenRunMode converts API SyncMode struct to Terraform run_mode config
-func FlattenRunModeV2(mode *v2.SyncMode) []interface{} {
+// FlattenRunMode converts the API's SyncMode struct to Terraform run_mode config
+func FlattenRunMode(mode *v2.SyncMode) []interface{} {
 	if mode == nil {
 		return []interface{}{}
 	}
@@ -219,35 +225,6 @@ func FlattenRunModeV2(mode *v2.SyncMode) []interface{} {
 	return []interface{}{modeMap}
 }
 
-func FlattenStringMap(m map[string]interface{}) map[string]interface{} {
-	if m == nil {
-		return nil
-	}
-	result := make(map[string]interface{})
-	for k, v := range m {
-		// Convert numeric types to strings for Terraform TypeMap with TypeString elements
-		switch val := v.(type) {
-		case float64:
-			result[k] = strconv.FormatFloat(val, 'f', -1, 64)
-		case int:
-			result[k] = strconv.Itoa(val)
-		case int64:
-			result[k] = strconv.FormatInt(val, 10)
-		case map[string]interface{}:
-			// For nested maps (like source_attributes.object), serialize to JSON
-			jsonBytes, err := json.Marshal(val)
-			if err != nil {
-				result[k] = fmt.Sprintf("%v", val) // Fallback to string representation
-			} else {
-				result[k] = string(jsonBytes)
-			}
-		default:
-			result[k] = v
-		}
-	}
-	return result
-}
-
 func FlattenAdvancedConfiguration(ctx context.Context, m map[string]interface{}) string {
 	if m == nil || len(m) == 0 {
 		return ""
@@ -267,19 +244,6 @@ func FlattenSourceAttributes(attrs map[string]interface{}) []map[string]interfac
 	}
 
 	result := make(map[string]interface{})
-
-	// Set connection_id as integer (schema expects TypeInt)
-	if connectionId, ok := attrs["connection_id"]; ok {
-		// Convert float64 to int if needed, otherwise use as-is
-		switch v := connectionId.(type) {
-		case float64:
-			result["connection_id"] = int(v)
-		case int:
-			result["connection_id"] = v
-		default:
-			result["connection_id"] = connectionId
-		}
-	}
 
 	// Set cohort_id if present (for cohort sources)
 	if cohortId, ok := attrs["cohort_id"]; ok {
@@ -404,35 +368,18 @@ func convertToString(value interface{}) string {
 	}
 }
 
-// FlattenDestinationAttributes converts API destination_attributes map to Terraform list structure
-func FlattenDestinationAttributes(attrs map[string]interface{}) []map[string]interface{} {
+// FlattenDestinationAttributes converts the API's typed destination_attributes
+// into the Terraform list structure.
+func FlattenDestinationAttributes(attrs *v2.SyncDestinationAttributes) []map[string]interface{} {
 	if attrs == nil {
 		return nil
 	}
 
-	result := make(map[string]interface{})
-
-	// Set connection_id as integer (schema expects TypeInt)
-	if connectionId, ok := attrs["connection_id"]; ok {
-		// Convert float64 to int if needed, otherwise use as-is
-		switch v := connectionId.(type) {
-		case float64:
-			result["connection_id"] = int(v)
-		case int:
-			result["connection_id"] = v
-		default:
-			result["connection_id"] = connectionId
-		}
+	result := map[string]interface{}{
+		"object": attrs.Object,
 	}
-
-	// Set object as string
-	if object, ok := attrs["object"]; ok {
-		result["object"] = convertToString(object)
-	}
-
-	// Set lead_union_insert_to as string if present
-	if leadUnionInsertTo, ok := attrs["lead_union_insert_to"]; ok {
-		result["lead_union_insert_to"] = convertToString(leadUnionInsertTo)
+	if attrs.LeadUnionInsertTo != "" {
+		result["lead_union_insert_to"] = attrs.LeadUnionInsertTo
 	}
 
 	return []map[string]interface{}{result}
