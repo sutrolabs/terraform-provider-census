@@ -1,0 +1,19 @@
+census/provider/provider_base_url_test.go
+  s_5041b77720d727::t_0037ecb86e7258 37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b447b74a9a4293e85aea649370aa420b33669edd",
+  "prompts": {},
+  "sessions": {
+    "s_5041b77720d727": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3e1d7a89-fc20-4e46-a944-f49d38d810a1",
+        "model": "unknown"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
