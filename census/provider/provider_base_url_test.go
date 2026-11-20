@@ -34,7 +34,7 @@ func TestAPIRoots(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		baseURL, wantV2  string
+		baseURL, wantV2 string
 	}{
 		{"", "https://app.getcensus.com"},
 		{"https://app.staging.getcensus.com/api/v1", "https://app.staging.getcensus.com"},
