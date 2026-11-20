@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 func resourceDataset() *schema.Resource {
@@ -24,7 +23,7 @@ func resourceDataset() *schema.Resource {
 		DeleteContext: resourceDatasetDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceDatasetImport,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -32,12 +31,6 @@ func resourceDataset() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The ID of the dataset.",
-			},
-			"workspace_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The ID of the workspace this dataset belongs to.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -61,11 +54,16 @@ func resourceDataset() *schema.Resource {
 				Required:    true,
 				Description: "SQL query that defines the dataset.",
 			},
-			"source_id": {
-				Type:        schema.TypeInt,
+			"group_id": {
+				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "ID of the source connection to run the query against.",
+				Description: "The group ID of the source connection to run the query against.",
+				// State written before group_id existed has none until the
+				// next refresh reads it back; that is not a reason to replace.
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return old == "" && d.Id() != ""
+				},
 			},
 			// Computed fields
 			"resource_identifier": {
@@ -122,8 +120,8 @@ func resourceDataset() *schema.Resource {
 	}
 }
 
-func waitForMetadataRefresh(ctx context.Context, apiClient *client.Client, datasetID int, workspaceToken string) diag.Diagnostics {
-	refreshKey, err := apiClient.RefreshDatasetColumnsWithToken(ctx, datasetID, workspaceToken)
+func waitForMetadataRefresh(ctx context.Context, apiClient *v2.Client, datasetID int) diag.Diagnostics {
+	refreshKey, err := v2.RefreshDatasetColumns(ctx, apiClient, datasetID)
 	if err != nil {
 		return diag.Diagnostics{
 			diag.Diagnostic{
@@ -139,26 +137,17 @@ func waitForMetadataRefresh(ctx context.Context, apiClient *client.Client, datas
 		}
 	}
 
-	// Poll until metadata refresh completes using StateChangeConf
-	// Possible statuses: "processing" (pending), "completed" (success), "error" (failure)
+	// Poll until metadata refresh completes using StateChangeConf.
+	// A failed refresh comes back as an API error rather than a status.
 	stateConf := &retry.StateChangeConf{
 		Pending: []string{"processing"},
 		Target:  []string{"completed"},
 		Refresh: func() (interface{}, string, error) {
-			statusResp, err := apiClient.GetDatasetRefreshStatusWithToken(ctx, datasetID, refreshKey, workspaceToken)
+			status, err := v2.GetDatasetRefreshStatus(ctx, apiClient, datasetID, refreshKey)
 			if err != nil {
 				return nil, "", fmt.Errorf("metadata refresh failed: %w", err)
 			}
-
-			if statusResp.Status == "error" {
-				errMsg := "unknown error"
-				if statusResp.Message != nil {
-					errMsg = *statusResp.Message
-				}
-				return nil, "", fmt.Errorf("metadata refresh failed: %s", errMsg)
-			}
-
-			return statusResp, statusResp.Status, nil
+			return status, status, nil
 		},
 		Timeout:    30 * time.Minute, // Default 30 minutes
 		Delay:      5 * time.Second,  // Wait 5 seconds before first poll
@@ -185,51 +174,31 @@ func waitForMetadataRefresh(ctx context.Context, apiClient *client.Client, datas
 }
 
 func resourceDatasetCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V2
 
-	workspaceId := d.Get("workspace_id").(string)
-
-	// Get the workspace API key dynamically using the personal access token
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
+	req := &v2.CreateDatasetRequest{
+		Name:    d.Get("name").(string),
+		Type:    d.Get("type").(string),
+		Query:   d.Get("query").(string),
+		GroupID: d.Get("group_id").(string),
 	}
-
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.Errorf("failed to get workspace API key for workspace %d: %v", workspaceIdInt, err)
-	}
-	if workspaceToken == "" {
-		return diag.Errorf("workspace API key is empty for workspace %d", workspaceIdInt)
-	}
-
-	// Build description pointer
-	var description *string
 	if desc, ok := d.GetOk("description"); ok {
-		descStr := desc.(string)
-		description = &descStr
+		description := desc.(string)
+		req.Description = &description
 	}
 
-	req := &client.CreateDatasetRequest{
-		Name:        d.Get("name").(string),
-		Type:        d.Get("type").(string),
-		Description: description,
-		Query:       d.Get("query").(string),
-		SourceID:    d.Get("source_id").(int),
-	}
-
-	dataset, err := apiClient.CreateDatasetWithToken(ctx, req, workspaceToken)
+	dataset, err := v2.CreateDataset(ctx, apiClient, req)
 	if err != nil {
+		if v2.IsNotFoundError(err) {
+			return diag.Errorf("no source connection with group_id %q: %v", req.GroupID, err)
+		}
 		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.Itoa(dataset.ID))
 
-	// Explicitly set workspace_id from our input since API doesn't return it
-	d.Set("workspace_id", workspaceId)
-
 	if d.Get("wait_for_metadata_refresh").(bool) {
-		if diags := waitForMetadataRefresh(ctx, apiClient, dataset.ID, workspaceToken); diags != nil {
+		if diags := waitForMetadataRefresh(ctx, apiClient, dataset.ID); diags != nil {
 			return diags
 		}
 	}
@@ -238,141 +207,54 @@ func resourceDatasetCreate(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceDatasetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V2
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.Errorf("invalid dataset ID: %s", d.Id())
 	}
 
-	// Get workspace token dynamically if we have workspace_id
-	workspaceId := d.Get("workspace_id").(string)
-
-	var dataset *client.Dataset
-	if workspaceId != "" {
-		workspaceIdInt, convErr := strconv.Atoi(workspaceId)
-		if convErr != nil {
-			return diag.Errorf("invalid workspace ID: %s", workspaceId)
-		}
-
-		workspaceToken, tokenErr := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if tokenErr != nil {
-			return diag.FromErr(tokenErr)
-		}
-
-		dataset, err = apiClient.GetDatasetWithToken(ctx, id, workspaceToken)
-	} else {
-		return diag.Errorf(`workspace_id is required but missing from resource state.
-
-To fix this, add the missing workspace_id to terraform state:
-  terraform state rm census_dataset.example
-  terraform import census_dataset.example workspace_id:dataset_id`)
-	}
-
+	dataset, err := v2.GetDataset(ctx, apiClient, id)
 	if err != nil {
-		// Check if dataset was not found
-		if IsNotFoundError(err) {
+		if v2.IsNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
 		return diag.FromErr(err)
 	}
 
-	// Only update workspace_id if API returned it, otherwise preserve what's in state
-	if dataset.WorkspaceID != "" {
-		d.Set("workspace_id", dataset.WorkspaceID)
+	if err := setDatasetAttributes(d, dataset); err != nil {
+		return diag.FromErr(err)
 	}
-
-	d.Set("name", dataset.Name)
-	d.Set("type", dataset.Type)
-	d.Set("query", dataset.Query)
-	d.Set("source_id", dataset.SourceID)
-	d.Set("resource_identifier", dataset.ResourceIdentifier)
-
-	// Set optional fields with nil checks
-	if dataset.Description != nil {
-		d.Set("description", *dataset.Description)
-	}
-
-	if dataset.CachedRecordCount != nil {
-		d.Set("cached_record_count", *dataset.CachedRecordCount)
-	}
-
-	// Set time fields only if they are not zero values
-	if !dataset.CreatedAt.IsZero() {
-		d.Set("created_at", dataset.CreatedAt.Format("2006-01-02T15:04:05Z"))
-	}
-	if !dataset.UpdatedAt.IsZero() {
-		d.Set("updated_at", dataset.UpdatedAt.Format("2006-01-02T15:04:05Z"))
-	}
-
-	// Set columns - always set to avoid drift, use empty list if no columns
-	columns := make([]map[string]interface{}, 0)
-	if dataset.Columns != nil && len(dataset.Columns) > 0 {
-		columns = make([]map[string]interface{}, len(dataset.Columns))
-		for i, col := range dataset.Columns {
-			columns[i] = map[string]interface{}{
-				"name":      col.Name,
-				"data_type": col.DataType,
-			}
-		}
-	}
-	if err := d.Set("columns", columns); err != nil {
-		return diag.Errorf("failed to set columns: %v", err)
-	}
-
-	// Set metadata_ready based on whether columns are populated
-	metadataReady := dataset.Columns != nil && len(dataset.Columns) > 0
-	d.Set("metadata_ready", metadataReady)
+	d.Set("metadata_ready", len(dataset.Columns) > 0)
 
 	return nil
 }
 
 func resourceDatasetUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V2
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.Errorf("invalid dataset ID: %s", d.Id())
 	}
 
-	workspaceId := d.Get("workspace_id").(string)
-
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	req := &client.UpdateDatasetRequest{}
-	hasDatasetChanges := false
-
-	// Only include changed fields
+	req := &v2.UpdateDatasetRequest{}
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
 		req.Name = &name
-		hasDatasetChanges = true
 	}
-
 	if d.HasChange("description") {
-		desc := d.Get("description").(string)
-		req.Description = &desc
-		hasDatasetChanges = true
+		description := d.Get("description").(string)
+		req.Description = &description
 	}
-
 	if d.HasChange("query") {
 		query := d.Get("query").(string)
 		req.Query = &query
-		hasDatasetChanges = true
 	}
 
-	if hasDatasetChanges {
-		_, err = apiClient.UpdateDatasetWithToken(ctx, id, req, workspaceToken)
-		if err != nil {
+	if req.Name != nil || req.Description != nil || req.Query != nil {
+		if _, err := v2.UpdateDataset(ctx, apiClient, id, req); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -382,7 +264,7 @@ func resourceDatasetUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	if d.HasChange("wait_for_metadata_refresh") {
 		old, new := d.GetChange("wait_for_metadata_refresh")
 		if !old.(bool) && new.(bool) && !d.Get("metadata_ready").(bool) {
-			if diags := waitForMetadataRefresh(ctx, apiClient, id, workspaceToken); diags != nil {
+			if diags := waitForMetadataRefresh(ctx, apiClient, id); diags != nil {
 				return diags
 			}
 		}
@@ -392,55 +274,56 @@ func resourceDatasetUpdate(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceDatasetDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V2
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.Errorf("invalid dataset ID: %s", d.Id())
 	}
 
-	workspaceId := d.Get("workspace_id").(string)
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
+	if err := v2.DeleteDataset(ctx, apiClient, id); err != nil {
+		if v2.IsNotFoundError(err) {
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
-	err = apiClient.DeleteDatasetWithToken(ctx, id, workspaceToken)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
 	return nil
 }
 
-func resourceDatasetImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	// Support composite format: workspace_id:dataset_id
-	parts := strings.Split(d.Id(), ":")
+// setDatasetAttributes sets the attributes the resource and data source share.
+func setDatasetAttributes(d *schema.ResourceData, dataset *v2.Dataset) error {
+	d.Set("name", dataset.Name)
+	d.Set("type", dataset.Type)
+	d.Set("query", dataset.Query)
+	d.Set("group_id", dataset.GroupID)
+	d.Set("resource_identifier", dataset.ResourceIdentifier)
 
-	if len(parts) == 2 {
-		// Format: workspace_id:dataset_id
-		workspaceId := parts[0]
-		datasetId := parts[1]
-
-		d.SetId(datasetId)
-		d.Set("workspace_id", workspaceId)
-
-		return []*schema.ResourceData{d}, nil
-	} else if len(parts) == 1 {
-		// Legacy format - provide helpful error
-		return nil, fmt.Errorf(`import requires workspace_id. Use format: workspace_id:dataset_id
-
-Example:
-  terraform import census_dataset.all_users 69962:789
-
-Where 69962 is the workspace_id and 789 is the dataset_id.`)
+	if dataset.Description != nil {
+		d.Set("description", *dataset.Description)
+	}
+	if dataset.CachedRecordCount != nil {
+		d.Set("cached_record_count", *dataset.CachedRecordCount)
 	}
 
-	return nil, fmt.Errorf("invalid import format. Use: workspace_id:dataset_id")
+	if !dataset.CreatedAt.IsZero() {
+		d.Set("created_at", dataset.CreatedAt.Format("2006-01-02T15:04:05Z"))
+	}
+	if !dataset.UpdatedAt.IsZero() {
+		d.Set("updated_at", dataset.UpdatedAt.Format("2006-01-02T15:04:05Z"))
+	}
+
+	// Always set columns, as an empty list when there are none, to avoid drift.
+	columns := make([]map[string]interface{}, len(dataset.Columns))
+	for i, col := range dataset.Columns {
+		columns[i] = map[string]interface{}{
+			"name":      col.Name,
+			"data_type": col.DataType,
+		}
+	}
+	if err := d.Set("columns", columns); err != nil {
+		return fmt.Errorf("failed to set columns: %w", err)
+	}
+
+	return nil
 }

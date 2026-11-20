@@ -2,13 +2,12 @@ package provider
 
 import (
 	"context"
-	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 const (
@@ -17,6 +16,10 @@ const (
 	// DefaultBaseURL is the default base URL for US region
 	DefaultBaseURL = "https://app.getcensus.com/api/v1"
 )
+
+type clients struct {
+	V2 *v2.Client
+}
 
 // Version is the provider release version, sent to Census in the User-Agent.
 // main sets it from its build-time version.
@@ -33,21 +36,11 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("CENSUS_PERSONAL_ACCESS_TOKEN", nil),
 				Description: "Personal access token for Census APIs. Used for all operations including dynamic workspace token retrieval. Can also be set via CENSUS_PERSONAL_ACCESS_TOKEN environment variable.",
 			},
-			"region": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  DefaultRegion,
-				ValidateFunc: validation.StringMatch(
-					regexp.MustCompile(`^(us|eu)$`),
-					"region must be either 'us' or 'eu'",
-				),
-				Description: "Census region. Defaults to 'us', which is correct for all standard configurations; there is no need to set this as of August 2026.",
-			},
 			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CENSUS_BASE_URL", ""),
-				Description: "Base URL for Census API. Defaults to the standard Census API endpoint. Can also be set via CENSUS_BASE_URL environment variable.",
+				Description: "Base URL of the Fivetran Activations API, e.g. `https://app.getcensus.com`. A trailing `/api/v1` or `/api/v2` is accepted and ignored. Defaults to `https://app.getcensus.com`; when unset, `region` still picks the host for resources on the v1 API. Can also be set via the CENSUS_BASE_URL environment variable.",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
@@ -56,6 +49,7 @@ func Provider() *schema.Provider {
 			"census_destination": resourceDestination(),
 			"census_sync":        ResourceSync(),
 			"census_dataset":     resourceDataset(),
+			"census_activation":  resourceActivation(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"census_workspace":   dataSourceWorkspace(),
@@ -63,6 +57,7 @@ func Provider() *schema.Provider {
 			"census_destination": dataSourceDestination(),
 			"census_sync":        dataSourceSync(),
 			"census_dataset":     dataSourceDataset(),
+			"census_activation":  dataSourceActivation(),
 		},
 	}
 
@@ -79,7 +74,6 @@ func configure(ctx context.Context, d *schema.ResourceData, userAgent string) (i
 	var diags diag.Diagnostics
 
 	personalToken := d.Get("personal_access_token").(string)
-	region := d.Get("region").(string)
 	baseURL := d.Get("base_url").(string)
 
 	// Validate that personal access token is provided
@@ -87,30 +81,50 @@ func configure(ctx context.Context, d *schema.ResourceData, userAgent string) (i
 		return nil, diag.Errorf("personal_access_token is required")
 	}
 
-	// Determine base URL if not explicitly provided
-	if baseURL == "" {
-		switch region {
-		case "us":
-			baseURL = "https://app.getcensus.com/api/v1"
-		case "eu":
-			baseURL = "https://app-eu.getcensus.com/api/v1"
-		default:
-			return nil, diag.Errorf("unsupported region: %s", region)
-		}
-	}
-
-	config := &client.Config{
-		PersonalAccessToken:  personalToken,
-		WorkspaceAccessToken: "", // No longer used - workspace tokens are fetched dynamically
-		BaseURL:              baseURL,
-		Region:               region,
-		UserAgent:            userAgent,
-	}
-
-	client, err := client.NewClient(config)
+	v2Root, err := apiRoots(baseURL)
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
 
-	return client, diags
+	v2Config := &v2.Config{
+		PersonalAccessToken: personalToken,
+		BaseURL:             v2Root + "/api/v2",
+		UserAgent:           userAgent,
+	}
+
+	v2Client, err := v2.NewClient(v2Config)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	return &clients{V2: v2Client}, diags
+}
+
+// defaultAPIRoot is the API host used when base_url is unset. The v2 API is
+// always reached here, whatever region is; region only picks the v1 host.
+const defaultAPIRoot = "https://app.getcensus.com"
+
+// apiRoots returns the host roots the v1 and v2 clients are built on
+// (<root>/api/v1 and <root>/api/v2). A set base_url is used for both. Unset,
+// v1 uses the host for region and v2 always uses defaultAPIRoot.
+func apiRoots(baseURL string) (v2Root string, err error) {
+	if baseURL != "" {
+		root := apiRoot(baseURL)
+		return root, nil
+	}
+
+	return defaultAPIRoot, nil
+}
+
+// apiRoot reduces base_url to a host root. base_url may be given with or
+// without a trailing /api/v1 or /api/v2 (e.g. https://app.staging.getcensus.com
+// or https://app.staging.getcensus.com/api/v1).
+func apiRoot(baseURL string) string {
+	root := strings.TrimSuffix(baseURL, "/")
+	for _, suffix := range []string{"/api/v2", "/api/v1"} {
+		if strings.HasSuffix(root, suffix) {
+			return strings.TrimSuffix(root, suffix)
+		}
+	}
+	return root
 }

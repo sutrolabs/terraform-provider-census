@@ -1,0 +1,59 @@
+package acceptance
+
+import (
+	"fmt"
+	"os"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+)
+
+func TestAccDataSourceSource_Basic(t *testing.T) {
+	rName := acctest.RandString(6)
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { TestAccPreCheckIntegration(t) },
+		Providers: TestAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceSourceConfig_basic(rName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.census_source.test", "name", fmt.Sprintf("Test_Redshift_Source_%s", rName)),
+					resource.TestCheckResourceAttr("data.census_source.test", "type", "redshift"),
+					resource.TestCheckResourceAttrSet("data.census_source.test", "id"),
+					resource.TestCheckResourceAttrSet("data.census_source.test", "created_at"),
+					resource.TestCheckResourceAttrPair("data.census_source.test", "id", "census_source.test", "id"),
+					resource.TestCheckResourceAttrPair("data.census_source.test", "group_id", "census_source.test", "group_id"),
+				),
+			},
+		},
+	})
+}
+
+func testAccDataSourceSourceConfig_basic(rName string) string {
+	return fmt.Sprintf(`
+resource "census_source" "test" {
+  name = "Test_Redshift_Source_%s"
+  type = "redshift"
+
+  connection_config = {
+    hostname = "%s"
+    port     = "%s"
+    database = "%s"
+    user     = "%s"
+    password = "%s"
+  }
+}
+
+data "census_source" "test" {
+  id = census_source.test.id
+}
+`,
+		rName,
+		os.Getenv("CENSUS_TEST_REDSHIFT_HOST"),
+		getEnvOrDefault("CENSUS_TEST_REDSHIFT_PORT", "5439"),
+		os.Getenv("CENSUS_TEST_REDSHIFT_DATABASE"),
+		os.Getenv("CENSUS_TEST_REDSHIFT_USERNAME"),
+		os.Getenv("CENSUS_TEST_REDSHIFT_PASSWORD"),
+	)
+}

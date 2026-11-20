@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 func dataSourceSync() *schema.Resource {
 	return &schema.Resource{
-		Description: "Retrieves information about a Census sync.",
+		Description: "Retrieves information about a Fivetran Activations sync.",
 		ReadContext: dataSourceSyncRead,
 
 		Schema: map[string]*schema.Schema{
@@ -23,88 +24,25 @@ func dataSourceSync() *schema.Resource {
 				Required:    true,
 				Description: "The ID of the sync.",
 			},
-			"workspace_id": {
+			"activation_id": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The ID of the workspace this sync belongs to.",
+				Computed:    true,
+				Description: "The ID of the activation this sync belongs to.",
 			},
 			"label": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The name/label of the sync.",
 			},
-			"source_attributes": {
-				Type:        schema.TypeList,
+			"source_object": {
+				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Source-specific configuration (e.g., SQL query, table selection).",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"connection_id": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The ID of the source connection.",
-						},
-						"object": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Source object configuration (JSON string for complex objects like table/dataset).",
-						},
-					},
-				},
+				Description: "Source object configuration (JSON string for complex objects like table/dataset).",
 			},
-			"destination_attributes": {
-				Type:        schema.TypeList,
+			"destination_object": {
+				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Destination-specific configuration (e.g., object, operation mode).",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"connection_id": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The ID of the destination connection.",
-						},
-						"object": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The destination object name.",
-						},
-					},
-				},
-			},
-			"field_mapping": {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "Field mappings between source and destination.",
-				Deprecated:  "This field is unsupported and will be removed in a future version.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"from": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Source field name.",
-						},
-						"to": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Destination field name.",
-						},
-						"operation": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Mapping operation (direct, constant, sync_metadata, segment_membership, liquid_template).",
-						},
-						"constant": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Constant value for constant operations.",
-						},
-						"is_primary_identifier": {
-							Type:        schema.TypeBool,
-							Computed:    true,
-							Description: "Whether this field is the primary identifier (sync key).",
-						},
-					},
-				},
+				Description: "The destination object name.",
 			},
 			"paused": {
 				Type:        schema.TypeBool,
@@ -236,70 +174,48 @@ func dataSourceSync() *schema.Resource {
 				Computed:    true,
 				Description: "Timestamp when the sync was last updated.",
 			},
-			"last_run_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Timestamp when the sync was last executed.",
-				Deprecated:  "This field is unsupported and will be removed in a future version.",
-			},
-			"next_run_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Timestamp when the sync is scheduled to run next.",
-				Deprecated:  "This field is unsupported and will be removed in a future version.",
-			},
-			"last_run_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "ID of the last sync run.",
-				Deprecated:  "This field is unsupported and will be removed in a future version.",
-			},
 		},
 	}
 }
 
 func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V2
 
 	syncID, err := strconv.Atoi(d.Get("id").(string))
 	if err != nil {
 		return diag.Errorf("invalid sync ID: %s", d.Get("id").(string))
 	}
 
-	workspaceId := d.Get("workspace_id").(string)
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	sync, err := apiClient.GetSyncWithToken(ctx, syncID, workspaceToken)
+	sync, err := v2.GetSync(ctx, apiClient, syncID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.Itoa(sync.ID))
-	d.Set("workspace_id", workspaceId)
+	d.Set("activation_id", sync.ActivationID)
 	d.Set("label", sync.Label)
 	d.Set("status", sync.Status)
 	d.Set("paused", sync.Paused)
-	d.Set("created_at", sync.CreatedAt.Format("2006-01-02T15:04:05Z"))
-	d.Set("updated_at", sync.UpdatedAt.Format("2006-01-02T15:04:05Z"))
+	d.Set("created_at", sync.CreatedAt.Format(time.RFC3339))
+	d.Set("updated_at", sync.UpdatedAt.Format(time.RFC3339))
 
 	// last_run_at, next_run_at and last_run_id are deprecated: the API does not support them,
 	// so they are never set and stay empty.
 
 	// Set complex attributes
-	if err := d.Set("source_attributes", flattenSourceAttributesForDataSource(sync.SourceAttributes)); err != nil {
-		return diag.Errorf("failed to set source_attributes: %v", err)
+	source_object, err := flattenSourceAttributesForDataSource(sync.SourceAttributes)
+	if err != nil {
+		return diag.Errorf("failed to read source_object: %v", err)
 	}
-	if err := d.Set("destination_attributes", flattenDestinationAttributesForDataSource(sync.DestinationAttributes)); err != nil {
-		return diag.Errorf("failed to set destination_attributes: %v", err)
+
+	destination_object, err := flattenDestinationAttributesForDataSource(sync.DestinationAttributes)
+	if err != nil {
+		return diag.Errorf("failed to read destination_object: %v", err)
 	}
+
+	d.Set("source_object", source_object)
+	d.Set("destination_object", destination_object)
+
 	// field_mapping is deprecated: the API does not support it, so it is always an empty list.
 	if err := d.Set("field_mapping", []interface{}{}); err != nil {
 		return diag.Errorf("failed to set field_mapping: %v", err)
@@ -314,23 +230,9 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 // flattenSourceAttributesForDataSource converts API source_attributes map to Terraform TypeList format
-func flattenSourceAttributesForDataSource(attrs map[string]interface{}) []interface{} {
+func flattenSourceAttributesForDataSource(attrs map[string]interface{}) (string, error) {
 	if attrs == nil {
-		return nil
-	}
-
-	result := make(map[string]interface{})
-
-	// Convert connection_id to string
-	if connID, ok := attrs["connection_id"]; ok {
-		switch v := connID.(type) {
-		case float64:
-			result["connection_id"] = strconv.FormatFloat(v, 'f', -1, 64)
-		case int:
-			result["connection_id"] = strconv.Itoa(v)
-		case string:
-			result["connection_id"] = v
-		}
+		return "", nil
 	}
 
 	// Serialize object as JSON string
@@ -338,40 +240,23 @@ func flattenSourceAttributesForDataSource(attrs map[string]interface{}) []interf
 		if objMap, isMap := obj.(map[string]interface{}); isMap {
 			jsonBytes, err := json.Marshal(objMap)
 			if err == nil {
-				result["object"] = string(jsonBytes)
+				return string(jsonBytes), nil
+			} else {
+				return "", err
 			}
 		} else {
-			result["object"] = fmt.Sprintf("%v", obj)
+			return fmt.Sprintf("%v", obj), nil
 		}
 	}
 
-	return []interface{}{result}
+	return "", nil
 }
 
 // flattenDestinationAttributesForDataSource converts API destination_attributes map to Terraform TypeList format
-func flattenDestinationAttributesForDataSource(attrs map[string]interface{}) []interface{} {
+func flattenDestinationAttributesForDataSource(attrs *v2.SyncDestinationAttributes) (string, error) {
 	if attrs == nil {
-		return nil
+		return "", nil
 	}
 
-	result := make(map[string]interface{})
-
-	// Convert connection_id to string
-	if connID, ok := attrs["connection_id"]; ok {
-		switch v := connID.(type) {
-		case float64:
-			result["connection_id"] = strconv.FormatFloat(v, 'f', -1, 64)
-		case int:
-			result["connection_id"] = strconv.Itoa(v)
-		case string:
-			result["connection_id"] = v
-		}
-	}
-
-	// Set object as string
-	if obj, ok := attrs["object"]; ok {
-		result["object"] = fmt.Sprintf("%v", obj)
-	}
-
-	return []interface{}{result}
+	return fmt.Sprintf("%v", attrs.Object), nil
 }

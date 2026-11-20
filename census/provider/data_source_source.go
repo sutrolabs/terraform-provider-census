@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 func dataSourceSource() *schema.Resource {
@@ -22,10 +22,28 @@ func dataSourceSource() *schema.Resource {
 				Required:    true,
 				Description: "The ID of the source to retrieve.",
 			},
-			"workspace_id": {
+			"group_id": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The ID of the workspace this source belongs to.",
+				Computed:    true,
+				Description: "The group ID of the source, used to reference it from activations and datasets.",
+			},
+			"region": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The region the source runs in.",
+			},
+			"notification_emails": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "Email addresses notified about this source.",
+			},
+			"storage_backend": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Sensitive:   true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "The source's custom storage backend (bring your own bucket), if one is configured: `type` (`s3`, `gcs`, or `azure`) plus that backend's fields.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -71,35 +89,25 @@ func dataSourceSource() *schema.Resource {
 }
 
 func dataSourceSourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	apiClient := meta.(*clients).V2
 
 	id, err := strconv.Atoi(d.Get("id").(string))
 	if err != nil {
 		return diag.Errorf("invalid source ID: %s", d.Get("id").(string))
 	}
 
-	workspaceId := d.Get("workspace_id").(string)
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	// Get workspace token using personal access token
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.Errorf("failed to get workspace API key for workspace %d: %v", workspaceIdInt, err)
-	}
-
-	// Get the source using the workspace token
-	source, err := apiClient.GetSourceWithToken(ctx, id, workspaceToken)
+	source, err := v2.GetSource(ctx, apiClient, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.Itoa(source.ID))
-	// Note: workspace_id is a Required input field, don't overwrite it with API response
 	d.Set("name", source.Name)
 	d.Set("type", source.Type)
+	d.Set("group_id", source.GroupID)
+	d.Set("region", source.Region)
+	d.Set("notification_emails", source.NotificationEmails)
+	d.Set("storage_backend", source.StorageBackend)
 	d.Set("created_at", source.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
 
 	// status, test_status, last_tested and updated_at are deprecated: the API does not support them.

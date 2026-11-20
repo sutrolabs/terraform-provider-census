@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.0.0] - Unreleased
+
+### Added
+- **`census_activation` resource and data source**, for use in place of `census_destination`. An activation pairs a source (`group_id`) with a destination; creating one also creates its destination connection. Changing `group_id` or `type` replaces it. Import an activation by ID, or by `<group_id>:<destination_id>` for a destination previously managed with `census_destination`; the data source supports the same two lookups.
+- **Source group ID**: Added `group_id` to `census_source`.
+- **Source region, notification emails and bring your own bucket**: Added `region`, `notification_emails` and `storage_backend` to `census_source`.
+- **Dataset group ID**: Added `group_id` to `census_dataset` (resource and data source), the group ID of the source connection the dataset's query runs against. On the resource it replaces `source_id` as the way to choose the source.
+
+### Changed
+- **`census_destination` and `census_workspace` are frozen** (resources and data sources): creating one now fails; read, update and delete make no API calls, so removing one no longer touches Fivetran Activations; the data sources return only their `id`, with a warning. Use `census_activation` in place of `census_destination`; workspaces are no longer needed.
+- **`census_source` uses the v2 API**: Sources no longer need a workspace, and are imported by source ID alone (`terraform import census_source.warehouse 67890`).
+- **`census_source` state is upgraded automatically**: once upgraded, it can't be used with v0.2.x of the provider.
+- **`census_dataset` uses the v2 API**: Datasets no longer need a workspace, and are imported by dataset ID alone (`terraform import census_dataset.active_users 67890`).
+
+### Removed
+- **`workspace_id` on `census_source` and `census_dataset`** (resource and data source): sources and datasets no longer belong to a workspace. Remove the argument from your configuration, and any references to `census_source.<name>.workspace_id` or `census_dataset.<name>.workspace_id`; Terraform reports `Unsupported argument` until you do. Existing state needs no migration.
+- **`source_id` on `census_dataset`** (resource and data source): replace `source_id = census_source.<name>.id` with `group_id = census_source.<name>.group_id`. Existing datasets are not replaced.
+
+### Deprecated
+- `census_destination` and `census_workspace` (resources and data sources).
+
+
 ## [0.2.21] - 2026-10-26
 
 ### Added

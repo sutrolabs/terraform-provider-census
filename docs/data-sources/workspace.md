@@ -1,6 +1,14 @@
 # census_workspace Data Source
 
-Retrieves information about a Census workspace.
+~> **Deprecated:** This data source is deprecated and no longer returns data from Fivetran Activations. Workspaces are no longer needed; remove it from your configuration.
+
+Previously retrieved a workspace from Fivetran Activations.
+
+## Behavior
+
+This data source remains in the provider only so that existing configurations keep working. It will not be removed.
+
+It makes no API calls. It returns the `id` you give it, empty values for every other attribute, and a warning.
 
 ## Example Usage
 
@@ -8,27 +16,13 @@ Retrieves information about a Census workspace.
 data "census_workspace" "example" {
   id = "123"
 }
-
-output "workspace_name" {
-  value = data.census_workspace.example.name
-}
 ```
 
 ## Argument Reference
 
-* `id` - (Required) The ID of the workspace to retrieve.
+* `id` - (Required) The ID of the workspace. Returned unchanged.
 
 ## Attribute Reference
 
-The following attributes are exported:
-
-* `id` - The ID of the workspace.
-* `name` - The name of the workspace.
-* `organization_id` - The ID of the organization the workspace belongs to.
-* `created_at` - The timestamp when the workspace was created.
-* `notification_emails` - The list of email addresses that will receive alerts from the workspace.
-
-## Notes
-
-- This data source requires a personal access token in the provider configuration.
-- The provider automatically handles workspace-level authentication.
+* `id` - The ID given in the configuration.
+* `name`, `organization_id`, `created_at`, `notification_emails` - Always empty.

@@ -1,0 +1,266 @@
+package provider
+
+import (
+	"context"
+	"encoding/json"
+	"sort"
+	"strconv"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
+)
+
+func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	apiClient := meta.(*clients).V2
+
+	req := buildSyncRequest(ctx, d)
+
+	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
+		tflog.Debug(ctx, "Creating sync", map[string]interface{}{"request": string(reqJSON)})
+	} else {
+		tflog.Debug(ctx, "Creating sync (failed to marshal request for logging)", map[string]interface{}{"error": jsonErr.Error()})
+	}
+
+	sync, err := v2.CreateSync(ctx, apiClient, req)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	tflog.Debug(ctx, "Sync created successfully", map[string]interface{}{"sync_id": sync.ID})
+	d.SetId(strconv.Itoa(sync.ID))
+
+	return resourceSyncRead(ctx, d, meta)
+}
+
+func resourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	apiClient := meta.(*clients).V2
+
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return diag.Errorf("invalid sync ID: %s", d.Id())
+	}
+
+	tflog.Debug(ctx, "Starting resourceSyncRead", map[string]interface{}{"sync_id": id})
+
+	sync, err := v2.GetSync(ctx, apiClient, id)
+	if err != nil {
+		if v2.IsNotFoundError(err) {
+			tflog.Debug(ctx, "Sync not found, clearing resource ID", map[string]interface{}{"sync_id": id})
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	d.Set("activation_id", sync.ActivationID)
+	d.Set("label", sync.Label)
+	d.Set("status", sync.Status)
+	d.Set("paused", sync.Paused)
+
+	// Set operation field from API response
+	if sync.Operation != "" {
+		d.Set("operation", sync.Operation)
+	}
+
+	// Set field configuration only if explicitly configured by user
+	// This prevents drift when API returns defaults but user hasn't specified them
+	if _, ok := d.GetOk("field_behavior"); ok && sync.FieldBehavior != "" {
+		d.Set("field_behavior", sync.FieldBehavior)
+	}
+	if _, ok := d.GetOk("field_normalization"); ok && sync.FieldNormalization != "" {
+		d.Set("field_normalization", sync.FieldNormalization)
+	}
+	if _, ok := d.GetOk("field_order"); ok && sync.FieldOrder != "" {
+		d.Set("field_order", sync.FieldOrder)
+	}
+	if _, ok := d.GetOk("sync_behavior_family"); ok && sync.SyncBehaviorFamily != "" {
+		d.Set("sync_behavior_family", sync.SyncBehaviorFamily)
+	}
+
+	// Set advanced configuration if present
+	if len(sync.AdvancedConfiguration) > 0 {
+		if err := d.Set("advanced_configuration", FlattenAdvancedConfiguration(ctx, sync.AdvancedConfiguration)); err != nil {
+			return diag.Errorf("failed to set advanced_configuration: %v", err)
+		}
+	}
+
+	// Set high water mark attribute if present
+	if sync.HighWaterMarkAttribute != "" {
+		d.Set("high_water_mark_attribute", sync.HighWaterMarkAttribute)
+	}
+
+	// Set historical sync operation if present
+	if sync.HistoricalSyncOperation != "" {
+		d.Set("historical_sync_operation", sync.HistoricalSyncOperation)
+	}
+
+	// Set mirror strategy if present
+	if sync.MirrorStrategy != "" {
+		d.Set("mirror_strategy", sync.MirrorStrategy)
+	}
+
+	// Set alert attributes if present
+	if len(sync.AlertAttributes) > 0 {
+		if err := d.Set("alert", FlattenAlerts(sync.AlertAttributes)); err != nil {
+			return diag.Errorf("failed to set alert: %v", err)
+		}
+	}
+
+	// Set time fields only if they are not zero values
+	if !sync.CreatedAt.IsZero() {
+		d.Set("created_at", sync.CreatedAt.Format(time.RFC3339))
+	}
+	if !sync.UpdatedAt.IsZero() {
+		d.Set("updated_at", sync.UpdatedAt.Format(time.RFC3339))
+	}
+
+	// last_run_at, next_run_at and last_run_id are deprecated: the API does not support them,
+	// so they are never set and stay empty.
+
+	if err := d.Set("run_mode", FlattenRunMode(sync.Mode)); err != nil {
+		return diag.Errorf("failed to set run_mode: %v", err)
+	}
+
+	if err := d.Set("source_attributes", FlattenSourceAttributes(sync.SourceAttributes)); err != nil {
+		return diag.Errorf("failed to set source_attributes: %v", err)
+	}
+
+	if err := d.Set("destination_attributes", FlattenDestinationAttributes(sync.DestinationAttributes)); err != nil {
+		return diag.Errorf("failed to set destination_attributes: %v", err)
+	}
+
+	// Sort API mappings by position (Census's canonical order) before
+	// flattening. Position is always set by Census API regardless of
+	// field_order setting; this prevents spurious diffs when the Census API
+	// returns mappings in a different order.
+	mappings := make([]v2.MappingAttributes, len(sync.Mappings))
+	copy(mappings, sync.Mappings)
+	sort.Slice(mappings, func(i, j int) bool {
+		return mappings[i].Position < mappings[j].Position
+	})
+
+	// Filter out Census-managed compound_key mappings. These are
+	// auto-generated by Census for certain destinations (e.g., Google Ads
+	// with compound keys). Users cannot create or modify these mappings, so
+	// they should not be tracked in Terraform state.
+	userManagedMappings := make([]v2.MappingAttributes, 0, len(mappings))
+	for _, mapping := range mappings {
+		if mapping.From.Type != "compound_key" {
+			userManagedMappings = append(userManagedMappings, mapping)
+		} else {
+			tflog.Debug(ctx, "Filtering out Census-managed compound_key mapping", map[string]interface{}{"to": mapping.To})
+		}
+	}
+
+	if err := d.Set("field_mapping", FlattenFieldMappings(userManagedMappings)); err != nil {
+		return diag.Errorf("failed to set field_mapping: %v", err)
+	}
+
+	return nil
+}
+
+func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	apiClient := meta.(*clients).V2
+
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return diag.Errorf("invalid sync ID: %s", d.Id())
+	}
+	tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": id})
+
+	createReq := buildSyncRequest(ctx, d)
+	req := &v2.UpdateSyncRequest{
+		Label:                   createReq.Label,
+		Operation:               createReq.Operation,
+		SourceAttributes:        createReq.SourceAttributes,
+		DestinationAttributes:   createReq.DestinationAttributes,
+		Mappings:                createReq.Mappings,
+		AlertAttributes:         createReq.AlertAttributes,
+		AdvancedConfiguration:   createReq.AdvancedConfiguration,
+		Mode:                    createReq.Mode,
+		Paused:                  createReq.Paused,
+		FieldBehavior:           createReq.FieldBehavior,
+		FieldNormalization:      createReq.FieldNormalization,
+		FieldOrder:              createReq.FieldOrder,
+		SyncBehaviorFamily:      createReq.SyncBehaviorFamily,
+		HighWaterMarkAttribute:  createReq.HighWaterMarkAttribute,
+		HistoricalSyncOperation: createReq.HistoricalSyncOperation,
+		MirrorStrategy:          createReq.MirrorStrategy,
+	}
+
+	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
+		tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": id, "request": string(reqJSON)})
+	} else {
+		tflog.Debug(ctx, "Updating sync (failed to marshal request for logging)", map[string]interface{}{"sync_id": id, "error": jsonErr.Error()})
+	}
+
+	if _, err := v2.UpdateSync(ctx, apiClient, id, req); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return resourceSyncRead(ctx, d, meta)
+}
+
+func resourceSyncDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	apiClient := meta.(*clients).V2
+
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return diag.Errorf("invalid sync ID: %s", d.Id())
+	}
+
+	if err := v2.DeleteSync(ctx, apiClient, id); err != nil {
+		if v2.IsNotFoundError(err) {
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	d.SetId("")
+	return nil
+}
+
+// buildSyncRequest reads the Terraform config/state into a CreateSyncRequest
+// — the superset of fields Create and Update both send. Update derives its
+// own request type from this one (see resourceSyncUpdate) since the two
+// request shapes differ only in which fields are required.
+func buildSyncRequest(ctx context.Context, d *schema.ResourceData) *v2.CreateSyncRequest {
+	var mode *v2.SyncMode
+	if runModeRaw := d.Get("run_mode").([]interface{}); len(runModeRaw) > 0 {
+		mode = ExpandRunMode(ctx, runModeRaw)
+	}
+
+	return &v2.CreateSyncRequest{
+		ActivationID:          d.Get("activation_id").(string),
+		Operation:             d.Get("operation").(string),
+		SourceAttributes:      ExpandSourceAttributes(ctx, d.Get("source_attributes").([]interface{})),
+		DestinationAttributes: ExpandDestinationAttributes(ctx, d.Get("destination_attributes").([]interface{})),
+		Mappings:              ExpandFieldMappings(ctx, d.Get("field_mapping").([]interface{})),
+
+		Label: d.Get("label").(string),
+		Mode:  mode,
+
+		Paused: d.Get("paused").(bool),
+
+		FieldBehavior:      d.Get("field_behavior").(string),
+		FieldNormalization: d.Get("field_normalization").(string),
+		FieldOrder:         d.Get("field_order").(string),
+
+		SyncBehaviorFamily: d.Get("sync_behavior_family").(string),
+
+		AdvancedConfiguration: ExpandAdvancedConfiguration(ctx, d.Get("advanced_configuration").(string)),
+
+		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
+
+		HistoricalSyncOperation: d.Get("historical_sync_operation").(string),
+
+		MirrorStrategy: d.Get("mirror_strategy").(string),
+
+		AlertAttributes: ExpandAlerts(ctx, d.Get("alert").([]interface{})),
+	}
+}

@@ -2,17 +2,16 @@ package provider
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	"github.com/sutrolabs/terraform-provider-census/census/client"
 )
 
 func dataSourceWorkspace() *schema.Resource {
 	return &schema.Resource{
-		Description: "Retrieves information about a Census workspace.",
+		DeprecationMessage: "This data source is deprecated and no longer returns data from Fivetran Activations. Workspaces are no longer needed; remove it from your configuration.",
+
+		Description: "Previously retrieved a workspace from Fivetran Activations (Census).",
 
 		ReadContext: dataSourceWorkspaceRead,
 
@@ -49,26 +48,11 @@ func dataSourceWorkspace() *schema.Resource {
 }
 
 func dataSourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*client.Client)
+	d.SetId(d.Get("id").(string))
 
-	id, err := strconv.Atoi(d.Get("id").(string))
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", d.Get("id").(string))
-	}
-
-	workspace, err := apiClient.GetWorkspace(ctx, id)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(strconv.Itoa(workspace.ID))
-	d.Set("name", workspace.Name)
-	d.Set("organization_id", workspace.OrganizationID)
-	d.Set("created_at", workspace.CreatedAt.Format("2006-01-02T15:04:05Z07:00"))
-
-	if err := d.Set("notification_emails", workspace.NotificationEmails); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	return diag.Diagnostics{{
+		Severity: diag.Warning,
+		Summary:  "census_workspace data source is deprecated",
+		Detail:   "This data source no longer queries Fivetran Activations and returns only its id. Workspaces are no longer needed; remove it from your configuration.",
+	}}
 }

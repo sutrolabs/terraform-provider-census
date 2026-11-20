@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 func TestResourceReads_GatewayTimeoutPreservesState(t *testing.T) {
@@ -23,13 +23,6 @@ func TestResourceReads_GatewayTimeoutPreservesState(t *testing.T) {
 		buildData       func(t *testing.T) *schema.ResourceData
 		read            func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
 	}{
-		{
-			name:            "destination",
-			resourcePath:    "/destinations/2311185",
-			expectedSummary: "failed to get destination",
-			buildData:       testDestinationResourceData,
-			read:            resourceDestinationRead,
-		},
 		{
 			name:            "source",
 			resourcePath:    "/sources/2280673",
@@ -88,12 +81,6 @@ func TestResourceReads_NotFoundClearsState(t *testing.T) {
 		read         func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
 	}{
 		{
-			name:         "destination",
-			resourcePath: "/destinations/2311185",
-			buildData:    testDestinationResourceData,
-			read:         resourceDestinationRead,
-		},
-		{
 			name:         "source",
 			resourcePath: "/sources/2280673",
 			buildData:    testSourceResourceData,
@@ -144,13 +131,6 @@ func TestResourceReads_EmptyBodyIsError(t *testing.T) {
 		read            func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics
 	}{
 		{
-			name:            "destination",
-			resourcePath:    "/destinations/2311185",
-			expectedSummary: "no data",
-			buildData:       testDestinationResourceData,
-			read:            resourceDestinationRead,
-		},
-		{
 			name:            "source",
 			resourcePath:    "/sources/2280673",
 			expectedSummary: "no data",
@@ -170,13 +150,6 @@ func TestResourceReads_EmptyBodyIsError(t *testing.T) {
 			expectedSummary: "no data",
 			buildData:       testSyncResourceData,
 			read:            resourceSyncRead,
-		},
-		{
-			name:            "workspace",
-			resourcePath:    "/workspaces/69962",
-			expectedSummary: "no data",
-			buildData:       testWorkspaceResourceData,
-			read:            resourceWorkspaceRead,
 		},
 	}
 
@@ -210,7 +183,7 @@ func TestResourceReads_EmptyBodyIsError(t *testing.T) {
 	}
 }
 
-func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *client.Client {
+func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *clients {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -229,21 +202,13 @@ func newReadTestClient(t *testing.T, resourcePath string, statusCode int) *clien
 	}))
 	t.Cleanup(server.Close)
 
-	apiClient, err := client.NewClient(&client.Config{
-		BaseURL:             server.URL,
-		PersonalAccessToken: "personal-token",
-	})
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	return apiClient
+	return newTestClients(t, server.URL)
 }
 
 // newEmptyBodyReadTestClient is like newReadTestClient, but responds to
 // resourcePath with a 200 and a zero-length body instead of an error status
 // — the "API returned successfully but with nil data" scenario.
-func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *client.Client {
+func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *clients {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -261,15 +226,7 @@ func newEmptyBodyReadTestClient(t *testing.T, resourcePath string) *client.Clien
 	}))
 	t.Cleanup(server.Close)
 
-	apiClient, err := client.NewClient(&client.Config{
-		BaseURL:             server.URL,
-		PersonalAccessToken: "personal-token",
-	})
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	return apiClient
+	return newTestClients(t, server.URL)
 }
 
 func testDestinationResourceData(t *testing.T) *schema.ResourceData {
@@ -290,7 +247,6 @@ func testSourceResourceData(t *testing.T) *schema.ResourceData {
 	t.Helper()
 
 	d := schema.TestResourceDataRaw(t, resourceSource().Schema, map[string]interface{}{
-		"workspace_id":      "69962",
 		"name":              "Test Source",
 		"type":              "snowflake",
 		"connection_config": map[string]interface{}{"account": "acct"},
@@ -304,11 +260,10 @@ func testDatasetResourceData(t *testing.T) *schema.ResourceData {
 	t.Helper()
 
 	d := schema.TestResourceDataRaw(t, resourceDataset().Schema, map[string]interface{}{
-		"workspace_id": "69962",
-		"name":         "Test Dataset",
-		"type":         "sql",
-		"query":        "select 1",
-		"source_id":    123,
+		"name":     "Test Dataset",
+		"type":     "sql",
+		"query":    "select 1",
+		"group_id": "wandering_aimlessly",
 	})
 	d.SetId("44001")
 
@@ -319,9 +274,9 @@ func testSyncResourceData(t *testing.T) *schema.ResourceData {
 	t.Helper()
 
 	d := schema.TestResourceDataRaw(t, ResourceSync().Schema, map[string]interface{}{
-		"workspace_id": "69962",
-		"label":        "Test Sync",
-		"operation":    "upsert",
+		"activation_id": "act_123",
+		"label":         "Test Sync",
+		"operation":     "upsert",
 	})
 	d.SetId("3503053")
 
@@ -337,4 +292,21 @@ func testWorkspaceResourceData(t *testing.T) *schema.ResourceData {
 	d.SetId("69962")
 
 	return d
+}
+
+// newTestClients builds the provider meta with both the v1 and v2 clients
+// pointed at the same test server, since resource paths are the same
+// relative to either API root.
+func newTestClients(t *testing.T, baseURL string) *clients {
+	t.Helper()
+
+	v2Client, err := v2.NewClient(&v2.Config{
+		BaseURL:             baseURL,
+		PersonalAccessToken: "personal-token",
+	})
+	if err != nil {
+		t.Fatalf("failed to create v2 client: %v", err)
+	}
+
+	return &clients{V2: v2Client}
 }

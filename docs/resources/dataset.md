@@ -1,6 +1,6 @@
 # census_dataset Resource
 
-Manages a Census SQL dataset for data transformation. Datasets allow you to write SQL queries against your source data to create derived datasets that can be used in syncs.
+Manages a SQL dataset for data transformation. Datasets allow you to write SQL queries against your source data to create derived datasets that can be used in syncs.
 
 ## Example Usage
 
@@ -8,9 +8,8 @@ Manages a Census SQL dataset for data transformation. Datasets allow you to writ
 
 ```hcl
 resource "census_dataset" "active_users" {
-  workspace_id = census_workspace.main.id
-  name         = "Active Users"
-  source_id    = census_source.warehouse.id
+  name        = "Active Users"
+  group_id    = census_source.warehouse.group_id
 
   query = <<-SQL
     SELECT
@@ -30,10 +29,9 @@ resource "census_dataset" "active_users" {
 
 ```hcl
 resource "census_dataset" "high_value_customers" {
-  workspace_id = census_workspace.main.id
-  name         = "High Value Customers"
-  description  = "Customers with lifetime value greater than $1000"
-  source_id    = census_source.warehouse.id
+  name        = "High Value Customers"
+  description = "Customers with lifetime value greater than $1000"
+  group_id    = census_source.warehouse.group_id
 
   query = <<-SQL
     SELECT
@@ -55,10 +53,9 @@ resource "census_dataset" "high_value_customers" {
 
 ```hcl
 resource "census_dataset" "user_engagement_score" {
-  workspace_id = census_workspace.main.id
-  name         = "User Engagement Scores"
-  description  = "Calculated engagement metrics for active users"
-  source_id    = census_source.warehouse.id
+  name        = "User Engagement Scores"
+  description = "Calculated engagement metrics for active users"
+  group_id    = census_source.warehouse.group_id
 
   query = <<-SQL
     WITH user_activity AS (
@@ -86,12 +83,12 @@ resource "census_dataset" "user_engagement_score" {
 
 ## Argument Reference
 
-* `workspace_id` - (Required, Forces new resource) The ID of the workspace this dataset belongs to.
 * `name` - (Required) The name of the dataset.
-* `source_id` - (Required, Forces new resource) The ID of the source connection to run the query against.
+* `group_id` - (Required, Forces new resource) The group ID of the source connection to run the query against, usually `census_source.<name>.group_id`.
 * `query` - (Required) The SQL query that defines the dataset. Use heredoc syntax for multi-line queries.
 * `type` - (Optional, Forces new resource) The type of dataset. Defaults to `"sql"`. Currently only SQL datasets are supported.
 * `description` - (Optional) A description of the dataset's purpose.
+* `wait_for_metadata_refresh` - (Optional) Wait for Fivetran to fetch the dataset's columns before finishing the apply. Set this when a sync is created from the dataset in the same apply and the query takes a long time (over 60 seconds) to return column metadata. Changing it from `false` to `true` on an existing dataset refreshes the columns, unless they are already available. Defaults to `false`.
 
 ## Attribute Reference
 
@@ -105,25 +102,20 @@ In addition to all arguments above, the following attributes are exported:
   * `data_type` - The column's data type.
 * `created_at` - Timestamp when the dataset was created.
 * `updated_at` - Timestamp when the dataset was last updated.
+* `metadata_ready` - Whether Fivetran has fetched the dataset's columns.
 
 ## Import
 
-Datasets can be imported using the workspace ID and dataset ID separated by a colon:
+Datasets can be imported using the dataset ID:
 
 ```shell
-terraform import census_dataset.active_users "workspace_id:dataset_id"
-```
-
-For example:
-
-```shell
-terraform import census_dataset.active_users "12345:67890"
+terraform import census_dataset.active_users 67890
 ```
 
 ## Notes
 
 * Use heredoc syntax (`<<-SQL ... SQL`) for multi-line queries to maintain readability.
-* The dataset query is validated by Census when the dataset is created.
-* Column information and record counts are computed by Census after the query executes.
+* The dataset query is validated by Fivetran when the dataset is created.
+* Column information and record counts are computed by Fivetran after the query executes.
 * Changes to the `query` will trigger an update to the dataset.
 * Datasets can be used as sources in `census_sync` resources.
