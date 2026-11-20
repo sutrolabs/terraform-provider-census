@@ -1,0 +1,48 @@
+docs/index.md
+  h_96efa7013a7935 10,35-36,52,55,64
+examples/complete-census-setup/README.md
+  s_5041b77720d727::t_4fe24f360ca722 3
+census/provider/provider.go
+  s_5041b77720d727::t_4fe24f360ca722 28
+examples/complete-census-setup/Makefile
+  s_5041b77720d727::t_4fe24f360ca722 1,57
+examples/complete-census-setup/terraform.tfvars.example
+  s_5041b77720d727::t_4fe24f360ca722 2
+docs/README.md
+  s_5041b77720d727::t_4fe24f360ca722 3
+examples/README.md
+  s_5041b77720d727::t_4fe24f360ca722 1,3
+.env.test.example
+  s_5041b77720d727::t_4fe24f360ca722 1
+examples/staging-example/README.md
+  s_5041b77720d727::t_4fe24f360ca722 3
+TESTING.md
+  s_5041b77720d727::t_4fe24f360ca722 3
+examples/basic-workspace/main.tf
+  s_5041b77720d727::t_4fe24f360ca722 10
+examples/basic-workspace/README.md
+  s_5041b77720d727::t_4fe24f360ca722 3
+CONTRIBUTING.md
+  s_5041b77720d727::t_4fe24f360ca722 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "897e9a2c36f80e44f342cd9a13af9f84b7a7b087",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_5041b77720d727": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3e1d7a89-fc20-4e46-a944-f49d38d810a1",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
