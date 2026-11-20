@@ -2,7 +2,7 @@ terraform {
   required_providers {
     census = {
       source  = "sutrolabs/census"
-      version = "~> 0.1.0"
+      version = "~> 2.0"
     }
   }
 }
@@ -12,36 +12,30 @@ provider "census" {
   base_url              = var.census_base_url
 }
 
-# Create a workspace for staging testing
-resource "census_workspace" "staging_test" {
-  name                = var.workspace_name
-  notification_emails = var.notification_emails
-}
-
-# Create a data source (warehouse connection)
+# Create a source (warehouse connection)
 resource "census_source" "warehouse" {
-  name = var.source_label
-  type = var.source_type
+  name                = var.source_label
+  type                = var.source_type
+  notification_emails = var.notification_emails
 
   connection_config = var.source_credentials
 }
 
-# Create a destination (e.g., Salesforce sandbox)
-resource "census_destination" "crm" {
-  workspace_id = census_workspace.staging_test.id
-  name         = var.destination_label
-  type         = var.destination_type
+# Create an activation pairing the source with a destination (e.g., Salesforce sandbox)
+resource "census_activation" "crm" {
+  group_id = census_source.warehouse.group_id
+  name     = var.destination_label
+  type     = var.destination_type
 
-  connection_config = var.destination_credentials
+  credentials = var.destination_credentials
 }
 
 # Create a simple sync
 resource "census_sync" "test_sync" {
-  workspace_id = census_workspace.staging_test.id
-  label        = var.sync_label
+  activation_id = census_activation.crm.id
+  label         = var.sync_label
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type       = "table"
       table_name = var.source_table
@@ -49,8 +43,7 @@ resource "census_sync" "test_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.crm.id
-    object        = var.destination_object
+    object = var.destination_object
   }
 
   operation = "upsert"
@@ -60,7 +53,7 @@ resource "census_sync" "test_sync" {
     content {
       from                  = field_mapping.value.from
       to                    = field_mapping.value.to
-      is_primary_identifier = lookup(field_mapping.value, "is_primary_identifier", false)
+      is_primary_identifier = field_mapping.value.is_primary_identifier
     }
   }
 

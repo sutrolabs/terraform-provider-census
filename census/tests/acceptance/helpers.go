@@ -35,7 +35,7 @@ func TestAccPreCheck(t *testing.T) {
 }
 
 // TestAccPreCheckIntegration checks for credentials needed for integration tests
-// Integration tests create real resources (workspace, source, destination, sync) in staging
+// Integration tests create real resources (source, activation, sync) in staging
 func TestAccPreCheckIntegration(t *testing.T) {
 	TestAccPreCheck(t)
 
