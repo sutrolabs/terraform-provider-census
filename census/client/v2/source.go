@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Source is a Census source as returned by the v2 /sources endpoints.
+// Source is an Activations source as returned by the v2 /sources endpoints.
 type Source struct {
 	ID                                int                    `json:"id"`
 	Name                              string                 `json:"name"`
@@ -61,7 +61,7 @@ func CreateSource(ctx context.Context, c *Client, req *CreateSourceRequest) (*So
 		return nil, fmt.Errorf("failed to create source: %w", err)
 	}
 	if source == nil || source.ID == 0 {
-		return nil, fmt.Errorf("Census API returned a successful create response without a source ID — the source may have been created anyway; check Census before retrying to avoid a duplicate")
+		return nil, fmt.Errorf("Activations API returned a successful create response without a source ID — the source may have been created anyway; check Activations before retrying to avoid a duplicate")
 	}
 	return source, nil
 }

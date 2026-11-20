@@ -97,7 +97,7 @@ func providerBinaryPath(t *testing.T) string {
 // the value that config already expects, so there's no diff.
 const fixtureSyncActivationID = "fake_id"
 
-// fakeCensusSyncAPI starts a local HTTP server standing in for the Census v2
+// fakeCensusSyncAPI starts a local HTTP server standing in for the Activations v2
 // API's GET /syncs/{id} endpoint. It exists because
 // ResourceSyncStateUpgradeV1 (the sync resource's schema-version-1-to-2 state
 // upgrader) looks up each sync's activation_id over the network when

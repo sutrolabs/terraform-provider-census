@@ -1,12 +1,12 @@
-# Terraform Provider for Census
+# Terraform Provider for Fivetran Activations
 
-A Terraform provider for managing [Census](https://www.fivetran.com/data-movement/activations) resources. Census enables you to sync data from your warehouse to all your operational tools, and this provider allows you to manage Census infrastructure as code.
+A Terraform provider for managing [Fivetran Activations](https://www.fivetran.com/data-movement/activations) resources. Activations enables you to sync data from your warehouse to all your operational tools, and this provider allows you to manage Activations infrastructure as code.
 
 ## Features
 
-- **Complete Census workflow**: Manage workspaces, sources, datasets, destinations, and syncs
+- **Complete Activations workflow**: Manage activation sources, datasets, destinations, and syncs
 - **PAT-only authentication**: Uses personal access tokens with dynamic workspace token retrieval
-- **Import support**: Import existing Census resources into Terraform state
+- **Import support**: Import existing Activations resources into Terraform state
 - **Staging environment support**: Configure custom base URLs for testing
 
 ## Installation
@@ -111,7 +111,7 @@ All resources have corresponding data sources for read-only operations. See [doc
 - [Data Source Documentation](docs/data-sources/) - Read-only data source documentation
 - [Examples](examples/) - Complete working examples
 - [CHANGELOG](CHANGELOG.md) - Version history and changes
-- [Census API Documentation](https://fivetran.com/docs/activations/rest-api)
+- [Activations API Documentation](https://fivetran.com/docs/activations/rest-api)
 
 ## Troubleshooting
 
@@ -147,7 +147,7 @@ Debug logs include:
 
 #### "Provider produced inconsistent result after apply"
 
-This error typically indicates an API response format mismatch between the Census API and the provider. To diagnose:
+This error typically indicates an API response format mismatch between the Activations API and the provider. To diagnose:
 
 1. **Enable debug logging**:
    ```bash

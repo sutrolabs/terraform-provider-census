@@ -152,14 +152,14 @@ jobs:
       - name: Run regression tests
         run: go test -v ./census/tests/regression/...
 
-  # Integration tests (requires Census staging + external services)
+  # Integration tests (requires Activations staging + external services)
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [lint, unit-tests, build]
 
-    # Integration tests share one Census staging environment, so only one
+    # Integration tests share one Activations staging environment, so only one
     # run may execute at a time across all PRs and main
     concurrency:
       group: ${{ github.workflow }}-integration-tests
@@ -193,5 +193,5 @@ jobs:
           CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY: ${{ secrets.CENSUS_TEST_SALESFORCE_JWT_SIGNING_KEY }}
           CENSUS_TEST_SALESFORCE_DOMAIN: ${{ secrets.CENSUS_TEST_SALESFORCE_DOMAIN }}
         run: |
-          echo "Running integration tests against Census staging environment..."
+          echo "Running integration tests against the Activations staging environment..."
           go test -v ./census/tests/acceptance -timeout 60m

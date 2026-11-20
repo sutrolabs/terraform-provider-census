@@ -1,4 +1,4 @@
-# Contributing to Census Terraform Provider
+# Contributing to Fivetran Activations Terraform Provider
 
 Thank you for your interest in contributing!
 

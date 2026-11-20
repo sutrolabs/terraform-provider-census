@@ -804,7 +804,7 @@ output "destinations_info" {
 }
 
 output "setup_summary" {
-  description = "Summary of the complete workspace-scoped Census setup"
+  description = "Summary of the complete workspace-scoped Activations setup"
   sensitive   = true
   value = {
     workspaces_ready = {
@@ -847,14 +847,14 @@ output "setup_summary" {
     ]
 
     terraform_patterns = [
-      "✅ Resources for managing Census objects with Terraform",
-      "✅ Data sources for referencing existing Census objects",
+      "✅ Resources for managing Activations objects with Terraform",
+      "✅ Data sources for referencing existing Activations objects",
       "✅ Explicit workspace_id parameters for clear relationships",
       "✅ Standard Terraform import patterns for existing resources"
     ]
 
     next_steps = [
-      "Verify all workspace connections in Census dashboard",
+      "Verify all workspace connections in the Activations dashboard",
       "Use 'terraform import' to bring existing workspaces under Terraform management",
       "Add data sources to reference existing sources/destinations if needed",
       "Configure workspace-specific sync rules (coming in next update)"

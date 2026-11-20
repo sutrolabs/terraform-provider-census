@@ -28,7 +28,7 @@ triggers aren't changing as part of this migration, so there's no need to
 cover them in this fixture.
 
 There is no `run_mode.type = "live"` fixture — live mode syncs have been
-completely sunset from the Census product since this provider was authored,
+completely sunset from the Activations product since this provider was authored,
 so there's nothing left to exercise. This also means Runtime and Status alert
 types (which the removed live-mode fixture covered) aren't represented in
 this fixture at all anymore.

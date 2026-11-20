@@ -5,7 +5,7 @@ source, destination, sync, dataset), with the sync resources collectively
 covering every `field_mapping` type and the `run_mode`/trigger/alert variants
 still reachable in the current product (see `../README.md` for exactly what's
 covered and what's deliberately excluded, including `run_mode.type = "live"`,
-which has been fully sunset from Census and is not exercised here).
+which has been fully sunset from Activations and is not exercised here).
 
 Run this **before any provider code change lands** — it has to reflect
 genuinely untouched behavior.
