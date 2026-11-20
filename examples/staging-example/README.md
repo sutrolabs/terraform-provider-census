@@ -1,6 +1,6 @@
 # Activations Staging Environment Example
 
-This example demonstrates how to use the Activations Terraform provider with a **staging environment**. It creates a complete data pipeline with source, destination, and sync resources.
+This example demonstrates how to use the Activations Terraform provider with a **staging environment**. It creates a complete data pipeline with source, activation, and sync resources.
 
 ## Why Staging?
 
@@ -12,10 +12,9 @@ Testing Activations configurations in staging allows you to:
 
 ## What This Example Creates
 
-1. **Workspace** - A staging workspace for testing
-2. **Source** - Connection to your staging data warehouse
-3. **Destination** - Connection to a staging destination (e.g., Salesforce sandbox)
-4. **Sync** - A data sync from source to destination (starts paused)
+1. **Source** - Connection to your staging data warehouse
+2. **Activation** - Pairs the source with a staging destination (e.g., Salesforce sandbox)
+3. **Sync** - A data sync from source to destination through the activation (starts paused)
 
 ## Prerequisites
 
@@ -252,9 +251,8 @@ terraform destroy
 
 This will delete:
 - The sync
-- The destination connection
+- The activation, and its destination connection unless another activation uses it
 - The source connection
-- The workspace
 
 ## Next Steps
 

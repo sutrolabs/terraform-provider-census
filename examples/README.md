@@ -1,13 +1,12 @@
 # Fivetran Activations Terraform Provider Examples
 
-This directory contains practical examples that you can use to test the Fivetran Activations Terraform Provider with your own Census organization and workspaces.
+This directory contains practical examples that you can use to test the Fivetran Activations Terraform Provider with your own Census organization.
 
 ## Prerequisites
 
 1. **Census Account**: You need access to a Census organization
 2. **API Token**: Generate a Personal Access Token from your Census account:
-   - **Personal Access Token**: Used for all operations (workspace management and workspace-scoped resources)
-   - The provider automatically retrieves workspace-specific tokens as needed
+   - **Personal Access Token**: Used for all operations
 
 ## Getting Your Token
 
@@ -17,33 +16,25 @@ This directory contains practical examples that you can use to test the Fivetran
 3. Generate a new token
 4. Copy the token value
 
-**Note**: You only need the Personal Access Token. The provider automatically handles workspace-level authentication by retrieving workspace API keys dynamically using your Personal Access Token.
-
 ## Examples Available
 
-### 1. Basic Workspace Management (`basic-workspace/`)
-Simple workspace creation and management.
-- **Requires**: Personal Access Token
-- **Tests**: Core workspace CRUD operations
-- **Complexity**: Beginner
-
-### 2. Staging Environment (`staging-example/`)
+### 1. Staging Environment (`staging-example/`)
 Complete data pipeline using the Activations staging environment.
 - **Requires**: Personal Access Token, staging credentials
 - **Tests**: Source, destination, and sync with staging URL
 - **Complexity**: Intermediate
 
-### 3. Complete Activations Setup (`complete-census-setup/`)
-Full-featured example with all 5 resource types.
+### 2. Complete Activations Setup (`complete-census-setup/`)
+Full-featured example with all 4 resource types.
 - **Requires**: Personal Access Token, source/destination credentials
-- **Tests**: Workspaces, sources, destinations, datasets, syncs
+- **Tests**: Sources, activations, datasets, syncs
 - **Complexity**: Advanced
 
 ## Quick Start
 
 1. **Choose an example directory**:
    ```bash
-   cd examples/basic-workspace/
+   cd examples/staging-example/
    ```
 
 2. **Copy the variables template**:
@@ -64,7 +55,7 @@ Full-featured example with all 5 resource types.
 
 5. **Test the configuration**:
    ```bash
-   cd examples/basic-workspace/
+   cd examples/staging-example/
    terraform init
    terraform validate
    terraform plan
@@ -94,9 +85,8 @@ Full-featured example with all 5 resource types.
 
 | Example | What It Demonstrates | Complexity |
 |---------|---------------------|------------|
-| `basic-workspace/` | Single workspace management | Beginner |
 | `staging-example/` | Staging environment with source → destination → sync | Intermediate |
-| `complete-census-setup/` | Full Activations workflow with all 5 resources | Advanced |
+| `complete-census-setup/` | Full Activations workflow with all 4 resources | Advanced |
 
 ## Troubleshooting
 
@@ -117,7 +107,7 @@ Full-featured example with all 5 resource types.
 3. **Resource already exists**:
    ```bash
    # Import existing resources
-   terraform import census_workspace.example 123
+   terraform import census_source.example 123
    ```
 
 ### Debug Mode

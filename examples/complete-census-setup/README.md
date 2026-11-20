@@ -14,19 +14,14 @@ This example demonstrates how to use the Activations Terraform provider to manag
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0
 - Census account with appropriate permissions
-- Census Personal Access Token (for workspace management)
-- Census Workspace Access Token (for sources/destinations/syncs)
+- Census Personal Access Token
 
-### 2. Get Your Census Tokens
+### 2. Get Your Census Token
 
 #### Personal Access Token (PAT)
 1. Go to Activations dashboard → Settings → Developer → Personal Access Tokens
-2. Create a new token with workspace management permissions
+2. Create a new token
 3. Copy the token (starts with `census_pat_...`)
-
-#### Workspace API Keys (Per Workspace)
-- **For new workspaces**: API keys are automatically generated when Terraform creates the workspace
-- **For existing workspaces**: Get the API key from Activations dashboard → Workspace Settings → API → Access Token for each workspace you want to use
 
 ### 3. Configure Your Setup
 
@@ -63,10 +58,6 @@ The minimal required configuration in `terraform.tfvars`:
 # Authentication
 census_personal_token = "census_pat_your_personal_token_here"
 
-# No single workspace token needed - tokens are handled per workspace!
-
-# Workspaces are configured in the workspaces section below
-
 # Data connections
 source_type = "postgres"  # or snowflake, bigquery, etc.
 source_connection = {
@@ -87,63 +78,6 @@ destination_connection = {
 
 # Auto-refresh metadata after creating/updating connections
 enable_auto_refresh = true  # Set to false to manually refresh schemas in Activations UI
-```
-
-### Flexible Workspace Configuration
-
-Configure workspaces for your organization structure:
-
-#### Option 1: Marketing + RevOps Teams
-```hcl
-workspaces = {
-  marketing_prod = {
-    create = true
-    name   = "Marketing Production"
-    notification_emails = ["marketing-data@company.com"]
-  }
-  marketing_staging = {
-    create = true
-    name   = "Marketing Staging"
-    notification_emails = ["marketing-dev@company.com"]
-  }
-  revops_prod = {
-    create = true
-    name   = "Revenue Operations Production"
-    notification_emails = ["revops@company.com"]
-  }
-}
-```
-
-#### Option 2: Mixed Existing + New Workspaces
-```hcl
-workspaces = {
-  # Existing production workspace (managed outside Terraform)
-  marketing_prod = {
-    create      = false
-    existing_id = "12345"
-    api_key     = "ws_live_abc123..."  # Get from Activations dashboard → Workspace Settings → API
-  }
-  # New staging workspace (created by Terraform)
-  marketing_staging = {
-    create = true
-    name   = "Marketing Staging Environment"
-    notification_emails = ["marketing-dev@company.com"]
-    # api_key will be auto-generated on creation and stored in Terraform state
-  }
-}
-```
-
-#### Option 3: Enterprise Multi-Team Structure
-```hcl
-workspaces = {
-  sales_prod      = { create = true, name = "Sales Production" }
-  sales_staging   = { create = true, name = "Sales Staging" }
-  marketing_prod  = { create = true, name = "Marketing Production" }
-  marketing_dev   = { create = true, name = "Marketing Development" }
-  finance_prod    = { create = true, name = "Finance Production" }
-  support_prod    = { create = true, name = "Customer Support Production" }
-  analytics_prod  = { create = true, name = "Analytics Team Production" }
-}
 ```
 
 ### Environment-Specific Connections
@@ -210,27 +144,6 @@ staging_destination_connection = {
 - `segment`
 - `mixpanel`
 - `amplitude`
-
-## Understanding API Key Management
-
-### For New Workspaces (create = true)
-- API key is automatically generated and captured during workspace creation
-- Key is stored in Terraform state
-- Subsequent `terraform plan/apply` operations use the key from state
-- **Important**: The API key is only returned on creation - if you lose state, you'll need the key from Activations dashboard
-
-### For Existing Workspaces (create = false)
-- You must provide the `api_key` in your workspace configuration
-- Get the key from Activations dashboard → Workspace Settings → API → Access Token
-- Each existing workspace needs its own API key
-
-### API Key Persistence
-- After workspace creation, the API key persists in Terraform state
-- Team members sharing state will have access to the keys
-- For production deployments, consider:
-  - Using Terraform Cloud/Enterprise for secure state storage
-  - Implementing key rotation procedures
-  - Using workspace-specific API keys for enhanced isolation
 
 ## Common Connection Examples
 
@@ -321,12 +234,7 @@ terraform init
 ```
 
 **Token permissions errors**
-- Ensure Personal Access Token has workspace management permissions
-- Ensure Workspace Access Token has appropriate permissions for the target workspace
-
-**API key errors for existing workspaces**
-- Verify `api_key` is correct and from the right workspace
-- Check that `existing_id` matches the workspace ID in Activations
+- Ensure the Personal Access Token has appropriate permissions
 
 **Connection test failures**
 - Verify database/service credentials are correct
@@ -346,17 +254,16 @@ terraform plan
 ### Outputs
 
 After successful deployment, you'll see outputs with:
-- **workspaces_info**: Details about all workspaces (IDs, names, API keys)
 - **sources_info**: Information about created data sources
-- **destinations_info**: Information about created destinations  
+- **activations_info**: Information about created activations  
 - **setup_summary**: Overview of the complete setup with next steps
 
 ## Next Steps
 
-1. **Verify Connections**: Check Activations dashboard to ensure all sources and destinations are working
+1. **Verify Connections**: Check Activations dashboard to ensure all sources and activations are working
 2. **Configure Syncs**: Set up data syncs between your sources and destinations
 3. **Monitor**: Set up monitoring and alerting for your data pipelines
-4. **Scale**: Add more workspaces, sources, and destinations as needed
+4. **Scale**: Add more sources and activations as needed
 
 ## Support
 

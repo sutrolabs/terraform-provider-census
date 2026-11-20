@@ -11,13 +11,10 @@
 # Get from: Activations dashboard → Settings → Developer → Personal Access Tokens
 census_personal_token = "your-personal-access-token-here"
 
-# Census region ("us" or "eu")
-census_region = "us"
-
 # ==============================================================================
 # CONNECTION CREDENTIALS
 # ==============================================================================
-# Provide credentials for the specific sources/destinations defined in main.tf
+# Provide credentials for the specific sources/activations defined in main.tf
 
 # Postgres warehouse connection (used by both marketing and revops sources)
 postgres_warehouse_connection = {
@@ -28,7 +25,7 @@ postgres_warehouse_connection = {
   database = "analytics"
 }
 
-# Salesforce production connection (used by marketing_prod destination)
+# Salesforce production connection (used by marketing_prod_crm activation)
 # Required fields based on Activations API validation:
 # Either JWT: username, client_id, domain, instance_url, jwt_signing_key
 # OR Username/Password: username, client_id, domain, password, security_token, client_secret, instance_url
@@ -42,7 +39,7 @@ salesforce_prod_connection = {
   instance_url   = "https://your-company.salesforce.com"
 }
 
-# Salesforce staging connection (used by marketing_staging destination)
+# Salesforce staging connection (used by marketing_staging_crm activation)
 salesforce_staging_connection = {
   username       = "your-salesforce-staging-username@company.com.sandbox"
   password       = "your-salesforce-staging-password"
@@ -75,7 +72,7 @@ enable_auto_refresh = true
 #    terraform apply
 # 6. Verify in the Activations dashboard that connections work
 #
-# Note: The specific workspaces, sources, and destinations are defined in main.tf
+# Note: The specific sources, activations, datasets and syncs are defined in main.tf
 # This file only contains configuration values (tokens, credentials, settings)
 #
 # ==============================================================================
