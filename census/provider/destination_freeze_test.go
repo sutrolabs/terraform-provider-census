@@ -9,12 +9,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 // newNoRequestTestClient returns a client whose server fails the test on any
 // request at all: a frozen resource must never touch the API.
-func newNoRequestTestClient(t *testing.T) *client.Client {
+func newNoRequestTestClient(t *testing.T) *clients {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +23,7 @@ func newNoRequestTestClient(t *testing.T) *client.Client {
 	}))
 	t.Cleanup(server.Close)
 
-	apiClient, err := client.NewClient(&client.Config{
+	apiClient, err := v2.NewClient(&v2.Config{
 		BaseURL:             server.URL,
 		PersonalAccessToken: "personal-token",
 	})
@@ -31,7 +31,7 @@ func newNoRequestTestClient(t *testing.T) *client.Client {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	return apiClient
+	return &clients{V2: apiClient}
 }
 
 func TestFrozenDestination_CreateErrorsWithoutRequests(t *testing.T) {

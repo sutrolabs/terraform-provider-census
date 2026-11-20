@@ -34,23 +34,17 @@ func TestAPIRoots(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		region, baseURL string
-		wantV1, wantV2  string
+		baseURL, wantV2 string
 	}{
-		{"us", "", "https://app.getcensus.com", "https://app.getcensus.com"},
-		{"eu", "", "https://app-eu.getcensus.com", "https://app.getcensus.com"},
-		{"us", "https://app.staging.getcensus.com/api/v1", "https://app.staging.getcensus.com", "https://app.staging.getcensus.com"},
-		{"eu", "https://app.staging.getcensus.com", "https://app.staging.getcensus.com", "https://app.staging.getcensus.com"},
+		{"", "https://app.getcensus.com"},
+		{"https://app.staging.getcensus.com/api/v1", "https://app.staging.getcensus.com"},
+		{"https://app.staging.getcensus.com", "https://app.staging.getcensus.com"},
 	}
 	for _, tc := range testCases {
-		v1Root, v2Root, err := apiRoots(tc.region, tc.baseURL)
-		if err != nil || v1Root != tc.wantV1 || v2Root != tc.wantV2 {
-			t.Errorf("apiRoots(%q, %q) = (%q, %q, %v), want (%q, %q)", tc.region, tc.baseURL, v1Root, v2Root, err, tc.wantV1, tc.wantV2)
+		v2Root, err := apiRoots(tc.baseURL)
+		if err != nil || v2Root != tc.wantV2 {
+			t.Errorf("apiRoots(%q) = (%q, %v), want (%q)", tc.baseURL, v2Root, err, tc.wantV2)
 		}
-	}
-
-	if _, _, err := apiRoots("mars", ""); err == nil {
-		t.Error("expected an unknown region to be rejected")
 	}
 }
 
@@ -87,10 +81,9 @@ func TestConfigure_ClientsShareBaseURLRoot(t *testing.T) {
 			if _, err := v2.GetSource(context.Background(), c.V2, 1); err != nil {
 				t.Fatalf("v2 GetSource failed: %v", err)
 			}
-			c.V1.GetWorkspace(context.Background(), 1)
 
-			want := []string{"/api/v2/sources/1", "/api/v1/workspaces/1"}
-			if len(paths) < 2 || paths[0] != want[0] || paths[1] != want[1] {
+			want := []string{"/api/v2/sources/1"}
+			if len(paths) < 1 || paths[0] != want[0] {
 				t.Fatalf("expected requests to %v, got %v", want, paths)
 			}
 		})
