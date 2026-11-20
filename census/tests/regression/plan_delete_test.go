@@ -13,8 +13,11 @@
 //
 // Requires a `terraform` binary on PATH, and a provider binary already built
 // via `make build` (or CENSUS_PROVIDER_BINARY_PATH pointing at one) — see
-// helpers_test.go. No credentials needed — the plan runs with refresh
-// disabled, so the provider never makes a real API call.
+// helpers_test.go. No credentials needed and no real API call is made: the
+// plan runs with refresh disabled, so Read never runs, and the one other
+// network call a provider can make here — a state upgrader's lookup during
+// UpgradeResourceState, which runs regardless of the refresh setting — is
+// pointed at a local fake server (see fakeCensusSyncAPI in helpers_test.go).
 package regression_test
 
 import (
@@ -51,9 +54,10 @@ func TestPreMigrationFixture_PlansCleanlyWithCurrentSchema(t *testing.T) {
 	}
 
 	// tfexec inherits the full process environment (os.Environ) unless
-	// SetEnv is called, which replaces it entirely — so we just add the one
-	// variable we need to the current process's environment instead.
+	// SetEnv is called, which replaces it entirely — so we just add the
+	// variables we need to the current process's environment instead.
 	t.Setenv("TF_CLI_CONFIG_FILE", filepath.Join(workdir, "dev.tfrc"))
+	t.Setenv("CENSUS_BASE_URL", fakeCensusSyncAPI(t))
 
 	ctx := context.Background()
 	tf, err := tfexec.NewTerraform(workdir, tfPath)

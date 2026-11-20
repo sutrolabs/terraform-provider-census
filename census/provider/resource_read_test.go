@@ -275,9 +275,9 @@ func testSyncResourceData(t *testing.T) *schema.ResourceData {
 	t.Helper()
 
 	d := schema.TestResourceDataRaw(t, ResourceSync().Schema, map[string]interface{}{
-		"workspace_id": "69962",
-		"label":        "Test Sync",
-		"operation":    "upsert",
+		"activation_id": "act_123",
+		"label":         "Test Sync",
+		"operation":     "upsert",
 	})
 	d.SetId("3503053")
 

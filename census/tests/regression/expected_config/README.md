@@ -18,3 +18,9 @@ assert that specific change instead of a bare no-op.
 `connection_config` is hardcoded to `{}` (not a real credential) on the
 source and destination because the fixture state has it redacted to `{}` —
 there's no real value left to match against.
+
+`census_sync`'s `activation_id = "fake_id"` is likewise not a real value —
+it must stay in sync with `fixtureSyncActivationID` in
+`census/tests/regression/helpers_test.go`, which a fake local Census API
+server returns for every sync lookup made by the schema-version state
+upgrader. See `fakeCensusSyncAPI` there for why that lookup happens at all.
