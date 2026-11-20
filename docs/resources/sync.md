@@ -1,6 +1,6 @@
 # census_sync Resource
 
-Manages a Census sync that moves data from a source (table, dataset, model, etc.) to a destination (Salesforce, HubSpot, etc.) with configurable field mappings and scheduling.
+Manages a sync that moves data from a source (table, dataset, model, etc.) to a destination (Salesforce, HubSpot, etc.) with configurable field mappings and scheduling.
 
 ## Example Usage
 
@@ -226,7 +226,7 @@ resource "census_sync" "metadata_sync" {
   }
 
   field_mapping {
-    # Map Census sync_run_id to a custom field
+    # Map sync_run_id to a custom field
     type              = "sync_metadata"
     sync_metadata_key = "sync_run_id"
     to                = "Last_Sync_Run_ID__c"
@@ -464,7 +464,7 @@ resource "census_sync" "user_list_sync" {
 
 ### Google Ads Sync with Compound Keys
 
-When syncing to Google Ads destinations with compound keys (like Click Conversions), Census automatically generates a compound key mapping for the primary identifier. This Census-managed mapping should **NOT** be defined in your Terraform configuration, as it is filtered out automatically to prevent drift.
+When syncing to Google Ads destinations with compound keys (like Click Conversions), Fivetran automatically generates a compound key mapping for the primary identifier. This Fivetran-managed mapping should **NOT** be defined in your Terraform configuration, as it is filtered out automatically to prevent drift.
 
 ```hcl
 resource "census_sync" "google_ads_click_conversion" {
@@ -487,7 +487,7 @@ resource "census_sync" "google_ads_click_conversion" {
   operation = "upsert"
 
   # IMPORTANT: Only define your user-managed field mappings here
-  # Census will auto-generate a compound_key mapping for the primary identifier
+  # Fivetran will auto-generate a compound_key mapping for the primary identifier
   # (e.g., click_conversion._census_tracking_id)
   # Do NOT define this mapping - it will be filtered out automatically
 
@@ -525,8 +525,8 @@ resource "census_sync" "google_ads_click_conversion" {
 ```
 
 **Key Points:**
-- Census auto-generates a `compound_key` type mapping for destinations with compound primary identifiers
-- This mapping is entirely managed by Census and cannot be modified by users
+- Fivetran auto-generates a `compound_key` type mapping for destinations with compound primary identifiers
+- This mapping is entirely managed by Fivetran and cannot be modified by users
 - The Terraform provider automatically filters out this mapping during reads to prevent drift
 - You only need to define your user-managed field mappings in the configuration
 
@@ -907,7 +907,7 @@ resource "census_sync" "incremental_append" {
   operation = "append"
 
   # Use high water mark to only sync new records based on timestamp
-  # This is more efficient than Census's default diff engine for append operations
+  # This is more efficient than Fivetran's default diff engine for append operations
   high_water_mark_attribute = "updated_at"
 
   run_mode {
@@ -1012,8 +1012,8 @@ resource "census_sync" "preserve_example" {
   * `is_primary_identifier` - (Optional) Boolean indicating if this field is the primary identifier for matching records. Exactly one field_mapping must have this set to `true`. Defaults to `false`.
   * `lookup_object` - (Optional) Object to lookup for relationship mapping (e.g., `"user_list"`). Used with `lookup_field` for foreign key lookups.
   * `lookup_field` - (Optional) Field to use for lookup in the `lookup_object` (e.g., `"id"`). Used with `lookup_object` for foreign key lookups.
-  * `preserve_values` - (Optional) If true, preserves existing values in the destination field and prevents Census from overwriting them. Defaults to `false`.
-  * `generate_field` - (Optional) If true, Census will generate/create this field in the destination. Defaults to `false`.
+  * `preserve_values` - (Optional) If true, preserves existing values in the destination field and prevents Fivetran from overwriting them. Defaults to `false`.
+  * `generate_field` - (Optional) If true, Fivetran will generate/create this field in the destination. Defaults to `false`.
   * `sync_null_values` - (Optional) If true (default), null values in the source will be synced to the destination. Set to false to skip syncing null values. Defaults to `true`.
   * `array_field` - (Optional) Whether the destination field is an array type. Only applicable when `generate_field` is true (for user-defined fields). Defaults to `false`.
   * `field_type` - (Optional) The type of the destination field. Only applicable when `generate_field` is true (for user-defined fields). Available types depend on the destination (e.g., "text", "number", "boolean", "date").
@@ -1036,12 +1036,12 @@ resource "census_sync" "preserve_example" {
 * `sync_behavior_family` - (Optional) Specifies the behavior family for the sync:
   * `"activateEvents"` - For event-based activation syncs (only supported for live syncs from Kafka/streaming sources)
   * `"mapRecords"` - For record mapping syncs (not supported for live syncs from Materialize)
-* `advanced_configuration` - (Optional) Advanced configuration options specific to the destination type as JSON string. Use `jsonencode()` to specify values. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values can be strings, numbers, or booleans. Refer to destination-specific Census documentation for available options.
-* `high_water_mark_attribute` - (Optional) The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Census diff engine (using primary keys). This is more efficient for append operations with timestamp-based data. Example: `"updated_at"`.
+* `advanced_configuration` - (Optional) Advanced configuration options specific to the destination type as JSON string. Use `jsonencode()` to specify values. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values can be strings, numbers, or booleans. Refer to destination-specific Activations documentation for available options.
+* `high_water_mark_attribute` - (Optional) The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Fivetran diff engine (using primary keys). This is more efficient for append operations with timestamp-based data. Example: `"updated_at"`.
 * `historical_sync_operation` - (Optional) Specifies how the first sync should handle historical records when using append operation. Only applicable for append syncs:
   * `"skip_current_records"` - Skip existing records on first sync, only sync new records going forward
   * `"backfill_all_records"` - Include all existing records on first sync (full backfill)
-* `mirror_strategy` - (Optional, Computed) Specifies the strategy for mirror syncs. Only applicable when `operation` is set to `"mirror"`. Determines how Census keeps the destination in sync with the source data:
+* `mirror_strategy` - (Optional, Computed) Specifies the strategy for mirror syncs. Only applicable when `operation` is set to `"mirror"`. Determines how Fivetran keeps the destination in sync with the source data:
   * `"sync_updates_and_deletes"` - Incrementally syncs changes by inserting new records, updating modified records, and deleting records that no longer exist in the source. This is the most common and efficient strategy for keeping destinations in sync (default).
   * `"sync_updates_and_nulls"` - Updates existing records and sets fields to null when the source contains null values, without performing deletes.
   * `"upload_and_swap"` - Replaces the entire destination table with the current source snapshot. Useful for destinations that don't support incremental updates or when you need a complete refresh.
@@ -1067,7 +1067,7 @@ resource "census_sync" "preserve_example" {
       * `start_type` - When to start measuring: `"actual"` (when sync actually starts) or `"scheduled"` (from scheduled time)
     * For `StatusAlertConfiguration`:
       * `status_name` - Status to alert on: `"started"` or `"completed"`
-  * `id` - (Computed) The alert configuration ID assigned by Census
+  * `id` - (Computed) The alert configuration ID assigned by Fivetran
 * `run_mode` - (Optional) Run mode configuration block for controlling how and when the sync runs:
   * `type` - (Required) Mode type:
     * `"live"` - Continuous syncing for streaming sources (Kafka, Materialize)
@@ -1121,4 +1121,4 @@ terraform import census_sync.user_sync "12345:67890"
 * Source types determine which fields are required in `source_attributes.object`.
   * For segment sources, use `type="segment"` with `id` (segment ID) and `dataset_id` (parent dataset ID)
   * For cohort sources, use `type="cohort"` with `id` (cohort ID) and `dataset_id` (parent dataset ID)
-* **Compound Key Mappings (Google Ads, etc.)**: Some destinations (like Google Ads Click Conversions) require compound keys for primary identifiers. Census automatically generates these mappings and they should NOT be included in your Terraform configuration. The provider automatically filters out Census-managed compound_key mappings to prevent drift. See the "Google Ads Sync with Compound Keys" example above.
+* **Compound Key Mappings (Google Ads, etc.)**: Some destinations (like Google Ads Click Conversions) require compound keys for primary identifiers. Fivetran automatically generates these mappings and they should NOT be included in your Terraform configuration. The provider automatically filters out Fivetran-managed compound_key mappings to prevent drift. See the "Google Ads Sync with Compound Keys" example above.

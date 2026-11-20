@@ -15,7 +15,7 @@ import (
 
 func resourceDataset() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Census SQL dataset for data transformation and modeling.",
+		Description: "Manages a SQL dataset for data transformation and modeling.",
 
 		CreateContext: resourceDatasetCreate,
 		ReadContext:   resourceDatasetRead,
@@ -131,7 +131,7 @@ func waitForMetadataRefresh(ctx context.Context, apiClient *v2.Client, datasetID
 					"Dataset %d exists, but metadata refresh could not be triggered: %v\n\n"+
 						"To resolve:\n"+
 						"1. Run 'terraform apply' again to retry metadata refresh\n"+
-						"2. Or remove 'wait_for_metadata_refresh = true' and manually trigger metadata refresh in the Census UI or API\n",
+						"2. Or remove 'wait_for_metadata_refresh = true' and manually trigger metadata refresh in the Activations UI or API\n",
 					datasetID, err),
 			},
 		}
@@ -164,7 +164,7 @@ func waitForMetadataRefresh(ctx context.Context, apiClient *v2.Client, datasetID
 					"Dataset %d metadata refresh did not complete: %v\n\n"+
 						"To resolve:\n"+
 						"1. Run 'terraform apply' again to wait for metadata refresh to complete\n"+
-						"2. Check metadata refresh status in the Census UI\n",
+						"2. Check metadata refresh status in the Activations UI\n",
 					datasetID, err),
 			},
 		}

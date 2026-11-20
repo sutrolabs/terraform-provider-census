@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	// DefaultRegion is the default Census region
+	// DefaultRegion is the default region
 	DefaultRegion = "us"
 	// DefaultBaseURL is the default base URL for US region
 	DefaultBaseURL = "https://app.getcensus.com/api/v1"
@@ -21,11 +21,11 @@ type clients struct {
 	V2 *v2.Client
 }
 
-// Version is the provider release version, sent to Census in the User-Agent.
+// Version is the provider release version, sent to Fivetran in the User-Agent.
 // main sets it from its build-time version.
 var Version = "dev"
 
-// Provider returns the Census Terraform provider
+// Provider returns the Activations Terraform provider
 func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -34,7 +34,7 @@ func Provider() *schema.Provider {
 				Required:    true,
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("CENSUS_PERSONAL_ACCESS_TOKEN", nil),
-				Description: "Personal access token for Census APIs. Used for all operations including dynamic workspace token retrieval. Can also be set via CENSUS_PERSONAL_ACCESS_TOKEN environment variable.",
+				Description: "Personal access token for Activations APIs. Used for all operations including dynamic workspace token retrieval. Can also be set via CENSUS_PERSONAL_ACCESS_TOKEN environment variable.",
 			},
 			"base_url": {
 				Type:        schema.TypeString,

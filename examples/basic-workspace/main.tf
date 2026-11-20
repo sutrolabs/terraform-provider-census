@@ -7,7 +7,7 @@ terraform {
   }
 }
 
-# Configure the Census Provider with your personal access token
+# Configure the Activations provider with your personal access token
 provider "census" {
   personal_access_token = var.census_personal_token
 }

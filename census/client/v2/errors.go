@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-// APIError represents an HTTP-level error response from the Census v2 API.
+// APIError represents an HTTP-level error response from the Activations v2 API.
 // v2's documented error-body shapes are inconsistent as of this writing —
 // some endpoints specify a `message` field (e.g. BadRequest400 in
 // apidocs/v2/components/responses.yaml), while others — notably 404 and
@@ -24,9 +24,9 @@ type APIError struct {
 
 func (e *APIError) Error() string {
 	if e.Message != "" {
-		return fmt.Sprintf("Census API error (status %d): %s", e.StatusCode, e.Message)
+		return fmt.Sprintf("Activations API error (status %d): %s", e.StatusCode, e.Message)
 	}
-	return fmt.Sprintf("Census API error (status %d)", e.StatusCode)
+	return fmt.Sprintf("Activations API error (status %d)", e.StatusCode)
 }
 
 func newAPIError(statusCode int, body []byte) *APIError {
@@ -63,5 +63,5 @@ func IsConflictError(err error) bool {
 // since nothing in apidocs/v2 rules the scenario out for v2 either). Callers
 // should treat it as an unexpected hard error, not infer resource absence.
 func errEmptyBody(what string) error {
-	return fmt.Errorf("Census API returned a successful response with no data for %s — this is unexpected and may indicate an API or network issue", what)
+	return fmt.Errorf("Activations API returned a successful response with no data for %s — this is unexpected and may indicate an API or network issue", what)
 }

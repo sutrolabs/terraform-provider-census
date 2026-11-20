@@ -1,12 +1,10 @@
-# Complete Census Setup Example
+# Complete Activations Setup Example
 
-This example demonstrates how to use the Census Terraform provider to manage a complete multi-workspace Census setup. It supports flexible workspace organization patterns and handles both new and existing workspaces.
+This example demonstrates how to use the Activations Terraform provider to manage a complete Activations setup.
 
 ## Features
 
-- ✅ **Flexible Workspace Structure**: Define any workspace pattern (marketing_prod, revops_staging, etc.)
-- ✅ **Mixed Management**: Combine Terraform-created and existing workspaces
-- ✅ **API Key Handling**: Automatic key management for created workspaces, manual for existing
+- ✅ **Mixed Management**: Combine Terraform-created and existing activations
 - ✅ **Multi-Environment Support**: Production, staging, development, or any custom environments
 - ✅ **Environment-Specific Configurations**: Different connections for staging vs production
 
@@ -22,13 +20,13 @@ This example demonstrates how to use the Census Terraform provider to manage a c
 ### 2. Get Your Census Tokens
 
 #### Personal Access Token (PAT)
-1. Go to Census Dashboard → Settings → Developer → Personal Access Tokens
+1. Go to Activations dashboard → Settings → Developer → Personal Access Tokens
 2. Create a new token with workspace management permissions
 3. Copy the token (starts with `census_pat_...`)
 
 #### Workspace API Keys (Per Workspace)
 - **For new workspaces**: API keys are automatically generated when Terraform creates the workspace
-- **For existing workspaces**: Get the API key from Census Dashboard → Workspace Settings → API → Access Token for each workspace you want to use
+- **For existing workspaces**: Get the API key from Activations dashboard → Workspace Settings → API → Access Token for each workspace you want to use
 
 ### 3. Configure Your Setup
 
@@ -88,7 +86,7 @@ destination_connection = {
 }
 
 # Auto-refresh metadata after creating/updating connections
-enable_auto_refresh = true  # Set to false to manually refresh schemas in Census UI
+enable_auto_refresh = true  # Set to false to manually refresh schemas in Activations UI
 ```
 
 ### Flexible Workspace Configuration
@@ -123,7 +121,7 @@ workspaces = {
   marketing_prod = {
     create      = false
     existing_id = "12345"
-    api_key     = "ws_live_abc123..."  # Get from Census Dashboard → Workspace Settings → API
+    api_key     = "ws_live_abc123..."  # Get from Activations dashboard → Workspace Settings → API
   }
   # New staging workspace (created by Terraform)
   marketing_staging = {
@@ -219,11 +217,11 @@ staging_destination_connection = {
 - API key is automatically generated and captured during workspace creation
 - Key is stored in Terraform state
 - Subsequent `terraform plan/apply` operations use the key from state
-- **Important**: The API key is only returned on creation - if you lose state, you'll need the key from Census dashboard
+- **Important**: The API key is only returned on creation - if you lose state, you'll need the key from Activations dashboard
 
 ### For Existing Workspaces (create = false)
 - You must provide the `api_key` in your workspace configuration
-- Get the key from Census Dashboard → Workspace Settings → API → Access Token
+- Get the key from Activations dashboard → Workspace Settings → API → Access Token
 - Each existing workspace needs its own API key
 
 ### API Key Persistence
@@ -328,7 +326,7 @@ terraform init
 
 **API key errors for existing workspaces**
 - Verify `api_key` is correct and from the right workspace
-- Check that `existing_id` matches the workspace ID in Census
+- Check that `existing_id` matches the workspace ID in Activations
 
 **Connection test failures**
 - Verify database/service credentials are correct
@@ -355,7 +353,7 @@ After successful deployment, you'll see outputs with:
 
 ## Next Steps
 
-1. **Verify Connections**: Check Census dashboard to ensure all sources and destinations are working
+1. **Verify Connections**: Check Activations dashboard to ensure all sources and destinations are working
 2. **Configure Syncs**: Set up data syncs between your sources and destinations
 3. **Monitor**: Set up monitoring and alerting for your data pipelines
 4. **Scale**: Add more workspaces, sources, and destinations as needed
@@ -363,7 +361,7 @@ After successful deployment, you'll see outputs with:
 ## Support
 
 - **Provider Issues**: [Activations Support](mailto:activation-support@fivetran.com)
-- **Census Documentation**: [Census Docs](https://fivetran.com/docs/activations)
+- **Activations documentation**: [Activations docs](https://fivetran.com/docs/activations)
 - **Terraform Documentation**: [Terraform Docs](https://www.terraform.io/docs/)
 
 ## License

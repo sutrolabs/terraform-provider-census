@@ -1,6 +1,6 @@
 # Testing Guide
 
-This document describes how to test the Census Terraform Provider.
+This document describes how to test the Fivetran Activations Terraform Provider.
 
 ## Test Types
 
@@ -21,7 +21,7 @@ make test
 
 ### Integration Tests
 
-Tests against the real Census staging API. Creates actual resources to verify full CRUD operations.
+Tests against the real Activations staging API. Creates actual resources to verify full CRUD operations.
 
 ```bash
 # Requires .env.test file with credentials

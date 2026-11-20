@@ -12,7 +12,7 @@ import (
 
 func dataSourceSource() *schema.Resource {
 	return &schema.Resource{
-		Description: "Use this data source to get information about a Census source connection.",
+		Description: "Use this data source to get information about an Activations source connection.",
 
 		ReadContext: dataSourceSourceRead,
 

@@ -1,12 +1,12 @@
 # Documentation
 
-This directory contains documentation for the Census Terraform Provider.
+This directory contains documentation for the Fivetran Activations Terraform Provider.
 
 ## Resource Documentation
 
 Detailed documentation for each Terraform resource:
 
-- [`resources/workspace.md`](resources/workspace.md) - Manage Census workspaces
+- [`resources/workspace.md`](resources/workspace.md) - Manage workspaces
 - [`resources/source.md`](resources/source.md) - Data warehouse connections
 - [`resources/activation.md`](resources/activation.md) - Activations (use in place of `census_destination`)
 - [`resources/destination.md`](resources/destination.md) - Business tool integrations

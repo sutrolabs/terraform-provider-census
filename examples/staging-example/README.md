@@ -1,10 +1,10 @@
-# Census Staging Environment Example
+# Activations Staging Environment Example
 
-This example demonstrates how to use the Census Terraform provider with a **staging environment**. It creates a complete data pipeline with source, destination, and sync resources.
+This example demonstrates how to use the Activations Terraform provider with a **staging environment**. It creates a complete data pipeline with source, destination, and sync resources.
 
 ## Why Staging?
 
-Testing Census configurations in staging allows you to:
+Testing Activations configurations in staging allows you to:
 - Test syncs without affecting production data
 - Validate field mappings and transformations
 - Experiment with new sync patterns safely
@@ -19,8 +19,8 @@ Testing Census configurations in staging allows you to:
 
 ## Prerequisites
 
-- Census staging account access
-- Census Personal Access Token
+- Fivetran staging account access
+- Activations Personal Access Token
 - Staging data warehouse credentials
 - Staging destination credentials (e.g., Salesforce sandbox)
 
@@ -44,7 +44,7 @@ provider "census" {
 }
 ```
 
-This overrides the default production URL and routes all API calls to Census staging.
+This overrides the default production URL and routes all API calls to the Activations staging environment.
 
 ### 3. Deploy
 
@@ -153,9 +153,9 @@ sync_paused = true
 
 This allows you to verify the configuration before running any syncs.
 
-### 2. Verify in Census UI
+### 2. Verify in Activations UI
 
-After applying, visit Census staging dashboard to verify:
+After applying, visit Activations staging dashboard to verify:
 - Source connection test passes
 - Destination connection test passes
 - Field mappings look correct
@@ -170,8 +170,8 @@ sync_paused = false
 ```
 Then run `terraform apply`
 
-**Option B: Trigger in Census UI**
-Manually trigger a test run from the Census staging dashboard
+**Option B: Trigger in Activations UI**
+Manually trigger a test run from the Activations staging dashboard
 
 ### 4. Promote to Production
 
@@ -231,7 +231,7 @@ If source or destination connections fail:
 ### API Errors
 
 If you get API errors:
-- Verify your token has access to Census staging
+- Verify your token has access to the Activations staging environment
 - Check that `base_url` is exactly: `https://app.staging.getcensus.com/api/v1`
 - Ensure token has required permissions
 
@@ -240,7 +240,7 @@ If you get API errors:
 If field mappings fail validation:
 - Verify source table exists and has the specified columns
 - Check destination object accepts the mapped fields
-- Test the connection and run "Test Connection" in Census UI
+- Test the connection and run "Test Connection" in Activations UI
 
 ## Cleaning Up
 
@@ -266,5 +266,5 @@ After testing in staging:
 
 ## Support
 
-- Census Documentation: https://docs.getcensus.com/
+- Activations documentation: https://fivetran.com/docs/activations
 - Provider Issues: https://github.com/sutrolabs/terraform-provider-census/issues
