@@ -1,11 +1,11 @@
 resource "census_sync" "fixture_table_all_mappings" {
-  workspace_id = census_workspace.fixture.id
+  activation_id = "fake_id"
+
   label        = "pre-migration-fixture: table source, all mapping types"
   paused       = true
   operation    = "upsert"
 
   source_attributes {
-    connection_id = census_source.fixture.id
     object {
       type          = "table"
       table_name    = "users"
@@ -15,7 +15,6 @@ resource "census_sync" "fixture_table_all_mappings" {
   }
 
   destination_attributes {
-    connection_id = census_destination.fixture.id
     object        = "Contact"
   }
 
@@ -93,13 +92,13 @@ resource "census_sync" "fixture_table_all_mappings" {
 }
 
 resource "census_sync" "fixture_dataset_source" {
-  workspace_id = census_workspace.fixture.id
+  activation_id = "fake_id"
+
   label        = "pre-migration-fixture: dataset source"
   paused       = true
   operation    = "upsert"
 
   source_attributes {
-    connection_id = census_source.fixture.id
     object {
       type = "dataset"
       id   = census_dataset.fixture.id
@@ -107,7 +106,6 @@ resource "census_sync" "fixture_dataset_source" {
   }
 
   destination_attributes {
-    connection_id = census_destination.fixture.id
     object        = "Contact"
   }
 
@@ -139,13 +137,13 @@ resource "census_sync" "fixture_dataset_source" {
 }
 
 resource "census_sync" "fixture_sync_sequence_trigger" {
-  workspace_id = census_workspace.fixture.id
+  activation_id = "fake_id"
+
   label        = "pre-migration-fixture: sync_sequence trigger"
   paused       = true
   operation    = "upsert"
 
   source_attributes {
-    connection_id = census_source.fixture.id
     object {
       type          = "table"
       table_name    = "users"
@@ -155,7 +153,6 @@ resource "census_sync" "fixture_sync_sequence_trigger" {
   }
 
   destination_attributes {
-    connection_id = census_destination.fixture.id
     object        = "Contact"
   }
 

@@ -8,118 +8,109 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 // Helper functions for expanding complex types (Terraform config/state -> API request)
 
-func ExpandFieldMappings(ctx context.Context, mappings []interface{}) []client.FieldMapping {
-	result := make([]client.FieldMapping, 0, len(mappings))
+// ExpandFieldMappings converts the Terraform field_mapping blocks directly
+// into the v2 API's MappingAttributes wire shape. The two are bridged here,
+// in one step, rather than through an intermediate Terraform-shaped struct —
+// v2 only speaks one mapping shape, unlike v1 (which had a legacy
+// FieldMappings shape alongside Mappings), so there's nothing left to bridge
+// between.
+func ExpandFieldMappings(ctx context.Context, mappings []interface{}) []v2.MappingAttributes {
+	result := make([]v2.MappingAttributes, 0, len(mappings))
 	for i, mapping := range mappings {
-		// Safe type assertion for mapping
 		m, ok := mapping.(map[string]interface{})
 		if !ok {
 			tflog.Debug(ctx, "ExpandFieldMappings: mapping is not a map", map[string]interface{}{"index": i, "type": fmt.Sprintf("%T", mapping)})
-			continue // Skip invalid entries
+			continue
 		}
 
-		fieldMapping := client.FieldMapping{
-			Constant: m["constant"], // This is safe as interface{}
-		}
+		from, _ := m["from"].(string)
+		to, _ := m["to"].(string)
+		constant := m["constant"]
+		syncMetadataKey, _ := m["sync_metadata_key"].(string)
+		segmentIdentifyBy, _ := m["segment_identify_by"].(string)
+		liquidTemplate, _ := m["liquid_template"].(string)
 
-		// Safe type assertions for string fields
-		if from, ok := m["from"].(string); ok {
-			fieldMapping.From = from
-		} else {
-			tflog.Debug(ctx, "ExpandFieldMappings: 'from' is not a string", map[string]interface{}{"index": i, "type": fmt.Sprintf("%T", m["from"])})
-		}
-
-		if to, ok := m["to"].(string); ok {
-			fieldMapping.To = to
-		} else {
-			tflog.Debug(ctx, "ExpandFieldMappings: 'to' is not a string", map[string]interface{}{"index": i, "type": fmt.Sprintf("%T", m["to"])})
-		}
-
-		// Get type field (defaults to "direct" in schema)
-		mappingType := "direct" // fallback default
+		mappingType := "direct"
 		if typeVal, ok := m["type"].(string); ok && typeVal != "" {
 			mappingType = typeVal
 		}
-		fieldMapping.Type = mappingType
 
-		// Handle type-specific fields
-		if syncMetadataKey, ok := m["sync_metadata_key"].(string); ok {
-			fieldMapping.SyncMetadataKey = syncMetadataKey
-		}
-
-		if segmentIdentifyBy, ok := m["segment_identify_by"].(string); ok {
-			fieldMapping.SegmentIdentifyBy = segmentIdentifyBy
-		}
-
-		if liquidTemplate, ok := m["liquid_template"].(string); ok {
-			fieldMapping.LiquidTemplate = liquidTemplate
-		}
-
-		// Validate: if constant is present, type must be "constant"
-		if fieldMapping.Constant != nil && fieldMapping.Constant != "" {
-			if mappingType != "constant" {
-				tflog.Warn(ctx, "ExpandFieldMappings: field_mapping has a constant value but type is not 'constant'", map[string]interface{}{"index": i, "type": mappingType})
-				// Continue processing but log the error - validation should catch this
+		var mappingFrom v2.MappingFrom
+		switch mappingType {
+		case "constant":
+			mappingFrom = v2.MappingFrom{
+				Type: "constant_value",
+				Data: map[string]interface{}{
+					"basic_type": "text",
+					"value":      fmt.Sprintf("%v", constant),
+				},
 			}
+		case "sync_metadata":
+			mappingFrom = v2.MappingFrom{Type: "sync_metadata", Data: syncMetadataKey}
+		case "segment_membership":
+			mappingFrom = v2.MappingFrom{
+				Type: "segment_membership",
+				Data: map[string]interface{}{"identify_by": segmentIdentifyBy},
+			}
+		case "liquid_template":
+			mappingFrom = v2.MappingFrom{Type: "liquid_template", Data: liquidTemplate}
+		default:
+			mappingFrom = v2.MappingFrom{Type: "column", Data: from}
+		}
+
+		attr := v2.MappingAttributes{
+			From: mappingFrom,
+			To:   to,
 		}
 
 		if isPrimary, ok := m["is_primary_identifier"].(bool); ok {
-			fieldMapping.IsPrimaryIdentifier = isPrimary
+			attr.IsPrimaryIdentifier = isPrimary
 		}
-
+		if operation, ok := m["operation"].(string); ok {
+			attr.Operation = operation
+		}
 		if lookupObject, ok := m["lookup_object"].(string); ok {
-			fieldMapping.LookupObject = lookupObject
+			attr.LookupObject = lookupObject
 		}
-
 		if lookupField, ok := m["lookup_field"].(string); ok {
-			fieldMapping.LookupField = lookupField
+			attr.LookupField = lookupField
 		}
-
 		if preserveValues, ok := m["preserve_values"].(bool); ok {
-			fieldMapping.PreserveValues = preserveValues
+			attr.PreserveValues = preserveValues
 		}
-
 		if generateField, ok := m["generate_field"].(bool); ok {
-			fieldMapping.GenerateField = generateField
+			attr.GenerateField = generateField
 		}
-
-		if syncNullValues, ok := m["sync_null_values"]; ok {
-			if val, isBool := syncNullValues.(bool); isBool {
-				fieldMapping.SyncNullValues = &val
-			}
+		if syncNullValues, ok := m["sync_null_values"].(bool); ok {
+			attr.SyncNullValues = &syncNullValues
 		}
-
 		if arrayField, ok := m["array_field"].(bool); ok {
-			fieldMapping.ArrayField = arrayField
+			attr.ArrayField = arrayField
 		}
-
 		if fieldType, ok := m["field_type"].(string); ok {
-			fieldMapping.FieldType = fieldType
+			attr.FieldType = fieldType
 		}
-
 		if followSourceType, ok := m["follow_source_type"].(bool); ok {
-			fieldMapping.FollowSourceType = followSourceType
+			attr.FollowSourceType = followSourceType
 		}
 
-		result = append(result, fieldMapping)
+		result = append(result, attr)
 	}
 	return result
 }
 
-func ExpandAlerts(ctx context.Context, alerts []interface{}) []client.AlertAttribute {
-	// Return empty slice instead of nil to allow deleting all alerts
-	// When nil is used, the omitempty tag causes the field to be omitted entirely
-	// from the JSON, which the API interprets as "don't change"
-	result := make([]client.AlertAttribute, 0, len(alerts))
+func ExpandAlerts(ctx context.Context, alerts []interface{}) []v2.AlertAttribute {
+	// Return empty slice instead of nil to allow deleting all alerts, and so
+	// that the (required, not omitempty) Options field below is never left
+	// nil on an element — a nil map marshals to JSON null, not {}, and v2
+	// requires options on every alert even when there are none to set.
+	result := make([]v2.AlertAttribute, 0, len(alerts))
 
-	if len(alerts) == 0 {
-		return result
-	}
 	for i, alert := range alerts {
 		m, ok := alert.(map[string]interface{})
 		if !ok {
@@ -127,11 +118,10 @@ func ExpandAlerts(ctx context.Context, alerts []interface{}) []client.AlertAttri
 			continue
 		}
 
-		alertAttr := client.AlertAttribute{
+		alertAttr := v2.AlertAttribute{
 			Options: make(map[string]interface{}),
 		}
 
-		// Preserve alert ID if it exists (required for updates)
 		if id, ok := m["id"].(int); ok {
 			alertAttr.ID = id
 		}
@@ -143,19 +133,17 @@ func ExpandAlerts(ctx context.Context, alerts []interface{}) []client.AlertAttri
 		if sendFor, ok := m["send_for"].(string); ok && sendFor != "" {
 			alertAttr.SendFor = sendFor
 		} else {
-			alertAttr.SendFor = "first_time" // default
+			alertAttr.SendFor = "first_time"
 		}
 
 		if shouldSendRecovery, ok := m["should_send_recovery"].(bool); ok {
 			alertAttr.ShouldSendRecovery = shouldSendRecovery
 		} else {
-			alertAttr.ShouldSendRecovery = true // default
+			alertAttr.ShouldSendRecovery = true
 		}
 
-		// Handle options - convert string values to appropriate types
 		if options, ok := m["options"].(map[string]interface{}); ok {
 			for key, value := range options {
-				// Try to convert string values to integers for threshold fields
 				if strVal, ok := value.(string); ok {
 					if key == "threshold" {
 						if intVal, err := strconv.Atoi(strVal); err == nil {
@@ -168,8 +156,8 @@ func ExpandAlerts(ctx context.Context, alerts []interface{}) []client.AlertAttri
 			}
 		}
 
-		// Only append if we have a valid alert type (required field)
-		// This prevents sending invalid empty alerts to the API
+		// Only append if we have a valid alert type (required field) — this
+		// prevents sending invalid empty alerts to the API.
 		if alertAttr.Type != "" {
 			result = append(result, alertAttr)
 		}
@@ -177,8 +165,11 @@ func ExpandAlerts(ctx context.Context, alerts []interface{}) []client.AlertAttri
 	return result
 }
 
-// ExpandRunMode converts Terraform run_mode config to API SyncMode struct
-func ExpandRunMode(ctx context.Context, runModes []interface{}) *client.SyncMode {
+// ExpandRunMode converts Terraform run_mode config to the API's SyncMode
+// struct. Only "triggered" mode is schema-valid now — "live" has been fully
+// sunset by Census — but this doesn't special-case the type value at all;
+// narrowing that is the schema's job (see run_mode.type's ValidateFunc).
+func ExpandRunMode(ctx context.Context, runModes []interface{}) *v2.SyncMode {
 	if len(runModes) == 0 || runModes[0] == nil {
 		return nil
 	}
@@ -189,22 +180,19 @@ func ExpandRunMode(ctx context.Context, runModes []interface{}) *client.SyncMode
 		return nil
 	}
 
-	mode := &client.SyncMode{}
+	mode := &v2.SyncMode{}
 
-	// Extract type (required)
 	if modeType, ok := runModeMap["type"].(string); ok {
 		mode.Type = modeType
 	}
 
-	// Extract triggers (optional, only for triggered mode)
 	if triggersList, ok := runModeMap["triggers"].([]interface{}); ok && len(triggersList) > 0 {
 		if triggersMap, ok := triggersList[0].(map[string]interface{}); ok {
-			triggers := &client.SyncTriggers{}
+			triggers := &v2.SyncTriggers{}
 
-			// Extract schedule trigger
 			if scheduleList, ok := triggersMap["schedule"].([]interface{}); ok && len(scheduleList) > 0 {
 				if scheduleMap, ok := scheduleList[0].(map[string]interface{}); ok {
-					schedule := &client.TriggerSchedule{}
+					schedule := &v2.TriggerSchedule{}
 
 					if freq, ok := scheduleMap["frequency"].(string); ok {
 						schedule.Frequency = freq
@@ -226,29 +214,27 @@ func ExpandRunMode(ctx context.Context, runModes []interface{}) *client.SyncMode
 				}
 			}
 
-			// Extract dbt_cloud trigger
 			if dbtList, ok := triggersMap["dbt_cloud"].([]interface{}); ok && len(dbtList) > 0 {
 				if dbtMap, ok := dbtList[0].(map[string]interface{}); ok {
-					dbt := &client.DbtCloudTrigger{}
+					dbt := &v2.DbtCloudTrigger{}
 
-					if projectId, ok := dbtMap["project_id"].(string); ok {
-						dbt.ProjectId = projectId
+					if projectID, ok := dbtMap["project_id"].(string); ok {
+						dbt.ProjectID = projectID
 					}
-					if jobId, ok := dbtMap["job_id"].(string); ok {
-						dbt.JobId = jobId
+					if jobID, ok := dbtMap["job_id"].(string); ok {
+						dbt.JobID = jobID
 					}
 
 					triggers.DbtCloud = dbt
 				}
 			}
 
-			// Extract fivetran trigger
 			if fivetranList, ok := triggersMap["fivetran"].([]interface{}); ok && len(fivetranList) > 0 {
 				if fivetranMap, ok := fivetranList[0].(map[string]interface{}); ok {
-					fivetran := &client.FivetranTrigger{}
+					fivetran := &v2.FivetranTrigger{}
 
-					if jobId, ok := fivetranMap["job_id"].(string); ok {
-						fivetran.JobId = jobId
+					if jobID, ok := fivetranMap["job_id"].(string); ok {
+						fivetran.JobID = jobID
 					}
 					if jobName, ok := fivetranMap["job_name"].(string); ok {
 						fivetran.JobName = jobName
@@ -258,13 +244,12 @@ func ExpandRunMode(ctx context.Context, runModes []interface{}) *client.SyncMode
 				}
 			}
 
-			// Extract sync_sequence trigger
 			if seqList, ok := triggersMap["sync_sequence"].([]interface{}); ok && len(seqList) > 0 {
 				if seqMap, ok := seqList[0].(map[string]interface{}); ok {
-					seq := &client.SyncSequenceTrigger{}
+					seq := &v2.SyncSequenceTrigger{}
 
-					if syncId, ok := seqMap["sync_id"].(int); ok {
-						seq.SyncId = syncId
+					if syncID, ok := seqMap["sync_id"].(int); ok {
+						seq.SyncID = syncID
 					}
 
 					triggers.SyncSequence = seq
@@ -276,17 +261,6 @@ func ExpandRunMode(ctx context.Context, runModes []interface{}) *client.SyncMode
 	}
 
 	return mode
-}
-
-func ExpandStringMap(m map[string]interface{}) map[string]interface{} {
-	if m == nil {
-		return nil
-	}
-	result := make(map[string]interface{})
-	for k, v := range m {
-		result[k] = v
-	}
-	return result
 }
 
 // CleanEmptyStrings removes empty string and zero values from a map
@@ -322,7 +296,10 @@ func ExpandAdvancedConfiguration(ctx context.Context, jsonStr string) map[string
 	return result
 }
 
-// ExpandSourceAttributes converts list-based source_attributes from Terraform to map format for API
+// ExpandSourceAttributes converts list-based source_attributes from
+// Terraform to the map format the API expects. The source is now determined
+// by the sync's activation_id, not by a connection_id — that field has been
+// removed from the schema entirely.
 func ExpandSourceAttributes(ctx context.Context, sourceAttrs []interface{}) map[string]interface{} {
 	if len(sourceAttrs) == 0 {
 		return nil
@@ -337,11 +314,6 @@ func ExpandSourceAttributes(ctx context.Context, sourceAttrs []interface{}) map[
 	}
 
 	result := make(map[string]interface{})
-
-	// Copy basic attributes
-	if v, ok := attr["connection_id"]; ok && v != "" {
-		result["connection_id"] = v
-	}
 
 	// Copy top-level cohort_id if present (for cohort sources)
 	if v, ok := attr["cohort_id"]; ok && v != "" {
@@ -422,13 +394,15 @@ func ExpandSourceAttributes(ctx context.Context, sourceAttrs []interface{}) map[
 	return result
 }
 
-// ExpandDestinationAttributes converts list-based destination_attributes from Terraform to map format for API
-func ExpandDestinationAttributes(ctx context.Context, destAttrs []interface{}) map[string]interface{} {
+// ExpandDestinationAttributes converts the destination_attributes block to
+// the API's typed shape. The destination is now determined by the sync's
+// activation_id, not by a connection_id — that field has been removed from
+// the schema entirely.
+func ExpandDestinationAttributes(ctx context.Context, destAttrs []interface{}) *v2.SyncDestinationAttributes {
 	if len(destAttrs) == 0 {
 		return nil
 	}
 
-	// Safe type assertion for destination attributes
 	attrInterface := destAttrs[0]
 	attr, ok := attrInterface.(map[string]interface{})
 	if !ok {
@@ -436,17 +410,12 @@ func ExpandDestinationAttributes(ctx context.Context, destAttrs []interface{}) m
 		return nil
 	}
 
-	result := make(map[string]interface{})
-
-	// Copy attributes
-	if v, ok := attr["connection_id"]; ok && v != "" {
-		result["connection_id"] = v
+	result := &v2.SyncDestinationAttributes{}
+	if v, ok := attr["object"].(string); ok {
+		result.Object = v
 	}
-	if v, ok := attr["object"]; ok && v != "" {
-		result["object"] = v
-	}
-	if v, ok := attr["lead_union_insert_to"]; ok && v != "" {
-		result["lead_union_insert_to"] = v
+	if v, ok := attr["lead_union_insert_to"].(string); ok {
+		result.LeadUnionInsertTo = v
 	}
 
 	return result

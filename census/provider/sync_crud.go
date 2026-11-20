@@ -3,99 +3,29 @@ package provider
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strconv"
-	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/sutrolabs/terraform-provider-census/census/client"
+	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
 func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*clients).V1
+	apiClient := meta.(*clients).V2
 
-	workspaceId := d.Get("workspace_id").(string)
-
-	// Get the workspace API key dynamically using the personal access token
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.Errorf("failed to get workspace API key for workspace %d: %v", workspaceIdInt, err)
-	}
-	if workspaceToken == "" {
-		return diag.Errorf("workspace API key is empty for workspace %d", workspaceIdInt)
-	}
-
-	destinationAttributes := ExpandDestinationAttributes(ctx, d.Get("destination_attributes").([]interface{}))
-	fieldMappings := ExpandFieldMappings(ctx, d.Get("field_mapping").([]interface{}))
-
-	// Get operation from top-level field (per OpenAPI spec)
-	operation := d.Get("operation").(string)
-
-	// Convert FieldMappings to MappingAttributes for API compliance
-	mappings := ConvertFieldMappingsToMappingAttributes(fieldMappings)
-
-	// Handle run_mode
-	var mode *client.SyncMode
-	runModeRaw := d.Get("run_mode").([]interface{})
-
-	if len(runModeRaw) > 0 {
-		mode = ExpandRunMode(ctx, runModeRaw)
-	}
-
-	req := &client.CreateSyncRequest{
-		// Required fields per OpenAPI spec
-		Operation:             operation,
-		SourceAttributes:      ExpandSourceAttributes(ctx, d.Get("source_attributes").([]interface{})),
-		DestinationAttributes: destinationAttributes,
-		Mappings:              mappings,
-
-		// Optional fields
-		Label: d.Get("label").(string),
-
-		// Mode - live vs triggered with trigger configurations
-		Mode: mode,
-
-		Paused: d.Get("paused").(bool),
-
-		// Field configuration
-		FieldBehavior:      d.Get("field_behavior").(string),
-		FieldNormalization: d.Get("field_normalization").(string),
-		FieldOrder:         d.Get("field_order").(string),
-
-		// Sync behavior family
-		SyncBehaviorFamily: d.Get("sync_behavior_family").(string),
-
-		// Advanced configuration
-		AdvancedConfiguration: ExpandAdvancedConfiguration(ctx, d.Get("advanced_configuration").(string)),
-
-		// High water mark attribute
-		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
-
-		// Historical sync operation
-		HistoricalSyncOperation: d.Get("historical_sync_operation").(string),
-
-		// Mirror strategy
-		MirrorStrategy: d.Get("mirror_strategy").(string),
-
-		// Alert configuration
-		AlertAttributes: ExpandAlerts(ctx, d.Get("alert").([]interface{})),
-	}
+	req := buildSyncRequest(ctx, d)
 
 	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
 		tflog.Debug(ctx, "Creating sync", map[string]interface{}{"request": string(reqJSON)})
 	} else {
 		tflog.Debug(ctx, "Creating sync (failed to marshal request for logging)", map[string]interface{}{"error": jsonErr.Error()})
 	}
-	sync, err := apiClient.CreateSyncWithToken(ctx, req, workspaceToken)
+
+	sync, err := v2.CreateSync(ctx, apiClient, req)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -103,14 +33,11 @@ func resourceSyncCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	tflog.Debug(ctx, "Sync created successfully", map[string]interface{}{"sync_id": sync.ID})
 	d.SetId(strconv.Itoa(sync.ID))
 
-	// Explicitly set workspace_id from our input since API doesn't return it
-	d.Set("workspace_id", workspaceId)
-
 	return resourceSyncRead(ctx, d, meta)
 }
 
 func resourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*clients).V1
+	apiClient := meta.(*clients).V2
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -119,34 +46,9 @@ func resourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	tflog.Debug(ctx, "Starting resourceSyncRead", map[string]interface{}{"sync_id": id})
 
-	// Get workspace token dynamically if we have workspace_id
-	workspaceId := d.Get("workspace_id").(string)
-
-	var sync *client.Sync
-	if workspaceId != "" {
-		workspaceIdInt, convErr := strconv.Atoi(workspaceId)
-		if convErr != nil {
-			return diag.Errorf("invalid workspace ID: %s", workspaceId)
-		}
-
-		workspaceToken, tokenErr := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-		if tokenErr != nil {
-			tflog.Debug(ctx, "Failed to get workspace API key", map[string]interface{}{"workspace_id": workspaceIdInt, "error": tokenErr.Error()})
-			return diag.FromErr(tokenErr)
-		}
-
-		sync, err = apiClient.GetSyncWithToken(ctx, id, workspaceToken)
-	} else {
-		return diag.Errorf(`workspace_id is required but missing from resource state.
-
-To fix this, add the missing workspace_id to terraform state:
-  terraform state rm census_sync.example
-  terraform import census_sync.example workspace_id:sync_id`)
-	}
-
+	sync, err := v2.GetSync(ctx, apiClient, id)
 	if err != nil {
-		// Check if sync was not found
-		if IsNotFoundError(err) {
+		if v2.IsNotFoundError(err) {
 			tflog.Debug(ctx, "Sync not found, clearing resource ID", map[string]interface{}{"sync_id": id})
 			d.SetId("")
 			return nil
@@ -154,11 +56,7 @@ To fix this, add the missing workspace_id to terraform state:
 		return diag.FromErr(err)
 	}
 
-	// Only update workspace_id if API returned it, otherwise preserve what's in state
-	if sync.WorkspaceID != "" {
-		d.Set("workspace_id", sync.WorkspaceID)
-	}
-
+	d.Set("activation_id", sync.ActivationID)
 	d.Set("label", sync.Label)
 	d.Set("status", sync.Status)
 	d.Set("paused", sync.Paused)
@@ -184,7 +82,7 @@ To fix this, add the missing workspace_id to terraform state:
 	}
 
 	// Set advanced configuration if present
-	if sync.AdvancedConfiguration != nil && len(sync.AdvancedConfiguration) > 0 {
+	if len(sync.AdvancedConfiguration) > 0 {
 		if err := d.Set("advanced_configuration", FlattenAdvancedConfiguration(ctx, sync.AdvancedConfiguration)); err != nil {
 			return diag.Errorf("failed to set advanced_configuration: %v", err)
 		}
@@ -214,27 +112,19 @@ To fix this, add the missing workspace_id to terraform state:
 
 	// Set time fields only if they are not zero values
 	if !sync.CreatedAt.IsZero() {
-		d.Set("created_at", sync.CreatedAt.Format("2006-01-02T15:04:05Z"))
+		d.Set("created_at", sync.CreatedAt.Format(time.RFC3339))
 	}
 	if !sync.UpdatedAt.IsZero() {
-		d.Set("updated_at", sync.UpdatedAt.Format("2006-01-02T15:04:05Z"))
+		d.Set("updated_at", sync.UpdatedAt.Format(time.RFC3339))
 	}
 
 	// last_run_at, next_run_at and last_run_id are deprecated: the API does not support them,
 	// so they are never set and stay empty.
 
-	// Handle run_mode from API response
-	if sync.Mode != nil {
-		if err := d.Set("run_mode", FlattenRunMode(sync.Mode)); err != nil {
-			return diag.Errorf("failed to set run_mode: %v", err)
-		}
-	} else if sync.ScheduleFrequency != "" {
-		// Handle very old syncs that pre-date Mode API field (created before Census added Mode support)
-		tflog.Debug(ctx, "Legacy sync detected - has flat schedule fields but no Mode", map[string]interface{}{"sync_id": id})
-		return diag.Errorf("This sync was created with an older version of the Census API that pre-dates run_mode support. Please recreate it using run_mode configuration or contact Census support to migrate it.")
+	if err := d.Set("run_mode", FlattenRunMode(sync.Mode)); err != nil {
+		return diag.Errorf("failed to set run_mode: %v", err)
 	}
 
-	// Set complex attributes with nil checks
 	if err := d.Set("source_attributes", FlattenSourceAttributes(sync.SourceAttributes)); err != nil {
 		return diag.Errorf("failed to set source_attributes: %v", err)
 	}
@@ -243,52 +133,38 @@ To fix this, add the missing workspace_id to terraform state:
 		return diag.Errorf("failed to set destination_attributes: %v", err)
 	}
 
-	// Convert API Mappings back to Terraform FieldMappings with defensive handling
-	var fieldMappings []client.FieldMapping
-	if sync.Mappings != nil && len(sync.Mappings) > 0 {
-		fieldMappings = ConvertMappingAttributesToFieldMappings(sync.Mappings)
-	} else {
-		fieldMappings = []client.FieldMapping{} // Empty slice as fallback
-	}
-	tflog.Debug(ctx, "Converted field mappings", map[string]interface{}{"sync_id": id, "count": len(fieldMappings)})
+	// Sort API mappings by position (Census's canonical order) before
+	// flattening. Position is always set by Census API regardless of
+	// field_order setting; this prevents spurious diffs when the Census API
+	// returns mappings in a different order.
+	mappings := make([]v2.MappingAttributes, len(sync.Mappings))
+	copy(mappings, sync.Mappings)
+	sort.Slice(mappings, func(i, j int) bool {
+		return mappings[i].Position < mappings[j].Position
+	})
 
-	// Sort API mappings by position (Census's canonical order)
-	// Position is always set by Census API regardless of field_order setting
-	// This prevents spurious diffs when the Census API returns mappings in a different order
-	if len(fieldMappings) > 0 {
-		sort.Slice(fieldMappings, func(i, j int) bool {
-			return fieldMappings[i].Position < fieldMappings[j].Position
-		})
-	}
-
-	// Filter out Census-managed compound_key mappings
-	// These are auto-generated by Census for certain destinations (e.g., Google Ads with compound keys)
-	// Users cannot create or modify these mappings, so they should not be tracked in Terraform state
-	userManagedMappings := make([]client.FieldMapping, 0, len(fieldMappings))
-	for _, mapping := range fieldMappings {
-		if mapping.Type != "compound_key" {
+	// Filter out Census-managed compound_key mappings. These are
+	// auto-generated by Census for certain destinations (e.g., Google Ads
+	// with compound keys). Users cannot create or modify these mappings, so
+	// they should not be tracked in Terraform state.
+	userManagedMappings := make([]v2.MappingAttributes, 0, len(mappings))
+	for _, mapping := range mappings {
+		if mapping.From.Type != "compound_key" {
 			userManagedMappings = append(userManagedMappings, mapping)
 		} else {
-			tflog.Debug(ctx, "Filtering out Census-managed compound_key mapping", map[string]interface{}{"from": mapping.From, "to": mapping.To})
+			tflog.Debug(ctx, "Filtering out Census-managed compound_key mapping", map[string]interface{}{"to": mapping.To})
 		}
 	}
-	fieldMappings = userManagedMappings
 
-	if err := d.Set("field_mapping", FlattenFieldMappings(fieldMappings)); err != nil {
+	if err := d.Set("field_mapping", FlattenFieldMappings(userManagedMappings)); err != nil {
 		return diag.Errorf("failed to set field_mapping: %v", err)
-	}
-
-	if sync.SyncKey != nil {
-		if err := d.Set("sync_key", sync.SyncKey); err != nil {
-			return diag.Errorf("failed to set sync_key: %v", err)
-		}
 	}
 
 	return nil
 }
 
 func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*clients).V1
+	apiClient := meta.(*clients).V2
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -296,160 +172,24 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 	tflog.Debug(ctx, "Updating sync", map[string]interface{}{"sync_id": id})
 
-	// Safe type assertion for workspace_id
-	workspaceIdInterface := d.Get("workspace_id")
-	workspaceId, ok := workspaceIdInterface.(string)
-	if !ok {
-		return diag.Errorf("workspace_id is not a valid string: %v", workspaceIdInterface)
-	}
-
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	// Handle run_mode
-	var mode *client.SyncMode
-	runModeRaw := d.Get("run_mode").([]interface{})
-
-	if len(runModeRaw) > 0 {
-		mode = ExpandRunMode(ctx, runModeRaw)
-		tflog.Debug(ctx, "Using run_mode", map[string]interface{}{"mode": fmt.Sprintf("%+v", mode)})
-	}
-
-	// Safe type assertions for all fields
-	labelInterface := d.Get("label")
-	label, ok := labelInterface.(string)
-	if !ok {
-		return diag.Errorf("label is not a valid string: %v", labelInterface)
-	}
-
-	sourceAttrsInterface := d.Get("source_attributes")
-	var sourceAttrs map[string]interface{}
-
-	// Handle both map and list formats
-	switch v := sourceAttrsInterface.(type) {
-	case map[string]interface{}:
-		sourceAttrs = v
-	case []interface{}:
-		if len(v) > 0 {
-			if m, ok := v[0].(map[string]interface{}); ok {
-				sourceAttrs = m
-			} else {
-				return diag.Errorf("source_attributes list element is not a valid map: %v", v[0])
-			}
-		} else {
-			sourceAttrs = make(map[string]interface{})
-		}
-	default:
-		return diag.Errorf("source_attributes is not a valid map or list: %v", sourceAttrsInterface)
-	}
-
-	// Additional processing to extract object field from list format
-	if sourceAttrs != nil {
-		if objData, exists := sourceAttrs["object"]; exists {
-			switch v := objData.(type) {
-			case []interface{}:
-				// Object stored as list in Terraform state - extract first element
-				if len(v) > 0 {
-					if obj, ok := v[0].(map[string]interface{}); ok {
-						sourceAttrs["object"] = obj
-					} else {
-						tflog.Debug(ctx, "source_attributes object list element is not a map", map[string]interface{}{"type": fmt.Sprintf("%T", v[0])})
-					}
-				}
-			case map[string]interface{}:
-				// Object is already a direct map - no change needed
-			default:
-				tflog.Debug(ctx, "source_attributes object is an unexpected type", map[string]interface{}{"type": fmt.Sprintf("%T", v)})
-			}
-		}
-	}
-
-	destAttrsInterface := d.Get("destination_attributes")
-	var destAttrs map[string]interface{}
-
-	// Handle both map and list formats
-	switch v := destAttrsInterface.(type) {
-	case map[string]interface{}:
-		destAttrs = v
-	case []interface{}:
-		if len(v) > 0 {
-			if m, ok := v[0].(map[string]interface{}); ok {
-				destAttrs = m
-			} else {
-				return diag.Errorf("destination_attributes list element is not a valid map: %v", v[0])
-			}
-		} else {
-			destAttrs = make(map[string]interface{})
-		}
-	default:
-		return diag.Errorf("destination_attributes is not a valid map or list: %v", destAttrsInterface)
-	}
-
-	fieldMappingsInterface := d.Get("field_mapping")
-	fieldMappings, ok := fieldMappingsInterface.([]interface{})
-	if !ok {
-		return diag.Errorf("field_mapping is not a valid list: %v", fieldMappingsInterface)
-	}
-
-	pausedInterface := d.Get("paused")
-	paused, ok := pausedInterface.(bool)
-	if !ok {
-		return diag.Errorf("paused is not a valid boolean: %v", pausedInterface)
-	}
-
-	// Safe type assertions for field configuration
-	fieldBehaviorInterface := d.Get("field_behavior")
-	fieldBehavior, _ := fieldBehaviorInterface.(string)
-
-	fieldNormalizationInterface := d.Get("field_normalization")
-	fieldNormalization, _ := fieldNormalizationInterface.(string)
-
-	fieldOrderInterface := d.Get("field_order")
-	fieldOrder, _ := fieldOrderInterface.(string)
-
-	syncBehaviorFamilyInterface := d.Get("sync_behavior_family")
-	syncBehaviorFamily, _ := syncBehaviorFamilyInterface.(string)
-
-	req := &client.UpdateSyncRequest{
-		Label:                 label,
-		Operation:             d.Get("operation").(string),
-		SourceAttributes:      ExpandSourceAttributes(ctx, d.Get("source_attributes").([]interface{})),
-		DestinationAttributes: ExpandStringMap(destAttrs),
-		Mappings:              ConvertFieldMappingsToMappingAttributes(ExpandFieldMappings(ctx, fieldMappings)),
-		Paused:                paused,
-
-		// Mode - live vs triggered with trigger configurations
-		Mode: mode,
-
-		// Field configuration
-		FieldBehavior:      fieldBehavior,
-		FieldNormalization: fieldNormalization,
-		FieldOrder:         fieldOrder,
-
-		// Sync behavior family
-		SyncBehaviorFamily: syncBehaviorFamily,
-
-		// Advanced configuration
-		AdvancedConfiguration: ExpandAdvancedConfiguration(ctx, d.Get("advanced_configuration").(string)),
-
-		// High water mark attribute
-		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
-
-		// Historical sync operation
-		HistoricalSyncOperation: d.Get("historical_sync_operation").(string),
-
-		// Mirror strategy
-		MirrorStrategy: d.Get("mirror_strategy").(string),
-
-		// Alert configuration
-		AlertAttributes: ExpandAlerts(ctx, d.Get("alert").([]interface{})),
+	createReq := buildSyncRequest(ctx, d)
+	req := &v2.UpdateSyncRequest{
+		Label:                   createReq.Label,
+		Operation:               createReq.Operation,
+		SourceAttributes:        createReq.SourceAttributes,
+		DestinationAttributes:   createReq.DestinationAttributes,
+		Mappings:                createReq.Mappings,
+		AlertAttributes:         createReq.AlertAttributes,
+		AdvancedConfiguration:   createReq.AdvancedConfiguration,
+		Mode:                    createReq.Mode,
+		Paused:                  createReq.Paused,
+		FieldBehavior:           createReq.FieldBehavior,
+		FieldNormalization:      createReq.FieldNormalization,
+		FieldOrder:              createReq.FieldOrder,
+		SyncBehaviorFamily:      createReq.SyncBehaviorFamily,
+		HighWaterMarkAttribute:  createReq.HighWaterMarkAttribute,
+		HistoricalSyncOperation: createReq.HistoricalSyncOperation,
+		MirrorStrategy:          createReq.MirrorStrategy,
 	}
 
 	if reqJSON, jsonErr := json.Marshal(req); jsonErr == nil {
@@ -457,36 +197,27 @@ func resourceSyncUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	} else {
 		tflog.Debug(ctx, "Updating sync (failed to marshal request for logging)", map[string]interface{}{"sync_id": id, "error": jsonErr.Error()})
 	}
-	_, err = apiClient.UpdateSyncWithToken(ctx, id, req, workspaceToken)
-	if err != nil {
+
+	if _, err := v2.UpdateSync(ctx, apiClient, id, req); err != nil {
 		return diag.FromErr(err)
 	}
 
-	result := resourceSyncRead(ctx, d, meta)
-	return result
+	return resourceSyncRead(ctx, d, meta)
 }
 
 func resourceSyncDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	apiClient := meta.(*clients).V1
+	apiClient := meta.(*clients).V2
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.Errorf("invalid sync ID: %s", d.Id())
 	}
 
-	workspaceId := d.Get("workspace_id").(string)
-	workspaceIdInt, err := strconv.Atoi(workspaceId)
-	if err != nil {
-		return diag.Errorf("invalid workspace ID: %s", workspaceId)
-	}
-
-	workspaceToken, err := apiClient.GetWorkspaceAPIKey(ctx, workspaceIdInt)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = apiClient.DeleteSyncWithToken(ctx, id, workspaceToken)
-	if err != nil {
+	if err := v2.DeleteSync(ctx, apiClient, id); err != nil {
+		if v2.IsNotFoundError(err) {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -494,28 +225,42 @@ func resourceSyncDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	return nil
 }
 
-func resourceSyncImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	// Support composite format: workspace_id:sync_id
-	parts := strings.Split(d.Id(), ":")
-
-	if len(parts) == 2 {
-		// Format: workspace_id:sync_id
-		workspaceId := parts[0]
-		syncId := parts[1]
-
-		d.SetId(syncId)
-		d.Set("workspace_id", workspaceId)
-
-		return []*schema.ResourceData{d}, nil
-	} else if len(parts) == 1 {
-		// Legacy format - provide helpful error
-		return nil, fmt.Errorf(`import requires workspace_id. Use format: workspace_id:sync_id
-
-Example:
-  terraform import census_sync.contact_sync 69962:123
-
-Where 69962 is the workspace_id and 123 is the sync_id.`)
+// buildSyncRequest reads the Terraform config/state into a CreateSyncRequest
+// — the superset of fields Create and Update both send. Update derives its
+// own request type from this one (see resourceSyncUpdate) since the two
+// request shapes differ only in which fields are required.
+func buildSyncRequest(ctx context.Context, d *schema.ResourceData) *v2.CreateSyncRequest {
+	var mode *v2.SyncMode
+	if runModeRaw := d.Get("run_mode").([]interface{}); len(runModeRaw) > 0 {
+		mode = ExpandRunMode(ctx, runModeRaw)
 	}
 
-	return nil, fmt.Errorf("invalid import format. Use: workspace_id:sync_id")
+	return &v2.CreateSyncRequest{
+		ActivationID:          d.Get("activation_id").(string),
+		Operation:             d.Get("operation").(string),
+		SourceAttributes:      ExpandSourceAttributes(ctx, d.Get("source_attributes").([]interface{})),
+		DestinationAttributes: ExpandDestinationAttributes(ctx, d.Get("destination_attributes").([]interface{})),
+		Mappings:              ExpandFieldMappings(ctx, d.Get("field_mapping").([]interface{})),
+
+		Label: d.Get("label").(string),
+		Mode:  mode,
+
+		Paused: d.Get("paused").(bool),
+
+		FieldBehavior:      d.Get("field_behavior").(string),
+		FieldNormalization: d.Get("field_normalization").(string),
+		FieldOrder:         d.Get("field_order").(string),
+
+		SyncBehaviorFamily: d.Get("sync_behavior_family").(string),
+
+		AdvancedConfiguration: ExpandAdvancedConfiguration(ctx, d.Get("advanced_configuration").(string)),
+
+		HighWaterMarkAttribute: d.Get("high_water_mark_attribute").(string),
+
+		HistoricalSyncOperation: d.Get("historical_sync_operation").(string),
+
+		MirrorStrategy: d.Get("mirror_strategy").(string),
+
+		AlertAttributes: ExpandAlerts(ctx, d.Get("alert").([]interface{})),
+	}
 }

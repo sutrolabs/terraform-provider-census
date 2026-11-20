@@ -38,6 +38,7 @@ func TestPreMigrationFixture_PlansWithNoChangesAgainstExpectedConfig(t *testing.
 	}
 
 	t.Setenv("TF_CLI_CONFIG_FILE", filepath.Join(workdir, "dev.tfrc"))
+	t.Setenv("CENSUS_BASE_URL", fakeCensusSyncAPI(t))
 
 	ctx := context.Background()
 	tf, err := tfexec.NewTerraform(workdir, tfPath)
