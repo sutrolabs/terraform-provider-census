@@ -1,0 +1,51 @@
+census/provider/resource_dataset.go
+  s_5041b77720d727::t_d26d7e9aa1ad82 18
+examples/README.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 36,99
+examples/basic-workspace/README.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 7,9
+docs/data-sources/source.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 3
+docs/README.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 9
+examples/staging-example/README.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 1,7
+examples/complete-census-setup/README.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 1,3
+census/client/v2/source.go
+  s_5041b77720d727::t_d26d7e9aa1ad82 10
+census/provider/data_source_dataset.go
+  s_5041b77720d727::t_d26d7e9aa1ad82 15
+docs/resources/sync.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 3
+docs/data-sources/sync.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 3
+examples/staging-example/variables.tf
+  s_5041b77720d727::t_d26d7e9aa1ad82 14
+census/provider/resource_source.go
+  s_5041b77720d727::t_d26d7e9aa1ad82 15
+docs/resources/source.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 3
+examples/complete-census-setup/main.tf
+  s_5041b77720d727::t_d26d7e9aa1ad82 807,850-851
+census/provider/data_source_source.go
+  s_5041b77720d727::t_d26d7e9aa1ad82 15
+census/provider/resource_sync.go
+  s_5041b77720d727::t_d26d7e9aa1ad82 529,532
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "484e5059d7018e5ab31d68b60ba88cfe4df3bb48",
+  "prompts": {},
+  "sessions": {
+    "s_5041b77720d727": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3e1d7a89-fc20-4e46-a944-f49d38d810a1",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
