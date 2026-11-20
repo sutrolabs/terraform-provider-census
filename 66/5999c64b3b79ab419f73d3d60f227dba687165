@@ -1,0 +1,142 @@
+census/provider/data_source_dataset.go
+  s_5041b77720d727::t_d26d7e9aa1ad82 15
+docs/README.md
+  s_5041b77720d727::t_4fe24f360ca722 3
+  s_5041b77720d727::t_d26d7e9aa1ad82 9
+census/client/v2/client.go
+  s_5041b77720d727::t_e84ce3021a85da 44
+census/client/v2/source.go
+  s_5041b77720d727::t_e84ce3021a85da 64
+  s_5041b77720d727::t_f5f5a8c9ce311d 10
+examples/basic-workspace/main.tf
+  s_5041b77720d727::t_4fe24f360ca722 10
+census/provider/sync_crud.go
+  s_5041b77720d727::t_e84ce3021a85da 136-138,146-147,155
+census/tests/regression/fixtures/pre_migration/README.md
+  s_5041b77720d727::t_dcc76de994604a 8
+docs/data-sources/sync.md
+  s_5041b77720d727::t_15cdac170c33c0 3
+  s_5041b77720d727::t_eebe498150ae6e 60
+census/provider/resource_sync.go
+  s_5041b77720d727::t_9967c148d8a112 529
+  s_5041b77720d727::t_eebe498150ae6e 184,190,289,325,371,377
+  s_5041b77720d727::t_d26d7e9aa1ad82 532
+Makefile
+  s_5041b77720d727::t_dcc76de994604a 25
+examples/complete-census-setup/main.tf
+  s_5041b77720d727::t_d26d7e9aa1ad82 807,850-851
+  s_5041b77720d727::t_dcc76de994604a 857
+examples/basic-workspace/terraform.tfvars.example
+  s_5041b77720d727::t_dcc76de994604a 4
+docs/index.md
+  h_96efa7013a7935 2,5,8,10,31,35-36,52,55,64
+  s_5041b77720d727::t_eebe498150ae6e 44,48
+docs/resources/sync.md
+  h_96efa7013a7935 229
+  s_5041b77720d727::t_d26d7e9aa1ad82 3
+  s_5041b77720d727::t_eebe498150ae6e 467,490,528-529,910,1015-1016,1040,1044,1070,1124
+  s_5041b77720d727::t_ed05232e311626 1039
+TESTING.md
+  s_5041b77720d727::t_4fe24f360ca722 3
+  s_5041b77720d727::t_ed05232e311626 24
+census/tests/regression/fixtures/README.md
+  s_5041b77720d727::t_dcc76de994604a 31
+examples/complete-census-setup/Makefile
+  s_5041b77720d727::t_4fe24f360ca722 1,57
+docs/resources/source.md
+  s_5041b77720d727::t_ed05232e311626 211,246,248,255
+  s_5041b77720d727::t_60ecea645941f2 3
+  s_5041b77720d727::t_eebe498150ae6e 204-207,210,231,250,252
+examples/complete-census-setup/README.md
+  s_5041b77720d727::t_ed05232e311626 329,364
+  s_5041b77720d727::t_eebe498150ae6e 23,29,89,124,220,224,356
+  s_5041b77720d727::t_d26d7e9aa1ad82 1
+  h_96efa7013a7935 3,7
+census/provider/provider.go
+  s_5041b77720d727::t_4fe24f360ca722 28
+  s_5041b77720d727::t_eebe498150ae6e 37
+  s_5041b77720d727::t_e84ce3021a85da 24
+  s_5041b77720d727::t_34ad86e1ab23e8 14
+census/provider/data_source_source.go
+  s_5041b77720d727::t_c40cabf52a3c30 15
+examples/staging-example/outputs.tf
+  s_5041b77720d727::t_dcc76de994604a 32
+examples/README.md
+  s_5041b77720d727::t_4fe24f360ca722 1,3
+  s_5041b77720d727::t_eebe498150ae6e 15,114
+  s_5041b77720d727::t_d26d7e9aa1ad82 36,99
+  s_5041b77720d727::t_ed05232e311626 31
+.env.test.example
+  s_5041b77720d727::t_4fe24f360ca722 1
+  s_5041b77720d727::t_dcc76de994604a 8
+census/provider/utils.go
+  s_5041b77720d727::t_e84ce3021a85da 72
+census/provider/sync_flatten.go
+  s_5041b77720d727::t_e84ce3021a85da 36,74
+census/provider/resource_source.go
+  s_5041b77720d727::t_eebe498150ae6e 77,83
+  s_5041b77720d727::t_e88fb26c172287 15
+  s_5041b77720d727::t_e84ce3021a85da 181
+CONTRIBUTING.md
+  s_5041b77720d727::t_4fe24f360ca722 1
+census/provider/resource_source_test.go
+  s_5041b77720d727::t_e84ce3021a85da 124,148,417,511,522
+census/client/v2/errors.go
+  s_5041b77720d727::t_e84ce3021a85da 10,27,29,66
+census/tests/regression/helpers_test.go
+  s_5041b77720d727::t_e84ce3021a85da 100
+census/tests/regression/expected_config/README.md
+  s_5041b77720d727::t_dcc76de994604a 24
+examples/basic-workspace/README.md
+  s_5041b77720d727::t_4fe24f360ca722 3
+  s_5041b77720d727::t_d26d7e9aa1ad82 7,9
+  s_5041b77720d727::t_eebe498150ae6e 16,100
+census/provider/resource_sync_test.go
+  s_5041b77720d727::t_e84ce3021a85da 378,711
+examples/complete-census-setup/terraform.tfvars.example
+  s_5041b77720d727::t_4fe24f360ca722 2
+  s_5041b77720d727::t_dcc76de994604a 11,32,76
+.github/workflows/test.yml
+  s_5041b77720d727::t_dcc76de994604a 155,162,196
+examples/staging-example/README.md
+  s_5041b77720d727::t_d26d7e9aa1ad82 1,7
+  s_5041b77720d727::t_4fe24f360ca722 3
+  h_96efa7013a7935 22-23
+  s_5041b77720d727::t_ed05232e311626 47,234,269
+  s_5041b77720d727::t_eebe498150ae6e 156,158,173-174,243
+census/provider/sync_expand.go
+  s_5041b77720d727::t_e84ce3021a85da 170,267
+docs/data-sources/source.md
+  s_5041b77720d727::t_eebe498150ae6e 33
+  s_5041b77720d727::t_739e25cffbcc62 3
+census/provider/resource_dataset.go
+  s_5041b77720d727::t_d26d7e9aa1ad82 18
+  s_5041b77720d727::t_eebe498150ae6e 134,167
+examples/staging-example/variables.tf
+  s_5041b77720d727::t_d26d7e9aa1ad82 14
+  s_5041b77720d727::t_dcc76de994604a 8
+README.md
+  s_5041b77720d727::t_eebe498150ae6e 114,150
+  h_96efa7013a7935 1,3,7,9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "665999c64b3b79ab419f73d3d60f227dba687165",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  },
+  "sessions": {
+    "s_5041b77720d727": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3e1d7a89-fc20-4e46-a944-f49d38d810a1",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
