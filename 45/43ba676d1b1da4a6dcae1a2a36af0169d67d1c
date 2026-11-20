@@ -1,0 +1,52 @@
+examples/staging-example/terraform.tfvars.example
+  s_5041b77720d727::t_243940b68f8e5d 38-39,42-43
+  s_5041b77720d727::t_c6355e54ec1c3a 6,18,33-35,46
+examples/staging-example/variables.tf
+  s_5041b77720d727::t_c6355e54ec1c3a 14,44,50,55,75-77,82,84
+examples/complete-census-setup/terraform.tfvars.example
+  s_5041b77720d727::t_efc51cab91ed67 17,28,42,75
+examples/staging-example/main.tf
+  s_5041b77720d727::t_243940b68f8e5d 56
+  s_5041b77720d727::t_c6355e54ec1c3a 5,15,17-19,24-28,30,35-36,46
+examples/README.md
+  s_5041b77720d727::t_36ba760c0b35d9 3,9,21,27-28,30,37,58,89,110
+census/tests/acceptance/data_source_sync_test.go
+  s_5041b77720d727::t_a08f4b88ea83bc 65-66
+  s_5041b77720d727::t_33971737f94a2e 24,33-34,63-64,68,78-79,91,136
+census/tests/acceptance/resource_dataset_test.go
+  s_5041b77720d727::t_33971737f94a2e 190-191,195,221-222,234,462-463,467,494-495,505
+  s_5041b77720d727::t_a08f4b88ea83bc 192-193,464-465
+census/tests/acceptance/resource_sync_integration_test.go
+  s_5041b77720d727::t_4d1af7d7ebcf1c 167
+  s_5041b77720d727::t_33971737f94a2e 25,183-184,188,214-215,227,285-286,298,356-357,369,436-437,449,509-510,522,581-582,594,652-653,665
+  s_5041b77720d727::t_a08f4b88ea83bc 185-186
+census/tests/acceptance/helpers.go
+  s_5041b77720d727::t_4d1af7d7ebcf1c 38
+examples/complete-census-setup/README.md
+  s_5041b77720d727::t_5a202dfae0666f 17,19,23,237,258,263,266
+examples/staging-example/README.md
+  s_5041b77720d727::t_17dd64e6efde0f 3,15-17,254
+examples/complete-census-setup/main.tf
+  s_5041b77720d727::t_043fd500914157 5,12,16,19,84-86,91,94-95,100,103-104,106,109-110,184,188-189,203,265-266,280,342-343,357,420-422,434,544-545,559,595-604,607-608,623,680,714-715,718-722,725-729,735,742-744,747-749,752-753,758-759,765,770-772
+  s_5041b77720d727::t_98ae9d0b750a78 701,708
+examples/complete-census-setup/variables.tf
+  s_5041b77720d727::t_efc51cab91ed67 50
+examples/staging-example/outputs.tf
+  s_5041b77720d727::t_c6355e54ec1c3a 2,6-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4543ba676d1b1da4a6dcae1a2a36af0169d67d1c",
+  "prompts": {},
+  "sessions": {
+    "s_5041b77720d727": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3e1d7a89-fc20-4e46-a944-f49d38d810a1",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
