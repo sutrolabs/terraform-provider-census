@@ -692,7 +692,7 @@ func TestCleanEmptyStrings(t *testing.T) {
 func TestExpandDestinationAttributes_Basic(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
-			"object":                "Contact",
+			"object":               "Contact",
 			"lead_union_insert_to": "Lead",
 		},
 	}
