@@ -172,10 +172,6 @@ resource "census_dataset" "test" {
 
 func testAccResourceDatasetConfig_withSync(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Dataset Sync"
-}
-
 resource "census_source" "test" {
   name = "Test_Redshift_Source_%s"
   type = "redshift"
@@ -191,12 +187,12 @@ resource "census_source" "test" {
   auto_refresh_tables = false
 }
 
-resource "census_destination" "test" {
-  workspace_id = census_workspace.test.id
-  name         = "Test Salesforce Destination"
-  type         = "salesforce"
+resource "census_activation" "test" {
+  group_id = census_source.test.group_id
+  name     = "Test Salesforce Activation"
+  type     = "salesforce"
 
-  connection_config = {
+  credentials = {
     username        = "%s"
     instance_url    = "%s"
     client_id       = "%s"
@@ -222,12 +218,11 @@ resource "census_dataset" "test" {
 }
 
 resource "census_sync" "dataset_sync" {
-  workspace_id = census_workspace.test.id
-  label        = "Dataset to Contacts Sync"
+  activation_id = census_activation.test.id
+  label         = "Dataset to Contacts Sync"
 
   # Source configuration - use a dataset instead of table
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type = "dataset"
       id   = census_dataset.test.id
@@ -236,8 +231,7 @@ resource "census_sync" "dataset_sync" {
 
   # Destination configuration - Salesforce Contacts
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -450,10 +444,6 @@ resource "census_dataset" "test_with_wait" {
 
 func testAccResourceDatasetConfig_withSyncAfterWait(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Sync After Wait"
-}
-
 resource "census_source" "test" {
   name = "Test_Redshift_Source_Sync_%s"
   type = "redshift"
@@ -469,12 +459,12 @@ resource "census_source" "test" {
   auto_refresh_tables = false
 }
 
-resource "census_destination" "test" {
-  workspace_id = census_workspace.test.id
-  name = "Test Salesforce Destination"
-  type = "salesforce"
+resource "census_activation" "test" {
+  group_id = census_source.test.group_id
+  name     = "Test Salesforce Activation"
+  type     = "salesforce"
 
-  connection_config = {
+  credentials = {
     username      = "%s"
     instance_url  = "%s"
     client_id     = "%s"
@@ -501,11 +491,10 @@ resource "census_dataset" "test_for_sync" {
 }
 
 resource "census_sync" "test_sync" {
-  workspace_id = census_workspace.test.id
-  label        = "Test Sync After Dataset Wait"
+  activation_id = census_activation.test.id
+  label         = "Test Sync After Dataset Wait"
 
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type = "dataset"
       id   = census_dataset.test_for_sync.id
@@ -513,8 +502,7 @@ resource "census_sync" "test_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"

@@ -21,7 +21,7 @@ func TestAccDataSourceSync_Basic(t *testing.T) {
 					// Verify data source attributes
 					resource.TestCheckResourceAttr("data.census_sync.test", "label", "Test Sync - Data Source"),
 					resource.TestCheckResourceAttrSet("data.census_sync.test", "id"),
-					resource.TestCheckResourceAttrSet("data.census_sync.test", "workspace_id"),
+					resource.TestCheckResourceAttrSet("data.census_sync.test", "activation_id"),
 					resource.TestCheckResourceAttr("data.census_sync.test", "paused", "true"),
 
 					// Verify data source matches resource
@@ -30,8 +30,8 @@ func TestAccDataSourceSync_Basic(t *testing.T) {
 						"census_sync.test", "id",
 					),
 					resource.TestCheckResourceAttrPair(
-						"data.census_sync.test", "workspace_id",
-						"census_sync.test", "workspace_id",
+						"data.census_sync.test", "activation_id",
+						"census_sync.test", "activation_id",
 					),
 					resource.TestCheckResourceAttrPair(
 						"data.census_sync.test", "label",
@@ -45,12 +45,7 @@ func TestAccDataSourceSync_Basic(t *testing.T) {
 
 func testAccDataSourceSyncConfig_basic(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace Sync DS Query"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_%s"
   type = "redshift"
 
@@ -65,28 +60,25 @@ resource "census_source" "test" {
   auto_refresh_tables = false
 }
 
-resource "census_destination" "test" {
-  workspace_id = census_workspace.test.id
-  name = "Test Salesforce Destination"
-  type = "salesforce"
+resource "census_activation" "test" {
+  group_id = census_source.test.group_id
+  name     = "Test Salesforce Activation"
+  type     = "salesforce"
 
-  connection_config = {
+  credentials = {
     username        = "%s"
     instance_url    = "%s"
     client_id       = "%s"
     jwt_signing_key = "%s"
     domain          = "%s"
   }
-
-  auto_refresh_objects = false
 }
 
 resource "census_sync" "test" {
-  workspace_id = census_workspace.test.id
-  label        = "Test Sync - Data Source"
+  activation_id = census_activation.test.id
+  label         = "Test Sync - Data Source"
 
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type          = "table"
       table_catalog = "%s"
@@ -96,8 +88,7 @@ resource "census_sync" "test" {
   }
 
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -142,8 +133,7 @@ resource "census_sync" "test" {
 }
 
 data "census_sync" "test" {
-  id           = census_sync.test.id
-  workspace_id = census_workspace.test.id
+  id = census_sync.test.id
 }
 `,
 		rName,
