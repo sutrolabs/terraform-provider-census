@@ -206,6 +206,10 @@ func resourceSourceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	connection := expandSourceConnection(d, connectionConfig)
 	connection.Type = sourceType
 	connection.SyncEngine = getConfiguredSourceSyncEngine(d)
+	if region, ok := d.GetOk("region"); ok {
+		r := region.(string)
+		connection.Region = &r
+	}
 
 	source, err := v2.CreateSource(ctx, apiClient, &v2.CreateSourceRequest{Connection: connection})
 	if err != nil {
@@ -290,7 +294,7 @@ func resourceSourceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		}
 	}
 
-	// Type and sync_engine cannot be modified after creation.
+	// Type, sync_engine and region cannot be modified after creation.
 	connection := expandSourceConnection(d, connectionConfig)
 
 	if _, err := v2.UpdateSource(ctx, apiClient, id, &v2.UpdateSourceRequest{Connection: connection}); err != nil {
@@ -333,11 +337,6 @@ func expandSourceConnection(d *schema.ResourceData, credentials map[string]inter
 		Name:                              d.Get("name").(string),
 		WarehouseWritebackRetentionInDays: getConfiguredWarehouseWritebackRetention(d),
 		Credentials:                       credentials,
-	}
-
-	if region, ok := d.GetOk("region"); ok {
-		r := region.(string)
-		connection.Region = &r
 	}
 
 	if raw, ok := d.GetOk("notification_emails"); ok {

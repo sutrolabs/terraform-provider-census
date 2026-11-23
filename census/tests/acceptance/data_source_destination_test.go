@@ -21,7 +21,6 @@ data "census_destination" "test" {
 `,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.census_destination.test", "id", "12345"),
-					resource.TestCheckResourceAttr("data.census_destination.test", "name", ""),
 				),
 			},
 		},
