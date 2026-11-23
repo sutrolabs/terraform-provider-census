@@ -1,4 +1,9 @@
-# census_destination Resource
+---
+page_title: "census_destination Resource (deprecated)"
+subcategory: "Deprecated"
+---
+
+# census_destination Resource (deprecated)
 
 ~> **Deprecated:** This resource is deprecated and no longer manages anything in Fivetran Activations. Use the `census_activation` resource instead.
 
@@ -17,10 +22,10 @@ This resource remains in the provider only so that existing state and configurat
 1. Import the existing activation for each (source, destination) pair you use, rather than creating a new one. Fivetran Activations has already created an activation for every existing pairing.
 
    ```bash
-   terraform import census_activation.salesforce "source_id:destination_id"
+   terraform import census_activation.salesforce "group_id:destination_id"
    ```
 
-   `source_id` is the ID of the `census_source` and `destination_id` is the ID of the legacy `census_destination`. This is the only place the legacy destination ID is still used.
+   `group_id` is the `group_id` of the `census_source` and `destination_id` is the ID of the legacy `census_destination`. This is the only place the legacy destination ID is still used.
 
    ```hcl
    resource "census_activation" "salesforce" {
@@ -33,11 +38,12 @@ This resource remains in the provider only so that existing state and configurat
        password       = var.salesforce_password
        security_token = var.salesforce_security_token
        instance_url   = "https://company.my.salesforce.com"
+       domain         = "login.salesforce.com"
      }
    }
    ```
 
-2. Point each `census_sync` at the activation with `activation_id = census_activation.salesforce.id`. The `destination_attributes.connection_id` argument on `census_sync` is no longer used.
+2. Point each `census_sync` at the activation with `activation_id = census_activation.salesforce.id`. Remove `connection_id` from the sync's `source_attributes` and `destination_attributes`; it is no longer accepted.
 3. Remove the `census_destination` block from your configuration. No changes are made in Fivetran Activations.
 
 ## Argument Reference

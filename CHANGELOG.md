@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 - `census_destination` and `census_workspace` (resources and data sources).
+- `sync_behavior_family` on `census_sync`: Fivetran Activations ignores it.
 
 
 ## [0.2.21] - 2026-10-26

@@ -1,4 +1,9 @@
-# census_workspace Data Source
+---
+page_title: "census_workspace Data Source (deprecated)"
+subcategory: "Deprecated"
+---
+
+# census_workspace Data Source (deprecated)
 
 ~> **Deprecated:** This data source is deprecated and no longer returns data from Fivetran Activations. Workspaces are no longer needed; remove it from your configuration.
 

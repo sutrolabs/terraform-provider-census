@@ -11,9 +11,11 @@ resource "census_activation" "salesforce" {
   name     = "Production Salesforce"
 
   credentials = {
-    instance_url = "https://mycompany.my.salesforce.com"
-    username     = var.salesforce_username
-    password     = var.salesforce_password
+    instance_url   = "https://mycompany.my.salesforce.com"
+    domain         = "login.salesforce.com"
+    username       = var.salesforce_username
+    password       = var.salesforce_password
+    security_token = var.salesforce_security_token
   }
 }
 ```

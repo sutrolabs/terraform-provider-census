@@ -1,4 +1,9 @@
-# census_workspace Resource
+---
+page_title: "census_workspace Resource (deprecated)"
+subcategory: "Deprecated"
+---
+
+# census_workspace Resource (deprecated)
 
 ~> **Deprecated:** This resource is deprecated and no longer manages anything in Fivetran Activations. Workspaces are no longer needed; remove it from your configuration.
 
@@ -14,7 +19,7 @@ This resource remains in the provider only so that existing state and configurat
 
 ## Migrating
 
-Remove the `census_workspace` block from your configuration, along with any `workspace_id = census_workspace.<name>.id` references on other resources, which are now ignored. No changes are made in Fivetran Activations.
+Remove the `census_workspace` block from your configuration, along with the `workspace_id` arguments on `census_source`, `census_dataset` and `census_sync`, which are no longer accepted. See the [upgrade guide](../guides/upgrade-to-v2.md). No changes are made in Fivetran Activations.
 
 ## Argument Reference
 

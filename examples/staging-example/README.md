@@ -39,7 +39,7 @@ The critical setting for staging is the `base_url` parameter:
 ```hcl
 provider "census" {
   personal_access_token = var.census_personal_token
-  base_url              = "https://app.staging.getcensus.com/api/v1"
+  base_url              = "https://app.staging.getcensus.com"
 }
 ```
 
@@ -61,7 +61,7 @@ terraform apply
 ```hcl
 provider "census" {
   personal_access_token = var.census_token
-  # base_url defaults to https://app.getcensus.com/api/v1
+  # base_url defaults to https://app.getcensus.com
 }
 ```
 
@@ -69,7 +69,7 @@ provider "census" {
 ```hcl
 provider "census" {
   personal_access_token = var.census_token
-  base_url              = "https://app.staging.getcensus.com/api/v1"
+  base_url              = "https://app.staging.getcensus.com"
 }
 ```
 
@@ -231,7 +231,7 @@ If source or destination connections fail:
 
 If you get API errors:
 - Verify your token has access to the Activations staging environment
-- Check that `base_url` is exactly: `https://app.staging.getcensus.com/api/v1`
+- Check that `base_url` is exactly: `https://app.staging.getcensus.com`
 - Ensure token has required permissions
 
 ### Field Mapping Issues
