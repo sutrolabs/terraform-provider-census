@@ -1,6 +1,6 @@
 # Census Authentication
 census_personal_token = "your-census-personal-token-here"
-census_base_url       = "https://app.staging.getcensus.com/api/v1"
+census_base_url       = "https://app.staging.getcensus.com"
 
 # Source Configuration (Postgres Example)
 notification_emails = ["your-email@company.com"]

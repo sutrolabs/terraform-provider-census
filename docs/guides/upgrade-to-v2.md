@@ -185,7 +185,7 @@ The activation must be the one for the sync's existing source and destination. `
 | `data.census_source.x` with `workspace_id = ...` | Remove `workspace_id` |
 | `data.census_dataset.x` with `workspace_id = ...` | Remove `workspace_id` |
 | `data.census_dataset.x.source_id` | `data.census_dataset.x.group_id` |
-| `data.census_destination.x` | `data.census_activation.x`. The destination data source returns only `id`. |
+| `data.census_destination.x` | `data.census_activation.x`, looked up by `id = census_activation.x.id`, or by `group_id` plus `destination_id` (the old destination ID). The destination data source returns only `id`. |
 | `data.census_workspace.x` | Remove. Returns only `id`. |
 
 ## 7. Import the activations
@@ -215,5 +215,7 @@ Expected changes:
 
 * An in-place update to `credentials` on each imported `census_activation`. The API never returns credentials, so Terraform sends the configured ones on apply.
 * Removal of any `census_workspace` and `census_destination` still in state. No API calls are made.
+
+Above the plan, Terraform may also report that each `census_source` "has changed" outside of Terraform, adding `group_id`. This is not an actual configuration change, just Terraform picking up the new attribute.
 
 Anything else is a mistake in the migrated configuration. In particular, a `census_sync` or `census_dataset` marked for replacement means its `activation_id` or `group_id` doesn't match what it already uses.

@@ -52,13 +52,13 @@ func dataSourceSync() *schema.Resource {
 			"run_mode": {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "Run mode configuration for the sync (live vs triggered with various trigger types).",
+				Description: "Run mode configuration for the sync.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "Mode type: 'live' for continuous syncing or 'triggered' for event-based syncing.",
+							Description: "Mode type: 'triggered'.",
 						},
 						"triggers": {
 							Type:        schema.TypeList,

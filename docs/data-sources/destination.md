@@ -1,4 +1,9 @@
-# census_destination Data Source
+---
+page_title: "census_destination Data Source (deprecated)"
+subcategory: "Deprecated"
+---
+
+# census_destination Data Source (deprecated)
 
 ~> **Deprecated:** This data source is deprecated and no longer returns data from Fivetran Activations. Use the `census_activation` data source instead.
 
