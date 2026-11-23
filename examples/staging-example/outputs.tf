@@ -1,21 +1,11 @@
-output "workspace_id" {
-  description = "ID of the created workspace"
-  value       = census_workspace.staging_test.id
-}
-
-output "workspace_name" {
-  description = "Name of the created workspace"
-  value       = census_workspace.staging_test.name
-}
-
 output "source_id" {
-  description = "ID of the created data source"
+  description = "ID of the created source"
   value       = census_source.warehouse.id
 }
 
-output "destination_id" {
-  description = "ID of the created destination"
-  value       = census_destination.crm.id
+output "activation_id" {
+  description = "ID of the created activation"
+  value       = census_activation.crm.id
 }
 
 output "sync_id" {

@@ -10,14 +10,8 @@ variable "census_base_url" {
   default     = "https://app.staging.getcensus.com/api/v1"
 }
 
-variable "workspace_name" {
-  description = "Name for the workspace"
-  type        = string
-  default     = "Staging Test Workspace"
-}
-
 variable "notification_emails" {
-  description = "List of email addresses to receive notifications"
+  description = "Email addresses that receive sync alerts for the source"
   type        = list(string)
   default     = []
 }
@@ -47,18 +41,18 @@ variable "source_table" {
 
 # Destination Configuration
 variable "destination_label" {
-  description = "Label for the destination"
+  description = "Name for the activation"
   type        = string
   default     = "Staging CRM"
 }
 
 variable "destination_type" {
-  description = "Type of destination (e.g., salesforce, hubspot)"
+  description = "Destination type for the activation (e.g., salesforce, hubspot)"
   type        = string
 }
 
 variable "destination_credentials" {
-  description = "Credentials for the destination (supports booleans, numbers, and strings)"
+  description = "Credentials for the activation's destination connection"
   type        = map(any)
   sensitive   = true
 }
@@ -78,16 +72,16 @@ variable "sync_label" {
 variable "field_mapping" {
   description = "Field mappings for the sync"
   type = list(object({
-    from      = string
-    to        = string
-    operation = optional(string)
+    from                  = string
+    to                    = string
+    is_primary_identifier = optional(bool, false)
   }))
 }
 
 variable "sync_frequency" {
-  description = "Sync frequency (hour, day, week, month)"
+  description = "Sync frequency: never, quarter_hourly, hourly, daily or weekly"
   type        = string
-  default     = "day"
+  default     = "daily"
 }
 
 variable "sync_hour" {

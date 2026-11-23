@@ -47,7 +47,7 @@ variable "salesforce_staging_connection" {
 # ==============================================================================
 
 variable "enable_auto_refresh" {
-  description = "Enable automatic metadata refresh for sources and destinations after creation/updates"
+  description = "Enable automatic metadata refresh for sources after creation/updates"
   type        = bool
   default     = true
 }

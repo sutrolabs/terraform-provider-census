@@ -2,58 +2,21 @@ terraform {
   required_providers {
     census = {
       source  = "sutrolabs/census"
-      version = "~> 0.2.0"
+      version = "~> 2.0"
     }
   }
 }
 
 # Provider configuration
 provider "census" {
-  personal_access_token = var.census_personal_token # For workspace management
-
-  # Note: No single workspace_access_token - workspace-specific tokens are handled
-  # per resource using the workspace API keys from the workspaces configuration
+  personal_access_token = var.census_personal_token
 }
 
 # ==============================================================================
-# PHASE 1: WORKSPACE MANAGEMENT (✅ Available)
+# PHASE 2: DATA CONNECTIONS
 # ==============================================================================
 
-# Create workspaces as Terraform resources
-resource "census_workspace" "marketing_prod" {
-  name                     = "Marketing Production"
-  notification_emails      = ["marketing-data@company.com", "data-alerts@company.com"]
-  return_workspace_api_key = true
-}
-
-resource "census_workspace" "marketing_staging" {
-  name                     = "Marketing Staging"
-  notification_emails      = ["marketing-dev@company.com"]
-  return_workspace_api_key = true
-}
-
-resource "census_workspace" "revops_prod" {
-  name                     = "Revenue Operations Production"
-  notification_emails      = ["revops@company.com", "finance-alerts@company.com"]
-  return_workspace_api_key = true
-}
-
-# Example: Reference existing workspaces with data sources
-# Uncomment and configure these if you have existing workspaces to reference
-# data "census_workspace" "existing_sales" {
-#   id = "12345"  # Your existing workspace ID
-# }
-# 
-# data "census_workspace" "existing_finance" {
-#   id = "67890"  # Another existing workspace ID
-# }
-
-# ==============================================================================
-# PHASE 2: WORKSPACE-SCOPED DATA CONNECTIONS (🚧 Updated!)
-# ==============================================================================
-
-# Create sources explicitly tied to specific workspaces
-# Each source belongs to exactly one workspace
+# Create sources
 
 resource "census_source" "marketing_prod_postgres" {
 
@@ -118,35 +81,33 @@ resource "census_source" "marketing_prod_snowflake" {
   auto_refresh_tables = var.enable_auto_refresh
 }
 
-# Create destinations explicitly tied to specific workspaces
-resource "census_destination" "marketing_prod_crm" {
-  workspace_id = census_workspace.marketing_prod.id
+# Create activations, each pairing a source with a destination
+resource "census_activation" "marketing_prod_crm" {
+  group_id = census_source.marketing_prod_warehouse.group_id
 
   name = "Marketing Production CRM"
   type = "salesforce"
 
-  connection_config    = var.salesforce_prod_connection
-  auto_refresh_objects = var.enable_auto_refresh
+  credentials = var.salesforce_prod_connection
 }
 
-resource "census_destination" "marketing_staging_crm" {
-  workspace_id = census_workspace.marketing_staging.id
+resource "census_activation" "marketing_staging_crm" {
+  group_id = census_source.marketing_staging_warehouse.group_id
 
   name = "Marketing Staging CRM"
   type = "salesforce"
 
-  connection_config    = var.salesforce_staging_connection
-  auto_refresh_objects = var.enable_auto_refresh
+  credentials = var.salesforce_staging_connection
 }
 
-# Example: Reference sources/destinations from existing workspaces
-# Uncomment if you have existing workspaces with existing sources/destinations
+# Example: Reference existing sources/activations
+# Uncomment if you have existing sources/activations
 # data "census_source" "existing_sales_warehouse" {
-#   id = "98765"  # ID of existing source in existing workspace
+#   id = "98765"  # ID of existing source
 # }
 #
-# data "census_destination" "existing_finance_system" {
-#   id = "54321"  # ID of existing destination in existing workspace
+# data "census_activation" "existing_finance_system" {
+#   id = "54321"  # ID of existing activation
 # }
 
 # ==============================================================================
@@ -220,16 +181,15 @@ resource "census_dataset" "all_users" {
 # PHASE 3: DATA SYNCS (✅ Available!)
 # ==============================================================================
 
-# Create syncs that connect sources to destinations within the same workspace
+# Create syncs that connect sources to destinations through an activation
 # Each sync defines how data flows from a source to a destination
 
 resource "census_sync" "marketing_contact_sync" {
-  workspace_id = census_workspace.marketing_prod.id
-  label        = "REAL Marketing Contact Sync"
+  activation_id = census_activation.marketing_prod_crm.id
+  label         = "REAL Marketing Contact Sync"
 
   # Source configuration - use a table from the warehouse
   source_attributes {
-    connection_id = census_source.marketing_prod_warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -240,8 +200,7 @@ resource "census_sync" "marketing_contact_sync" {
 
   # Destination configuration - specify Salesforce object
   destination_attributes {
-    connection_id = census_destination.marketing_prod_crm.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   # Operation mode for the sync
@@ -303,12 +262,11 @@ resource "census_sync" "marketing_contact_sync" {
 }
 
 resource "census_sync" "marketing_contact_sync_2" {
-  workspace_id = census_workspace.marketing_prod.id
-  label        = "REAL Marketing Contact Sync 2"
+  activation_id = census_activation.marketing_prod_crm.id
+  label         = "REAL Marketing Contact Sync 2"
 
   # Source configuration - use a table from the warehouse
   source_attributes {
-    connection_id = census_source.marketing_prod_warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -319,8 +277,7 @@ resource "census_sync" "marketing_contact_sync_2" {
 
   # Destination configuration - specify Salesforce object
   destination_attributes {
-    connection_id = census_destination.marketing_prod_crm.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   # Operation mode for the sync
@@ -382,12 +339,11 @@ resource "census_sync" "marketing_contact_sync_2" {
 }
 
 resource "census_sync" "marketing_contact_sync_3" {
-  workspace_id = census_workspace.marketing_prod.id
-  label        = "Marketing Contact Sync 3"
+  activation_id = census_activation.marketing_prod_crm.id
+  label         = "Marketing Contact Sync 3"
 
   # Source configuration - use a table from the warehouse
   source_attributes {
-    connection_id = census_source.marketing_prod_warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -398,8 +354,7 @@ resource "census_sync" "marketing_contact_sync_3" {
 
   # Destination configuration - specify Salesforce object
   destination_attributes {
-    connection_id = census_destination.marketing_prod_crm.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   # Operation mode for the sync
@@ -462,13 +417,12 @@ resource "census_sync" "marketing_contact_sync_3" {
 
 # Sync using a dataset as the source
 resource "census_sync" "dataset_contact_sync" {
-  workspace_id = census_workspace.marketing_prod.id
-  label        = "Dataset to Contacts Syncer"
-  paused       = true
+  activation_id = census_activation.marketing_prod_crm.id
+  label         = "Dataset to Contacts Syncer"
+  paused        = true
 
   # Source configuration - use a dataset instead of table
   source_attributes {
-    connection_id = census_source.marketing_prod_warehouse.id
     object {
       type = "dataset"
       id   = census_dataset.all_users.id
@@ -477,8 +431,7 @@ resource "census_sync" "dataset_contact_sync" {
 
   # Destination configuration - Salesforce Contacts
   destination_attributes {
-    connection_id = census_destination.marketing_prod_crm.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -588,13 +541,12 @@ resource "census_sync" "dataset_contact_sync" {
 }
 
 # resource "census_sync" "marketing_staging_test_sync" {
-#   workspace_id = census_workspace.marketing_staging.id
-#   label        = "Marketing Staging Test Sync"
+#   activation_id = census_activation.marketing_staging_crm.id
+#   label         = "Marketing Staging Test Sync"
 
 
 #   # Test sync with limited data  
 #   source_attributes {
-#     connection_id = census_source.marketing_staging_warehouse.id
 #     object {
 #       type          = "table"
 #       table_name    = "users"
@@ -604,8 +556,7 @@ resource "census_sync" "dataset_contact_sync" {
 #   }
 
 #   destination_attributes {
-#     connection_id = census_destination.marketing_staging_crm.id
-#     object        = "Contact"
+#     object = "Contact"
 #   }
 
 #   # Operation mode for the sync
@@ -641,15 +592,24 @@ resource "census_sync" "dataset_contact_sync" {
 #   paused = false # Ready for testing
 # }
 
+# # RevOps activation: the production CRM synced from the RevOps warehouse
+# resource "census_activation" "revops_prod_crm" {
+#   group_id = census_source.revops_prod_warehouse.group_id
+#
+#   name = "RevOps Production CRM"
+#   type = "salesforce"
+#
+#   credentials = var.salesforce_prod_connection
+# }
+#
 # # RevOps sync for account data
 # resource "census_sync" "revops_account_sync" {
-#   workspace_id = census_workspace.revops_prod.id
-#   label        = "RevOps Account Sync"
+#   activation_id = census_activation.revops_prod_crm.id
+#   label         = "RevOps Account Sync"
 
 
 #   # Source configuration - account enrichment data
 #   source_attributes {
-#     connection_id = census_source.revops_prod_warehouse.id
 #     object {
 #       type          = "table"
 #       table_name    = "users"
@@ -660,8 +620,7 @@ resource "census_sync" "dataset_contact_sync" {
 
 #   # Destination configuration
 #   destination_attributes {
-#     connection_id = census_destination.marketing_prod_crm.id
-#     object        = "Account"
+#     object = "Account"
 #   }
 
 #   # Operation mode for the sync
@@ -718,8 +677,7 @@ resource "census_sync" "dataset_contact_sync" {
 
 # Example of using data source to reference an existing sync
 # data "census_sync" "existing_sync" {
-#   id           = "123456"
-#   workspace_id = census_workspace.marketing_prod.id
+#   id = "123456"
 # }
 
 # ==============================================================================
@@ -733,34 +691,6 @@ resource "census_sync" "dataset_contact_sync" {
 # OUTPUTS - Information about created resources
 # ==============================================================================
 
-output "workspaces_info" {
-  description = "Information about all created workspaces"
-  value = {
-    marketing_prod = {
-      id              = census_workspace.marketing_prod.id
-      name            = census_workspace.marketing_prod.name
-      organization_id = census_workspace.marketing_prod.organization_id
-      created_at      = census_workspace.marketing_prod.created_at
-      api_key         = census_workspace.marketing_prod.api_key
-    }
-    marketing_staging = {
-      id              = census_workspace.marketing_staging.id
-      name            = census_workspace.marketing_staging.name
-      organization_id = census_workspace.marketing_staging.organization_id
-      created_at      = census_workspace.marketing_staging.created_at
-      api_key         = census_workspace.marketing_staging.api_key
-    }
-    revops_prod = {
-      id              = census_workspace.revops_prod.id
-      name            = census_workspace.revops_prod.name
-      organization_id = census_workspace.revops_prod.organization_id
-      created_at      = census_workspace.revops_prod.created_at
-      api_key         = census_workspace.revops_prod.api_key
-    }
-  }
-  sensitive = true
-}
-
 output "sources_info" {
   description = "Information about all created sources"
   value = {
@@ -768,96 +698,78 @@ output "sources_info" {
       id         = census_source.marketing_prod_warehouse.id
       name       = census_source.marketing_prod_warehouse.name
       type       = census_source.marketing_prod_warehouse.type
-      status     = census_source.marketing_prod_warehouse.status
+      group_id   = census_source.marketing_prod_warehouse.group_id
       created_at = census_source.marketing_prod_warehouse.created_at
     }
     revops_prod_warehouse = {
       id         = census_source.revops_prod_warehouse.id
       name       = census_source.revops_prod_warehouse.name
       type       = census_source.revops_prod_warehouse.type
-      status     = census_source.revops_prod_warehouse.status
+      group_id   = census_source.revops_prod_warehouse.group_id
       created_at = census_source.revops_prod_warehouse.created_at
     }
   }
 }
 
-output "destinations_info" {
-  description = "Information about all created destinations"
+output "activations_info" {
+  description = "Information about all created activations"
   value = {
     marketing_prod_crm = {
-      id           = census_destination.marketing_prod_crm.id
-      name         = census_destination.marketing_prod_crm.name
-      type         = census_destination.marketing_prod_crm.type
-      status       = census_destination.marketing_prod_crm.status
-      created_at   = census_destination.marketing_prod_crm.created_at
-      workspace_id = census_destination.marketing_prod_crm.workspace_id
+      id                  = census_activation.marketing_prod_crm.id
+      name                = census_activation.marketing_prod_crm.name
+      type                = census_activation.marketing_prod_crm.type
+      group_id            = census_activation.marketing_prod_crm.group_id
+      last_test_succeeded = census_activation.marketing_prod_crm.last_test_succeeded
     }
     marketing_staging_crm = {
-      id           = census_destination.marketing_staging_crm.id
-      name         = census_destination.marketing_staging_crm.name
-      type         = census_destination.marketing_staging_crm.type
-      status       = census_destination.marketing_staging_crm.status
-      created_at   = census_destination.marketing_staging_crm.created_at
-      workspace_id = census_destination.marketing_staging_crm.workspace_id
+      id                  = census_activation.marketing_staging_crm.id
+      name                = census_activation.marketing_staging_crm.name
+      type                = census_activation.marketing_staging_crm.type
+      group_id            = census_activation.marketing_staging_crm.group_id
+      last_test_succeeded = census_activation.marketing_staging_crm.last_test_succeeded
     }
   }
 }
 
 output "setup_summary" {
-  description = "Summary of the complete workspace-scoped Activations setup"
+  description = "Summary of the complete Activations setup"
   sensitive   = true
   value = {
-    workspaces_ready = {
-      marketing_prod    = census_workspace.marketing_prod.id != ""
-      marketing_staging = census_workspace.marketing_staging.id != ""
-      revops_prod       = census_workspace.revops_prod.id != ""
-    }
     sources_ready = {
       marketing_prod_warehouse = census_source.marketing_prod_warehouse.id != ""
       revops_prod_warehouse    = census_source.revops_prod_warehouse.id != ""
     }
-    destinations_ready = {
-      marketing_prod_crm    = census_destination.marketing_prod_crm.id != ""
-      marketing_staging_crm = census_destination.marketing_staging_crm.id != ""
+    activations_ready = {
+      marketing_prod_crm    = census_activation.marketing_prod_crm.id != ""
+      marketing_staging_crm = census_activation.marketing_staging_crm.id != ""
     }
 
-    total_workspaces   = 3 # marketing_prod + marketing_staging + revops_prod
-    total_sources      = 2 # marketing_prod_warehouse + revops_prod_warehouse
-    total_destinations = 2 # marketing_prod_crm + marketing_staging_crm
-    total_resources    = 7 # 3 workspaces + 2 sources + 2 destinations
-
-    workspace_structure = [
-      "marketing_prod: ${census_workspace.marketing_prod.name} (ID: ${census_workspace.marketing_prod.id})",
-      "marketing_staging: ${census_workspace.marketing_staging.name} (ID: ${census_workspace.marketing_staging.id})",
-      "revops_prod: ${census_workspace.revops_prod.name} (ID: ${census_workspace.revops_prod.id})"
-    ]
+    total_sources     = 2 # marketing_prod_warehouse + revops_prod_warehouse
+    total_activations = 2 # marketing_prod_crm + marketing_staging_crm
+    total_resources   = 4 # 2 sources + 2 activations
 
     resource_relationships = [
-      "✅ Each source/destination explicitly belongs to one workspace",
-      "✅ No ambiguous global configurations",
-      "✅ Clear workspace isolation and security boundaries",
+      "✅ Each activation pairs one source with one destination",
+      "✅ Each sync belongs to one activation",
       "✅ Proper Terraform resource relationships"
     ]
 
     authentication_model = [
-      "Personal Access Token (PAT): Used for workspace management operations",
-      "Each workspace has its own API key stored in Terraform state",
-      "Sources and destinations are scoped to specific workspaces",
-      "Use data sources to reference existing workspaces/sources/destinations"
+      "Personal Access Token (PAT): Used for all operations",
+      "Use data sources to reference existing sources/activations"
     ]
 
     terraform_patterns = [
       "✅ Resources for managing Activations objects with Terraform",
       "✅ Data sources for referencing existing Activations objects",
-      "✅ Explicit workspace_id parameters for clear relationships",
+      "✅ Explicit group_id and activation_id parameters for clear relationships",
       "✅ Standard Terraform import patterns for existing resources"
     ]
 
     next_steps = [
-      "Verify all workspace connections in the Activations dashboard",
-      "Use 'terraform import' to bring existing workspaces under Terraform management",
-      "Add data sources to reference existing sources/destinations if needed",
-      "Configure workspace-specific sync rules (coming in next update)"
+      "Verify all connections in the Activations dashboard",
+      "Use 'terraform import' to bring existing activations under Terraform management",
+      "Add data sources to reference existing sources/activations if needed"
     ]
   }
 }

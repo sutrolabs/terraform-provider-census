@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 // TestAccResourceSync_Basic tests basic sync creation with minimal configuration
@@ -23,7 +22,7 @@ func TestAccResourceSync_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("census_sync.test", "label", "Test Basic Sync"),
 					resource.TestCheckResourceAttr("census_sync.test", "operation", "upsert"),
 					resource.TestCheckResourceAttrSet("census_sync.test", "id"),
-					resource.TestCheckResourceAttrSet("census_sync.test", "workspace_id"),
+					resource.TestCheckResourceAttrSet("census_sync.test", "activation_id"),
 					resource.TestCheckResourceAttr("census_sync.test", "paused", "true"),
 				),
 			},
@@ -165,15 +164,10 @@ func TestAccResourceSync_Alerts(t *testing.T) {
 // Configuration Helper Functions
 // =============================================================================
 
-// testAccIntegrationBaseConfig returns base configuration with workspace, source, and destination
+// testAccIntegrationBaseConfig returns base configuration with a source and an activation
 func testAccIntegrationBaseConfig(rName string) string {
 	return fmt.Sprintf(`
-resource "census_workspace" "test" {
-  name = "Test Workspace - Sync Integration"
-}
-
 resource "census_source" "test" {
-  workspace_id = census_workspace.test.id
   name = "Test_Redshift_Source_%s"
   type = "redshift"
 
@@ -186,12 +180,12 @@ resource "census_source" "test" {
   }
 }
 
-resource "census_destination" "test" {
-  workspace_id = census_workspace.test.id
-  name = "Test Salesforce Destination"
-  type = "salesforce"
+resource "census_activation" "test" {
+  group_id = census_source.test.group_id
+  name     = "Test Salesforce Activation"
+  type     = "salesforce"
 
-  connection_config = {
+  credentials = {
     username        = "%s"
     instance_url    = "%s"
     client_id       = "%s"
@@ -217,11 +211,10 @@ resource "census_destination" "test" {
 func testAccResourceSyncConfig_basic(rName string) string {
 	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
-  workspace_id = census_workspace.test.id
-  label        = "Test Basic Sync"
+  activation_id = census_activation.test.id
+  label         = "Test Basic Sync"
 
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type          = "table"
       table_name    = "users"
@@ -231,8 +224,7 @@ resource "census_sync" "test" {
   }
 
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -290,11 +282,10 @@ resource "census_sync" "test" {
 func testAccResourceSyncConfig_updated(rName string) string {
 	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
-  workspace_id = census_workspace.test.id
-  label        = "Updated Sync Label"
+  activation_id = census_activation.test.id
+  label         = "Updated Sync Label"
 
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type          = "table"
       table_name    = "users"
@@ -304,8 +295,7 @@ resource "census_sync" "test" {
   }
 
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -363,11 +353,10 @@ resource "census_sync" "test" {
 func testAccResourceSyncConfig_fieldMappings(rName string) string {
 	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
-  workspace_id = census_workspace.test.id
-  label        = "Test Field Mappings"
+  activation_id = census_activation.test.id
+  label         = "Test Field Mappings"
 
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type          = "table"
       table_name    = "users"
@@ -377,8 +366,7 @@ resource "census_sync" "test" {
   }
 
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -445,11 +433,10 @@ resource "census_sync" "test" {
 func testAccResourceSyncConfig_runModeDaily(rName string) string {
 	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
-  workspace_id = census_workspace.test.id
-  label        = "Test Daily Schedule"
+  activation_id = census_activation.test.id
+  label         = "Test Daily Schedule"
 
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type          = "table"
       table_name    = "users"
@@ -459,8 +446,7 @@ resource "census_sync" "test" {
   }
 
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -520,11 +506,10 @@ resource "census_sync" "test" {
 func testAccResourceSyncConfig_runModeHourly(rName string) string {
 	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
-  workspace_id = census_workspace.test.id
-  label        = "Test Hourly Schedule"
+  activation_id = census_activation.test.id
+  label         = "Test Hourly Schedule"
 
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type          = "table"
       table_name    = "users"
@@ -534,8 +519,7 @@ resource "census_sync" "test" {
   }
 
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -594,11 +578,10 @@ resource "census_sync" "test" {
 func testAccResourceSyncConfig_runModeManual(rName string) string {
 	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
-  workspace_id = census_workspace.test.id
-  label        = "Test Manual Schedule"
+  activation_id = census_activation.test.id
+  label         = "Test Manual Schedule"
 
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type          = "table"
       table_name    = "users"
@@ -608,8 +591,7 @@ resource "census_sync" "test" {
   }
 
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -667,11 +649,10 @@ resource "census_sync" "test" {
 func testAccResourceSyncConfig_alerts(rName string) string {
 	return testAccIntegrationBaseConfig(rName) + `
 resource "census_sync" "test" {
-  workspace_id = census_workspace.test.id
-  label        = "Test Alerts"
+  activation_id = census_activation.test.id
+  label         = "Test Alerts"
 
   source_attributes {
-    connection_id = census_source.test.id
     object {
       type          = "table"
       table_name    = "users"
@@ -681,8 +662,7 @@ resource "census_sync" "test" {
   }
 
   destination_attributes {
-    connection_id = census_destination.test.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -755,22 +735,7 @@ func TestAccResourceSync_Import(t *testing.T) {
 				ResourceName:      "census_sync.test",
 				ImportState:       true,
 				ImportStateVerify: true,
-				ImportStateIdFunc: testAccSyncImportStateIdFunc("census_sync.test"),
 			},
 		},
 	})
-}
-
-// Helper to construct composite ID for import (workspace_id:sync_id)
-func testAccSyncImportStateIdFunc(resourceName string) resource.ImportStateIdFunc {
-	return func(s *terraform.State) (string, error) {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return "", fmt.Errorf("Not found: %s", resourceName)
-		}
-
-		return fmt.Sprintf("%s:%s",
-			rs.Primary.Attributes["workspace_id"],
-			rs.Primary.ID), nil
-	}
 }
