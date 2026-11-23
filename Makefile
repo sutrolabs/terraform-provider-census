@@ -22,7 +22,7 @@ test-unit: ## Run unit tests (no credentials needed)
 	@go test -v ./census/provider/... ./census/client/... -short
 
 test-integration: ## Run integration tests (creates all resources in staging)
-	@echo "Running integration tests against Census staging API..."
+	@echo "Running integration tests against the Activations staging API..."
 	@echo "This will create workspaces, sources, destinations, and syncs in staging"
 	@echo "Requires: .env.test with staging credentials (see .env.test.example)"
 	@if [ ! -f .env.test ]; then \

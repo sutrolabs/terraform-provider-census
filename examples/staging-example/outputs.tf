@@ -29,6 +29,6 @@ output "sync_status" {
 }
 
 output "staging_url" {
-  description = "Census staging URL being used"
+  description = "Activations staging URL being used"
   value       = var.census_base_url
 }

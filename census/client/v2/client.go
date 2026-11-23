@@ -41,7 +41,7 @@ type Config struct {
 	HTTPClient *http.Client
 }
 
-// Client is a Census v2 API client.
+// Client is a Activations v2 API client.
 type Client struct {
 	config     *Config
 	httpClient *http.Client

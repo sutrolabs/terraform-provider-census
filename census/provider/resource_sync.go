@@ -181,13 +181,13 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 						Type:        schema.TypeBool,
 						Optional:    true,
 						Default:     false,
-						Description: "If true, preserves existing values in the destination field and prevents Census from overwriting them.",
+						Description: "If true, preserves existing values in the destination field and prevents Fivetran from overwriting them.",
 					},
 					"generate_field": {
 						Type:        schema.TypeBool,
 						Optional:    true,
 						Default:     false,
-						Description: "If true, Census will generate/create this field in the destination.",
+						Description: "If true, Fivetran will generate/create this field in the destination.",
 					},
 					"sync_null_values": {
 						Type:        schema.TypeBool,
@@ -286,7 +286,7 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 		"high_water_mark_attribute": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Census diff engine (using primary keys). Example: 'updated_at'.",
+			Description: "The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Fivetran diff engine (using primary keys). Example: 'updated_at'.",
 		},
 		"historical_sync_operation": {
 			Type:     schema.TypeString,
@@ -322,7 +322,7 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 					"id": {
 						Type:        schema.TypeInt,
 						Computed:    true,
-						Description: "The ID of the alert configuration (assigned by Census).",
+						Description: "The ID of the alert configuration (assigned by Fivetran).",
 					},
 					"type": {
 						Type:        schema.TypeString,
@@ -368,13 +368,13 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 			Type:        schema.TypeList,
 			Optional:    true,
 			MaxItems:    1,
-			Description: "Run mode configuration for the sync (triggered with various trigger types). If not specified, Census will use a default schedule (manually triggered). To avoid drift, explicitly specify the desired run_mode in your configuration.",
+			Description: "Run mode configuration for the sync (triggered with various trigger types). If not specified, Fivetran will use a default schedule (manually triggered). To avoid drift, explicitly specify the desired run_mode in your configuration.",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"type": {
 						Type:        schema.TypeString,
 						Required:    true,
-						Description: "Mode type. Only 'triggered' is valid: Census has fully sunset live/continuous-mode syncs.",
+						Description: "Mode type. Only 'triggered' is valid: Fivetran has fully sunset live/continuous-mode syncs.",
 						ValidateFunc: validation.StringInSlice([]string{
 							"triggered",
 						}, false),
@@ -526,10 +526,10 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 	}
 }
 
-// ResourceSync returns the resource schema for a Census sync
+// ResourceSync returns the resource schema for an Activations sync
 func ResourceSync() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Census data sync between a source and destination.",
+		Description: "Manages a data sync between a source and destination.",
 
 		CreateContext: resourceSyncCreate,
 		ReadContext:   resourceSyncRead,

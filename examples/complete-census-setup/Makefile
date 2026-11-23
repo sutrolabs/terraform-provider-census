@@ -1,4 +1,4 @@
-# Census Terraform Provider - Complete Setup Example
+# Fivetran Activations Terraform Provider - Complete Setup Example
 # Usage: make setup && terraform plan
 
 PROVIDER_BINARY = terraform-provider-census
@@ -54,7 +54,7 @@ clean:
 
 # Show help
 help:
-	@echo "Census Terraform Provider - Complete Setup Example"
+	@echo "Fivetran Activations Terraform Provider - Complete Setup Example"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make setup     - Build provider and start in debug mode (one-command setup)"

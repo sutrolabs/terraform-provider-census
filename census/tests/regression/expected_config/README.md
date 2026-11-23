@@ -21,6 +21,6 @@ there's no real value left to match against.
 
 `census_sync`'s `activation_id = "fake_id"` is likewise not a real value —
 it must stay in sync with `fixtureSyncActivationID` in
-`census/tests/regression/helpers_test.go`, which a fake local Census API
+`census/tests/regression/helpers_test.go`, which a fake local Activations API
 server returns for every sync lookup made by the schema-version state
 upgrader. See `fakeCensusSyncAPI` there for why that lookup happens at all.

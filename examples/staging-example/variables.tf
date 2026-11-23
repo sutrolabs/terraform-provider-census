@@ -5,13 +5,13 @@ variable "census_personal_token" {
 }
 
 variable "census_base_url" {
-  description = "Census API base URL (use staging URL for testing)"
+  description = "Activations API base URL (use staging URL for testing)"
   type        = string
   default     = "https://app.staging.getcensus.com/api/v1"
 }
 
 variable "workspace_name" {
-  description = "Name for the Census workspace"
+  description = "Name for the workspace"
   type        = string
   default     = "Staging Test Workspace"
 }

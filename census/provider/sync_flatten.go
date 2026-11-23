@@ -33,7 +33,7 @@ func FlattenFieldMappings(mappings []v2.MappingAttributes) []interface{} {
 			switch ma.From.Type {
 			case "constant_value":
 				mappingType = "constant"
-				// Census API returns: {"value": "...", "basic_type": "text"}
+				// Activations API returns: {"value": "...", "basic_type": "text"}
 				if dataMap, ok := ma.From.Data.(map[string]interface{}); ok {
 					if value, ok := dataMap["value"]; ok {
 						constant = value
@@ -71,7 +71,7 @@ func FlattenFieldMappings(mappings []v2.MappingAttributes) []interface{} {
 				}
 
 			case "compound_key":
-				// Census-managed compound key mappings (auto-generated for certain
+				// Fivetran-managed compound key mappings (auto-generated for certain
 				// destinations) — callers are expected to filter these out before
 				// flattening; kept here for completeness if one slips through.
 				mappingType = "compound_key"

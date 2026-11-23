@@ -121,7 +121,7 @@ func TestApplyWriteOnlyCredentials_DecodesNestedJSONObject(t *testing.T) {
 	t.Parallel()
 
 	// A credential whose value is itself a JSON document (e.g. a BigQuery
-	// service account) must be delivered to Census as a real object even when
+	// service account) must be delivered to Fivetran as a real object even when
 	// it is supplied as a JSON string (jsonencode({ service_account_key = file(...) })).
 	serviceAccount := `{"type":"service_account","project_id":"p"}`
 	rawConfig := sourceRawConfig(map[string]cty.Value{
@@ -145,7 +145,7 @@ func TestApplyWriteOnlyCredentials_DecodesNestedJSONObject(t *testing.T) {
 func TestApplyWriteOnlyCredentials_DoesNotRetypeScalarSecrets(t *testing.T) {
 	t.Parallel()
 
-	// Opaque scalar secrets must be sent to Census exactly as written, even
+	// Opaque scalar secrets must be sent to Fivetran exactly as written, even
 	// when they happen to parse as a JSON number, bool, or null. Only nested
 	// JSON objects/arrays are decoded.
 	rawConfig := sourceRawConfig(map[string]cty.Value{
@@ -414,7 +414,7 @@ func TestResourceSourceSchema_SyncEngineIsForceNew(t *testing.T) {
 	}
 
 	if !syncEngineField.ForceNew {
-		t.Fatal("expected sync_engine to be ForceNew because the Census API does not allow in-place sync engine changes")
+		t.Fatal("expected sync_engine to be ForceNew because the Activations API does not allow in-place sync engine changes")
 	}
 
 	if !syncEngineField.Computed {
@@ -508,7 +508,7 @@ func TestResourceSourceSchema_WarehouseWritebackIsUpdateable(t *testing.T) {
 		t.Fatal("expected warehouse_writeback_retention_in_days field to exist on census_source")
 	}
 	if field.ForceNew {
-		t.Fatal("expected warehouse_writeback_retention_in_days to be updateable in place (not ForceNew); the Census source update endpoint accepts changes to retention")
+		t.Fatal("expected warehouse_writeback_retention_in_days to be updateable in place (not ForceNew); the Activations source update endpoint accepts changes to retention")
 	}
 	if field.Type != schema.TypeInt {
 		t.Fatalf("expected warehouse_writeback_retention_in_days to be TypeInt, got %v", field.Type)
@@ -519,7 +519,7 @@ func TestResourceSourceSchema_WarehouseWritebackIsUpdateable(t *testing.T) {
 }
 
 // Regression: a source that already has Warehouse Writeback enabled outside
-// Terraform (e.g. set via the Census UI before being imported) must not show
+// Terraform (e.g. set via the Activations UI before being imported) must not show
 // drift when the user has not added warehouse_writeback_retention_in_days to
 // their .tf. Without Computed:true on the schema this would loop forever as
 // the read populates state, then plan diffs state vs zero-value config, then
