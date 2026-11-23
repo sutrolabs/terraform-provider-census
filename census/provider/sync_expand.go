@@ -167,7 +167,7 @@ func ExpandAlerts(ctx context.Context, alerts []interface{}) []v2.AlertAttribute
 
 // ExpandRunMode converts Terraform run_mode config to the API's SyncMode
 // struct. Only "triggered" mode is schema-valid now — "live" has been fully
-// sunset by Census — but this doesn't special-case the type value at all;
+// sunset by Fivetran — but this doesn't special-case the type value at all;
 // narrowing that is the schema's job (see run_mode.type's ValidateFunc).
 func ExpandRunMode(ctx context.Context, runModes []interface{}) *v2.SyncMode {
 	if len(runModes) == 0 || runModes[0] == nil {
@@ -264,7 +264,7 @@ func ExpandRunMode(ctx context.Context, runModes []interface{}) *v2.SyncMode {
 }
 
 // CleanEmptyStrings removes empty string and zero values from a map
-// to avoid sending invalid data to the Census API
+// to avoid sending invalid data to the Activations API
 func CleanEmptyStrings(m map[string]interface{}) map[string]interface{} {
 	if m == nil {
 		return nil

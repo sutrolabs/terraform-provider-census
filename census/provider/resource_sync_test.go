@@ -375,7 +375,7 @@ func TestFieldMappings_RoundTrip(t *testing.T) {
 // Field Mapping Ordering and Compound Key Filtering Tests
 // ============================================================================
 // These verify the logic in resourceSyncRead that sorts mappings by
-// Census-assigned position and filters out Census-managed compound_key
+// Fivetran-assigned position and filters out Fivetran-managed compound_key
 // mappings, preventing spurious diffs and untrackable state respectively.
 
 func TestSortFieldMappingsByPosition_Basic(t *testing.T) {
@@ -708,7 +708,7 @@ func TestExpandDestinationAttributes_Basic(t *testing.T) {
 // ============================================================================
 
 func TestExpandFieldMappings_NoPrimaryIdentifier(t *testing.T) {
-	// The Census API handles primary identifier validation at the API level
+	// The Activations API handles primary identifier validation at the API level
 	// (destinations like Google Sheets don't require one); expand doesn't
 	// enforce it client-side.
 	input := []interface{}{

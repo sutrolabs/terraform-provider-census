@@ -1,6 +1,6 @@
 # census_sync Data Source
 
-Retrieves information about an existing Census sync.
+Retrieves information about an existing Activations sync.
 
 ## Example Usage
 
@@ -57,7 +57,7 @@ output "sync_run_mode" {
   * `lookup_object` - Lookup object for relationship mapping.
   * `lookup_field` - Lookup field for relationship mapping.
   * `preserve_values` - Whether to preserve existing destination values.
-  * `generate_field` - Whether Census should generate this field.
+  * `generate_field` - Whether Fivetran should generate this field.
   * `sync_null_values` - Whether to sync null values.
   * `array_field` - Whether the field is an array type.
   * `field_type` - Field type (when generate_field=true).

@@ -1,6 +1,6 @@
-# Census Terraform Provider Examples
+# Fivetran Activations Terraform Provider Examples
 
-This directory contains practical examples that you can use to test the Census Terraform Provider with your own Census organization and workspaces.
+This directory contains practical examples that you can use to test the Fivetran Activations Terraform Provider with your own Census organization and workspaces.
 
 ## Prerequisites
 
@@ -12,7 +12,7 @@ This directory contains practical examples that you can use to test the Census T
 ## Getting Your Token
 
 ### Personal Access Token
-1. Go to your Census dashboard
+1. Go to your Activations dashboard
 2. Navigate to Settings → Developer → Personal Access Tokens
 3. Generate a new token
 4. Copy the token value
@@ -28,12 +28,12 @@ Simple workspace creation and management.
 - **Complexity**: Beginner
 
 ### 2. Staging Environment (`staging-example/`)
-Complete data pipeline using Census staging environment.
+Complete data pipeline using the Activations staging environment.
 - **Requires**: Personal Access Token, staging credentials
 - **Tests**: Source, destination, and sync with staging URL
 - **Complexity**: Intermediate
 
-### 3. Complete Census Setup (`complete-census-setup/`)
+### 3. Complete Activations Setup (`complete-census-setup/`)
 Full-featured example with all 5 resource types.
 - **Requires**: Personal Access Token, source/destination credentials
 - **Tests**: Workspaces, sources, destinations, datasets, syncs
@@ -96,7 +96,7 @@ Full-featured example with all 5 resource types.
 |---------|---------------------|------------|
 | `basic-workspace/` | Single workspace management | Beginner |
 | `staging-example/` | Staging environment with source → destination → sync | Intermediate |
-| `complete-census-setup/` | Full Census workflow with all 5 resources | Advanced |
+| `complete-census-setup/` | Full Activations workflow with all 5 resources | Advanced |
 
 ## Troubleshooting
 
@@ -111,7 +111,7 @@ Full-featured example with all 5 resource types.
 2. **Authentication errors**:
    ```bash
    # Verify your token in terraform.tfvars
-   # Check token permissions in Census dashboard
+   # Check token permissions in Activations dashboard
    ```
 
 3. **Resource already exists**:

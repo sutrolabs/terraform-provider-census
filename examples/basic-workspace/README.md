@@ -1,19 +1,19 @@
 # Basic Workspace Example
 
-This example demonstrates the core functionality of the Census Terraform Provider by creating and managing a single workspace.
+This example demonstrates the core functionality of the Fivetran Activations Terraform Provider by creating and managing a single workspace.
 
 ## What This Example Tests
 
-✅ **Resource Creation**: Creates a Census workspace with custom configuration  
+✅ **Resource Creation**: Creates a workspace with custom configuration  
 ✅ **Resource Reading**: Uses data source to read the created workspace  
-✅ **State Management**: Manages Terraform state for Census resources  
+✅ **State Management**: Manages Terraform state for Activations resources  
 ✅ **Output Values**: Demonstrates accessing resource attributes  
 ✅ **Data Consistency**: Validates resource vs data source consistency  
 
 ## Prerequisites
 
 1. **Census Account**: Access to a Census organization
-2. **Personal Access Token**: Generate from Census Dashboard → Settings → Developer → Personal Access Tokens
+2. **Personal Access Token**: Generate from Activations dashboard → Settings → Developer → Personal Access Tokens
 3. **Provider Built**: Run `make dev` from the root directory to build the provider locally
 
 ## Quick Start
@@ -97,7 +97,7 @@ This example includes validation outputs:
 
 2. **Authentication error**:
    - Verify your token in `terraform.tfvars`
-   - Check token permissions in Census dashboard
+   - Check token permissions in Activations dashboard
    - Ensure you're using a personal access token with organization-level permissions
 
 ### Debug Mode

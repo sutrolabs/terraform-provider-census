@@ -12,7 +12,7 @@ import (
 
 func resourceSource() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Census data source connection.",
+		Description: "Manages an Activations source connection.",
 
 		CreateContext: resourceSourceCreate,
 		ReadContext:   resourceSourceRead,
@@ -74,13 +74,13 @@ func sourceSchemaMap() map[string]*schema.Schema {
 			Optional:    true,
 			Computed:    true,
 			ForceNew:    true,
-			Description: "The sync engine to use for the source. New sources default to `advanced` to match the Census UI. Leave this unset to preserve the current engine on existing sources, or set it explicitly to `basic` or `advanced` to manage it in Terraform.",
+			Description: "The sync engine to use for the source. New sources default to `advanced` to match the Activations UI. Leave this unset to preserve the current engine on existing sources, or set it explicitly to `basic` or `advanced` to manage it in Terraform.",
 		},
 		"warehouse_writeback_retention_in_days": {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Computed:    true,
-			Description: "Enables Warehouse Writeback for the source and sets the sync log retention period (in days). Only supported on the advanced sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). Setting this enables Warehouse Writeback. Once enabled, the Census API does not currently support disabling it via this attribute; remove the attribute in Terraform to stop managing the value, in which case Terraform will preserve whatever value the API reports.",
+			Description: "Enables Warehouse Writeback for the source and sets the sync log retention period (in days). Only supported on the advanced sync engine and on source types that support sync logs (Snowflake, BigQuery, Databricks, Redshift). Setting this enables Warehouse Writeback. Once enabled, the Activations API does not currently support disabling it via this attribute; remove the attribute in Terraform to stop managing the value, in which case Terraform will preserve whatever value the API reports.",
 		},
 		"connection_config": {
 			Type:        schema.TypeMap,
@@ -178,7 +178,7 @@ func resourceSourceV0() *schema.Resource {
 // Computed list as "known after apply" even when nothing has changed, so
 // without this an upgraded source shows a spurious update until its first
 // refresh. An empty list is safe: the next refresh replaces it with whatever
-// Census reports.
+// the Activations API reports.
 func resourceSourceStateUpgradeV0(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 	if rawState == nil {
 		rawState = map[string]interface{}{}

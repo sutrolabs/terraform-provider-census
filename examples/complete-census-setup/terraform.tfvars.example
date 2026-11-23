@@ -1,5 +1,5 @@
 # ==============================================================================
-# CENSUS TERRAFORM PROVIDER - COMPLETE SETUP EXAMPLE
+# FIVETRAN ACTIVATIONS TERRAFORM PROVIDER - COMPLETE SETUP EXAMPLE
 # ==============================================================================
 # Copy this file to terraform.tfvars and fill in your actual values
 
@@ -8,7 +8,7 @@
 # ==============================================================================
 
 # Personal access token for all Census operations  
-# Get from: Census Dashboard → Settings → Developer → Personal Access Tokens
+# Get from: Activations dashboard → Settings → Developer → Personal Access Tokens
 census_personal_token = "your-personal-access-token-here"
 
 # Census region ("us" or "eu")
@@ -29,7 +29,7 @@ postgres_warehouse_connection = {
 }
 
 # Salesforce production connection (used by marketing_prod destination)
-# Required fields based on Census API validation:
+# Required fields based on Activations API validation:
 # Either JWT: username, client_id, domain, instance_url, jwt_signing_key
 # OR Username/Password: username, client_id, domain, password, security_token, client_secret, instance_url
 salesforce_prod_connection = {
@@ -73,7 +73,7 @@ enable_auto_refresh = true
 #    terraform plan
 # 5. Apply to create resources:
 #    terraform apply
-# 6. Verify in Census dashboard that connections work
+# 6. Verify in the Activations dashboard that connections work
 #
 # Note: The specific workspaces, sources, and destinations are defined in main.tf
 # This file only contains configuration values (tokens, credentials, settings)

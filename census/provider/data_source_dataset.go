@@ -12,7 +12,7 @@ import (
 
 func dataSourceDataset() *schema.Resource {
 	return &schema.Resource{
-		Description: "Fetches information about a Census SQL dataset.",
+		Description: "Fetches information about a SQL dataset.",
 
 		ReadContext: dataSourceDatasetRead,
 
