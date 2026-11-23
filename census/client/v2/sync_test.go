@@ -106,6 +106,7 @@ func TestCreateSync_SendsBodyAndReturnsIDs(t *testing.T) {
 		Mappings: []MappingAttributes{
 			{From: MappingFrom{Type: "column", Data: "email"}, To: "Email", IsPrimaryIdentifier: true},
 		},
+		AlertAttributes: []AlertAttribute{},
 	})
 	if err != nil {
 		t.Fatalf("CreateSync failed: %v", err)
@@ -129,6 +130,7 @@ func TestCreateSync_SendsBodyAndReturnsIDs(t *testing.T) {
 				"is_primary_identifier": true,
 			},
 		},
+		"alert_attributes": []interface{}{},
 	}
 	if !reflect.DeepEqual(gotBody, want) {
 		t.Fatalf("unexpected body (optional fields must be omitted):\n got: %#v\nwant: %#v", gotBody, want)
