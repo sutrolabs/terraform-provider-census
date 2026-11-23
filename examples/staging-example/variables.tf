@@ -7,7 +7,7 @@ variable "census_personal_token" {
 variable "census_base_url" {
   description = "Activations API base URL (use staging URL for testing)"
   type        = string
-  default     = "https://app.staging.getcensus.com/api/v1"
+  default     = "https://app.staging.getcensus.com"
 }
 
 variable "notification_emails" {

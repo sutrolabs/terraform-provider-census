@@ -4,10 +4,12 @@ A Terraform provider for managing [Fivetran Activations](https://www.fivetran.co
 
 ## Features
 
-- **Complete Activations workflow**: Manage activation sources, datasets, destinations, and syncs
-- **PAT-only authentication**: Uses personal access tokens with dynamic workspace token retrieval
+- **Complete Activations workflow**: Manage sources, activations, datasets, and syncs
+- **PAT-only authentication**: Uses a personal access token for all API calls
 - **Import support**: Import existing Activations resources into Terraform state
 - **Staging environment support**: Configure custom base URLs for testing
+
+Upgrading from v0.2.x? See the [upgrade guide](docs/guides/upgrade-to-v2.md).
 
 ## Installation
 
@@ -16,7 +18,7 @@ terraform {
   required_providers {
     census = {
       source  = "sutrolabs/census"
-      version = "~> 0.2.0"
+      version = "~> 2.0"
     }
   }
 }
@@ -29,15 +31,9 @@ provider "census" {
 ## Usage
 
 ```hcl
-resource "census_workspace" "data_team" {
-  name = "Data Team Workspace"
-  notification_emails = ["data-alerts@company.com"]
-}
-
 resource "census_source" "warehouse" {
-  workspace_id = census_workspace.data_team.id
-  name         = "Production Warehouse"
-  type         = "snowflake"
+  name = "Production Warehouse"
+  type = "snowflake"
 
   connection_config = {
     account   = "xy12345.us-east-1"
@@ -49,12 +45,25 @@ resource "census_source" "warehouse" {
   }
 }
 
+resource "census_activation" "crm" {
+  group_id = census_source.warehouse.group_id
+  name     = "Production Salesforce"
+  type     = "salesforce"
+
+  credentials = {
+    instance_url   = "https://mycompany.my.salesforce.com"
+    domain         = "login.salesforce.com"
+    username       = var.salesforce_username
+    password       = var.salesforce_password
+    security_token = var.salesforce_security_token
+  }
+}
+
 resource "census_sync" "users_to_crm" {
-  workspace_id = census_workspace.data_team.id
-  label        = "Users to CRM"
+  activation_id = census_activation.crm.id
+  label         = "Users to CRM"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type         = "table"
       table_name   = "users"
@@ -63,8 +72,7 @@ resource "census_sync" "users_to_crm" {
   }
 
   destination_attributes {
-    connection_id = census_destination.crm.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   operation = "upsert"
@@ -95,11 +103,12 @@ resource "census_sync" "users_to_crm" {
 
 ## Resources
 
-- `census_workspace` - Manage Census workspaces
 - `census_source` - Data warehouse connections (Snowflake, BigQuery, Postgres, etc.)
-- `census_destination` - Business tool integrations (Salesforce, HubSpot, etc.)
+- `census_activation` - A source paired with a destination connection (Salesforce, HubSpot, etc.)
 - `census_dataset` - SQL datasets for data transformation
-- `census_sync` - Data syncs between sources and destinations
+- `census_sync` - Data syncs from a source to an activation's destination
+
+`census_workspace` and `census_destination` are deprecated and no longer manage anything.
 
 ## Data Sources
 

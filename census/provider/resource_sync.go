@@ -266,12 +266,11 @@ func syncSchemaMap(alertCollectionType schema.ValueType) map[string]*schema.Sche
 			}, false),
 		},
 		"sync_behavior_family": {
-			Type:     schema.TypeString,
-			Optional: true,
-			Computed: true,
-			Description: "Specifies the behavior family for the sync. Use 'activateEvents' for event-based activation syncs " +
-				"(only supported for live syncs from Kafka/streaming sources). Use 'mapRecords' for record mapping syncs " +
-				"(not supported for live syncs from Materialize).",
+			Type:        schema.TypeString,
+			Optional:    true,
+			Computed:    true,
+			Description: "DEPRECATED: This field is ignored.",
+			Deprecated:  "This field is ignored by Fivetran Activations and will be removed in a future version.",
 			ValidateFunc: validation.StringInSlice([]string{
 				"activateEvents", "mapRecords",
 			}, false),

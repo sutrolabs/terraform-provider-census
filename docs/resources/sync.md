@@ -1,6 +1,6 @@
 # census_sync Resource
 
-Manages a sync that moves data from a source (table, dataset, model, etc.) to a destination (Salesforce, HubSpot, etc.) with configurable field mappings and scheduling.
+Manages a sync that moves data from a source (table, dataset, model, etc.) to a destination (Salesforce, HubSpot, etc.) with configurable field mappings and scheduling. A sync belongs to an activation (see `census_activation`), which pairs the source with the destination.
 
 ## Example Usage
 
@@ -8,11 +8,10 @@ Manages a sync that moves data from a source (table, dataset, model, etc.) to a 
 
 ```hcl
 resource "census_sync" "user_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Users to Salesforce"
+  activation_id = census_activation.salesforce.id
+  label         = "Users to Salesforce"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -22,8 +21,7 @@ resource "census_sync" "user_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   field_mapping {
@@ -60,11 +58,10 @@ resource "census_sync" "user_sync" {
 
 ```hcl
 resource "census_sync" "high_value_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "High Value Customers to HubSpot"
+  activation_id = census_activation.hubspot.id
+  label         = "High Value Customers to HubSpot"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type = "dataset"
       id   = census_dataset.high_value_customers.id
@@ -72,8 +69,7 @@ resource "census_sync" "high_value_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.hubspot.id
-    object        = "contacts"
+    object = "contacts"
   }
 
   field_mapping {
@@ -106,21 +102,19 @@ resource "census_sync" "high_value_sync" {
 
 ```hcl
 resource "census_sync" "vip_segment_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "VIP Users Segment to Salesforce"
+  activation_id = census_activation.salesforce.id
+  label         = "VIP Users Segment to Salesforce"
 
   source_attributes {
-    connection_id = 829
     object {
       type       = "segment"
-      id         = "3060"      # The segment ID
-      dataset_id = "5951"      # The dataset ID that the segment belongs to
+      id         = "3060" # The segment ID
+      dataset_id = "5951" # The dataset ID that the segment belongs to
     }
   }
 
   destination_attributes {
-    connection_id = 456
-    object        = "Contact"
+    object = "Contact"
   }
 
   field_mapping {
@@ -158,11 +152,10 @@ resource "census_sync" "vip_segment_sync" {
 
 ```hcl
 resource "census_sync" "tagged_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Tagged Contact Sync"
+  activation_id = census_activation.salesforce.id
+  label         = "Tagged Contact Sync"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -172,8 +165,7 @@ resource "census_sync" "tagged_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   field_mapping {
@@ -196,11 +188,10 @@ resource "census_sync" "tagged_sync" {
 
 ```hcl
 resource "census_sync" "metadata_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Sync with Metadata Tracking"
+  activation_id = census_activation.salesforce.id
+  label         = "Sync with Metadata Tracking"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -210,8 +201,7 @@ resource "census_sync" "metadata_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   field_mapping {
@@ -240,11 +230,10 @@ resource "census_sync" "metadata_sync" {
 
 ```hcl
 resource "census_sync" "segment_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Sync with Segment Data"
+  activation_id = census_activation.salesforce.id
+  label         = "Sync with Segment Data"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -254,8 +243,7 @@ resource "census_sync" "segment_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   field_mapping {
@@ -279,11 +267,10 @@ resource "census_sync" "segment_sync" {
 
 ```hcl
 resource "census_sync" "template_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Sync with Field Transformations"
+  activation_id = census_activation.salesforce.id
+  label         = "Sync with Field Transformations"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -293,8 +280,7 @@ resource "census_sync" "template_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   field_mapping {
@@ -323,11 +309,10 @@ resource "census_sync" "template_sync" {
 
 ```hcl
 resource "census_sync" "auto_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Auto-Mapped Users Sync"
+  activation_id = census_activation.salesforce.id
+  label         = "Auto-Mapped Users Sync"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -337,13 +322,12 @@ resource "census_sync" "auto_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   # Automatically sync all properties from source to destination
   field_behavior      = "sync_all_properties"
-  field_normalization = "snake_case"  # Format field names in snake_case
+  field_normalization = "snake_case" # Format field names in snake_case
   field_order         = "mapping_order"
 
   # Only need to define the primary identifier when using sync_all_properties
@@ -372,11 +356,10 @@ resource "census_sync" "auto_sync" {
 
 ```hcl
 resource "census_sync" "sheets_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Data Export to Google Sheets"
+  activation_id = census_activation.google_sheets.id
+  label         = "Data Export to Google Sheets"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -386,15 +369,14 @@ resource "census_sync" "sheets_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.google_sheets.id
     # Google Sheets object format: JSON with spreadsheet_id and sheet_id
-    object        = "{\"spreadsheet_id\":\"1r9HavWIo-CS14sblFl-Kxa2kVbMGlqWIBDU6Hb_W8sA\",\"sheet_id\":0}"
+    object = "{\"spreadsheet_id\":\"1r9HavWIo-CS14sblFl-Kxa2kVbMGlqWIBDU6Hb_W8sA\",\"sheet_id\":0}"
   }
 
   operation = "mirror"
 
-  # Automatically sync all properties - no primary identifier needed for Google Sheets mirror
-  field_behavior = "sync_all_properties"
+  # Automatically sync all properties - no field mappings needed
+  field_behavior      = "sync_all_properties"
   field_normalization = "match_source_names"
 
   run_mode {
@@ -414,11 +396,10 @@ resource "census_sync" "sheets_sync" {
 
 ```hcl
 resource "census_sync" "user_list_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Users to Google Ads Customer Match"
+  activation_id = census_activation.google_ads.id
+  label         = "Users to Google Ads Customer Match"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -428,8 +409,7 @@ resource "census_sync" "user_list_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.google_ads.id
-    object        = "user_data"
+    object = "user_data"
   }
 
   field_mapping {
@@ -462,83 +442,14 @@ resource "census_sync" "user_list_sync" {
 }
 ```
 
-### Google Ads Sync with Compound Keys
-
-When syncing to Google Ads destinations with compound keys (like Click Conversions), Fivetran automatically generates a compound key mapping for the primary identifier. This Fivetran-managed mapping should **NOT** be defined in your Terraform configuration, as it is filtered out automatically to prevent drift.
-
-```hcl
-resource "census_sync" "google_ads_click_conversion" {
-  workspace_id = census_workspace.main.id
-  label        = "Google Ads Click Conversion Sync"
-
-  source_attributes {
-    connection_id = census_source.warehouse.id
-    object {
-      type = "dataset"
-      id   = census_dataset.conversion_data.id
-    }
-  }
-
-  destination_attributes {
-    connection_id = census_destination.google_ads.id
-    object        = "click_conversion_with_compound_key"
-  }
-
-  operation = "upsert"
-
-  # IMPORTANT: Only define your user-managed field mappings here
-  # Fivetran will auto-generate a compound_key mapping for the primary identifier
-  # (e.g., click_conversion._census_tracking_id)
-  # Do NOT define this mapping - it will be filtered out automatically
-
-  field_mapping {
-    from = "conversion_timestamp"
-    to   = "click_conversion.conversion_date_time"
-  }
-
-  field_mapping {
-    from = "click_id"
-    to   = "click_conversion.gclid"
-  }
-
-  field_mapping {
-    from = "conversion_action_id"
-    to   = "click_conversion.conversion_action"
-    # Lookup configuration for foreign key relationship
-    lookup_object = "conversion_action"
-    lookup_field  = "id"
-  }
-
-  run_mode {
-    type = "triggered"
-    triggers {
-      schedule {
-        frequency = "daily"
-        hour      = 8
-        minute    = 0
-      }
-    }
-  }
-
-  paused = true
-}
-```
-
-**Key Points:**
-- Fivetran auto-generates a `compound_key` type mapping for destinations with compound primary identifiers
-- This mapping is entirely managed by Fivetran and cannot be modified by users
-- The Terraform provider automatically filters out this mapping during reads to prevent drift
-- You only need to define your user-managed field mappings in the configuration
-
 ### Sync with Advanced Configuration (File Export)
 
 ```hcl
 resource "census_sync" "blob_storage_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Users to Azure Blob Storage"
+  activation_id = census_activation.azure_blob.id
+  label         = "Users to Azure Blob Storage"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type = "model"
       id   = "21130"
@@ -546,13 +457,7 @@ resource "census_sync" "blob_storage_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.azure_blob.id
-    object        = "path_to_file/data_%m-%d-%y.parquet"
-  }
-
-  field_mapping {
-    from = "email"
-    to   = "EMAIL"
+    object = "path_to_file/data_%m-%d-%y.parquet"
   }
 
   operation           = "mirror"
@@ -578,109 +483,65 @@ resource "census_sync" "blob_storage_sync" {
 }
 ```
 
-### Mirror sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with specific properties
-
-Mirror syncs to file system destinations do not support primary identifier mappings.
-
-```hcl
-resource "census_sync" "s3_mirror_sync_specific_properties" {
-  label          = "Mirror syncs to S3 - sync specific properties"
-  workspace_id   = census_workspace.main.id
-  operation      = "mirror"
-  field_behavior = "specifc_properties"
-
-  source_attributes {
-    connection_id = census_source.warehouse.id
-    object {
-      type = "dataset"
-      id   = 134586
-    }
-  }
-
-  destination_attributes {
-    connection_id = census_destination.s3.id
-    object = "path/test_%m-%d-%y.csv"
-  }
-
-  # Mirror syncs to file system destinations do not support
-  # primary identifier mappings.
-  # Generate field should be true.
-  field_mapping {
-    from           = "big_column"
-    to             = "big_column"
-    generate_field = true
-  }
-}
-```
-
 ### Mirror sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync all properties
 
-Mirror syncs to file system destinations do not support primary identifier mappings.
+Mirror syncs to file system destinations do not support primary identifier mappings, so use `sync_all_properties` with no `field_mapping` blocks.
 
 ```hcl
 resource "census_sync" "s3_mirror_sync_all_properties" {
-  label          = "Mirror to S3 - sync all properties"
-  workspace_id   = census_workspace.main.id
-  operation      = "mirror"
+  activation_id = census_activation.s3.id
+  label         = "Mirror to S3 - sync all properties"
+  operation     = "mirror"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type = "dataset"
-      id   = 134586
+      id   = census_dataset.events.id
     }
   }
 
   destination_attributes {
-    connection_id = census_destination.s3.id
     object = "path/test_%m-%d-%y.csv"
   }
 
   # Automatically sync all properties from source to destination
   field_behavior      = "sync_all_properties"
-  field_normalization = "snake_case"  # Format field names in snake_case
+  field_normalization = "snake_case" # Format field names in snake_case
   field_order         = "mapping_order"
-
-  # Mirror syncs to file system destinations do not support
-  # primary identifier mappings.
-  # No need to set any mappings when using sync_all_properties
-  # field_behavior to file system destinations
 }
 ```
 
 ### Upsert sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync specific properties
 
-Upsert syncs to file system destinations require primary identifier mappings to uniquely identify rows in the source between sync runs.
+Upsert syncs to file system destinations require a primary identifier mapping to uniquely identify rows in the source between sync runs.
 
 ```hcl
 resource "census_sync" "s3_upsert_sync_specific_properties" {
+  activation_id  = census_activation.s3.id
   label          = "Upsert sync to S3 - sync specific properties"
-  workspace_id   = census_workspace.main.id
-  operation      = "mirror"
+  operation      = "upsert"
   field_behavior = "specific_properties"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type = "dataset"
-      id   = 134586
+      id   = census_dataset.events.id
     }
   }
 
   destination_attributes {
-    connection_id = census_destination.s3.id
     object = "path/test_%m-%d-%y.csv"
   }
 
   # Upsert syncs to file system destinations require
   # primary identifier mappings to the "unique_id" field.
   field_mapping {
-    from           = "id"
-    to             = "unique_id"
+    from                  = "id"
+    to                    = "unique_id"
     is_primary_identifier = true
   }
 
-  # Other mapping should set generate_field
+  # Other mappings should set generate_field
   field_mapping {
     from           = "big_column"
     to             = "big_column"
@@ -691,42 +552,37 @@ resource "census_sync" "s3_upsert_sync_specific_properties" {
 
 ### Upsert sync to file system destination (S3/SFTP/Azure Blob Storage/Google Drive) with sync all properties
 
-Upsert syncs to file system destinations require primary identifier mappings to uniquely identify rows in the source between sync runs.
+Upsert syncs to file system destinations require a primary identifier mapping to uniquely identify rows in the source between sync runs.
 
 ```hcl
 resource "census_sync" "s3_upsert_sync_all_properties" {
-  label          = "Upsert sync to S3 - sync all properties"
-  workspace_id   = census_workspace.main.id
-  operation      = "mirror"
+  activation_id = census_activation.s3.id
+  label         = "Upsert sync to S3 - sync all properties"
+  operation     = "upsert"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type = "dataset"
-      id   = 134586
+      id   = census_dataset.events.id
     }
   }
 
   destination_attributes {
-    connection_id = census_destination.s3.id
     object = "path/test_%m-%d-%y.csv"
   }
 
   # Automatically sync all properties from source to destination
   field_behavior      = "sync_all_properties"
-  field_normalization = "snake_case"  # Format field names in snake_case
+  field_normalization = "snake_case" # Format field names in snake_case
   field_order         = "mapping_order"
 
   # Upsert syncs to file system destinations require
   # primary identifier mappings to the "unique_id" field.
   field_mapping {
-    from           = "id"
-    to             = "unique_id"
+    from                  = "id"
+    to                    = "unique_id"
     is_primary_identifier = true
   }
-
-  # No need to set any other mappings when using sync_all_properties
-  # field_behavior to file system destinations
 }
 ```
 
@@ -734,11 +590,10 @@ resource "census_sync" "s3_upsert_sync_all_properties" {
 
 ```hcl
 resource "census_sync" "monitored_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "High-Priority Customer Sync with Alerts"
+  activation_id = census_activation.salesforce.id
+  label         = "High-Priority Customer Sync with Alerts"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -748,8 +603,7 @@ resource "census_sync" "monitored_sync" {
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   field_mapping {
@@ -822,22 +676,20 @@ resource "census_sync" "monitored_sync" {
 
 ```hcl
 resource "census_sync" "mirror_sync" {
-  workspace_id = census_workspace.main.id
-  label        = "Product Catalog Mirror"
+  activation_id = census_activation.salesforce.id
+  label         = "Product Catalog Mirror"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
-      table_name    = "users"
+      table_name    = "products"
       table_schema  = "demo"
       table_catalog = "dev"
     }
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Product2"
+    object = "Product2"
   }
 
   field_mapping {
@@ -870,22 +722,20 @@ resource "census_sync" "mirror_sync" {
 
 ```hcl
 resource "census_sync" "incremental_append" {
-  workspace_id = census_workspace.main.id
-  label        = "Incremental Event Log Sync"
+  activation_id = census_activation.salesforce.id
+  label         = "Incremental Event Log Sync"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
-      table_name    = "users"
+      table_name    = "events"
       table_schema  = "demo"
       table_catalog = "dev"
     }
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Event__c"
+    object = "Event__c"
   }
 
   field_mapping {
@@ -926,11 +776,10 @@ resource "census_sync" "incremental_append" {
 
 ```hcl
 resource "census_sync" "preserve_example" {
-  workspace_id = census_workspace.main.id
-  label        = "Customer Sync with Field Preservation"
+  activation_id = census_activation.salesforce.id
+  label         = "Customer Sync with Field Preservation"
 
   source_attributes {
-    connection_id = census_source.warehouse.id
     object {
       type          = "table"
       table_name    = "users"
@@ -940,8 +789,7 @@ resource "census_sync" "preserve_example" {
   }
 
   destination_attributes {
-    connection_id = census_destination.salesforce.id
-    object        = "Contact"
+    object = "Contact"
   }
 
   field_mapping {
@@ -959,8 +807,8 @@ resource "census_sync" "preserve_example" {
     # Don't overwrite existing phone numbers in destination
     from             = "phone"
     to               = "Phone"
-    preserve_values  = true # Don't overwrite existing data in the destination
-    sync_null_values = false  # Don't sync null phone values
+    preserve_values  = true  # Don't overwrite existing data in the destination
+    sync_null_values = false # Don't sync null phone values
   }
 
   field_mapping {
@@ -987,38 +835,39 @@ resource "census_sync" "preserve_example" {
 
 ## Argument Reference
 
-* `workspace_id` - (Required, Forces new resource) The ID of the workspace this sync belongs to.
+* `activation_id` - (Required, Forces new resource) The ID of the activation this sync belongs to (see `census_activation`). The activation determines the sync's source and destination connections.
 * `label` - (Required) The label of the sync.
+* `operation` - (Required) How records are synced to the destination: `"upsert"`, `"append"`, `"mirror"`, `"update"`, or `"insert"`. Which operations are available depends on the destination object.
 * `source_attributes` - (Required) Configuration block for the source. Block contains:
-  * `connection_id` - (Required) The source connection ID
   * `object` - (Required) Object configuration block:
     * `type` - (Required) Source type: `"table"`, `"dataset"`, `"model"`, `"topic"`, `"segment"`, or `"cohort"`
     * For table sources: `table_name`, `table_schema`, and `table_catalog`
     * For dataset/model sources: `id` of the dataset/model
     * For segment sources: use `type="segment"`, provide the segment `id`, and specify `dataset_id` for the dataset the segment belongs to
     * For cohort sources: use `type="cohort"`, provide the cohort `id`, and specify `dataset_id` for the dataset the cohort belongs to
+  * `cohort_id` - (Optional) The ID of the cohort, for cohort sources.
 * `destination_attributes` - (Required) Destination configuration block:
-  * `connection_id` - (Required) The destination connection ID
-  * `object` - (Required) The destination object name (e.g., "Contact" for Salesforce, "contacts" for HubSpot)
+  * `object` - (Required) The destination object name (e.g., "Contact" for Salesforce, "contacts" for HubSpot). For file system destinations, the file path.
   * `lead_union_insert_to` - (Optional) Where to insert a union object (for Salesforce connections only)
-* `field_mapping` - (Optional) Field mappings between source and destination. Define multiple `field_mapping` blocks for multiple mappings. Each mapping block includes:
+* `field_mapping` - (Optional) Field mappings between source and destination. Define multiple `field_mapping` blocks for multiple mappings. If any `field_mapping` blocks are defined, one of them must have `is_primary_identifier = true`. Each mapping block includes:
   * `from` - Source field name (required for `type="direct"`). Omit for `constant`, `sync_metadata`, `segment_membership`, and `liquid_template` mappings.
-  * `to` - Destination field name (required)
-  * `type` - Mapping type: `"direct"` (default), `"constant"`, `"sync_metadata"`, `"segment_membership"`, or `"liquid_template"`.
-  * `constant` - Constant value (must also set `type="constant"`)
-  * `sync_metadata_key` - Sync metadata key (e.g., `"sync_run_id"`). Must also set `type="sync_metadata"`.
-  * `segment_identify_by` - How to identify segments (e.g., `"name"`). Must also set `type="segment_membership"`.
-  * `liquid_template` - Liquid template for data transformation (e.g., `"{{ record['field'] | upcase }}"`). Must also set `type="liquid_template"`.
-  * `is_primary_identifier` - (Optional) Boolean indicating if this field is the primary identifier for matching records. Exactly one field_mapping must have this set to `true`. Defaults to `false`.
+  * `to` - (Required) Destination field name.
+  * `type` - (Optional) Mapping type: `"direct"` (default), `"constant"`, `"sync_metadata"`, `"segment_membership"`, or `"liquid_template"`.
+  * `constant` - (Optional) Constant value. Must also set `type="constant"`.
+  * `sync_metadata_key` - (Optional) Sync metadata key (e.g., `"sync_run_id"`). Must also set `type="sync_metadata"`.
+  * `segment_identify_by` - (Optional) How to identify segments (e.g., `"name"`). Must also set `type="segment_membership"`.
+  * `liquid_template` - (Optional) Liquid template for data transformation (e.g., `"{{ record['field'] | upcase }}"`). Must also set `type="liquid_template"`.
+  * `is_primary_identifier` - (Optional) Whether this field is the primary identifier (sync key) for matching records. Defaults to `false`.
   * `lookup_object` - (Optional) Object to lookup for relationship mapping (e.g., `"user_list"`). Used with `lookup_field` for foreign key lookups.
   * `lookup_field` - (Optional) Field to use for lookup in the `lookup_object` (e.g., `"id"`). Used with `lookup_object` for foreign key lookups.
   * `preserve_values` - (Optional) If true, preserves existing values in the destination field and prevents Fivetran from overwriting them. Defaults to `false`.
   * `generate_field` - (Optional) If true, Fivetran will generate/create this field in the destination. Defaults to `false`.
-  * `sync_null_values` - (Optional) If true (default), null values in the source will be synced to the destination. Set to false to skip syncing null values. Defaults to `true`.
+  * `sync_null_values` - (Optional) If true, null values in the source will be synced to the destination. Set to false to skip syncing null values. Defaults to `true`.
   * `array_field` - (Optional) Whether the destination field is an array type. Only applicable when `generate_field` is true (for user-defined fields). Defaults to `false`.
-  * `field_type` - (Optional) The type of the destination field. Only applicable when `generate_field` is true (for user-defined fields). Available types depend on the destination (e.g., "text", "number", "boolean", "date").
+  * `field_type` - (Optional) The type of the destination field. Only applicable when `generate_field` is true (for user-defined fields). Available types depend on the destination.
   * `follow_source_type` - (Optional) Whether the destination field type should automatically follow changes to the source column type. Defaults to `false`.
-* `operation` - (Optional) Sync mode: `"upsert"`, `"append"`, or `"mirror"`. Defaults to `"upsert"`.
+  * `operation` - (Optional) For array fields, how new values are merged with existing ones: `"append"` (add to the existing array) or `"set"` (replace it). Only applicable when `array_field` is true.
+* `paused` - (Optional) Whether the sync is paused. Defaults to `false`.
 * `field_behavior` - (Optional) Controls how fields are synced:
   * `"specific_properties"` (default) - Use only the field mappings defined in `field_mapping`
   * `"sync_all_properties"` - Automatically sync all properties from source to destination
@@ -1033,18 +882,16 @@ resource "census_sync" "preserve_example" {
   * `"alphabetical_column_name"` (default) - Sort fields alphabetically
   * `"mapping_order"` - Use the order fields are defined in `field_mapping`
   * `"source_column_order"` - Destination fields are ordered by the position of the columns returned from the source
-* `sync_behavior_family` - (Optional) Specifies the behavior family for the sync:
-  * `"activateEvents"` - For event-based activation syncs (only supported for live syncs from Kafka/streaming sources)
-  * `"mapRecords"` - For record mapping syncs (not supported for live syncs from Materialize)
-* `advanced_configuration` - (Optional) Advanced configuration options specific to the destination type as JSON string. Use `jsonencode()` to specify values. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values can be strings, numbers, or booleans. Refer to destination-specific Activations documentation for available options.
-* `high_water_mark_attribute` - (Optional) The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Fivetran diff engine (using primary keys). This is more efficient for append operations with timestamp-based data. Example: `"updated_at"`.
+* `sync_behavior_family` - (Optional, Deprecated) Ignored.
+* `advanced_configuration` - (Optional) Advanced configuration options specific to the destination type as a JSON string. Use `jsonencode()` to specify values. Available options vary by destination (e.g., file format for file exports, bulk settings for APIs). Values can be strings, numbers, or booleans. Refer to destination-specific Fivetran Activations documentation for available options.
+* `high_water_mark_attribute` - (Optional) The name of the timestamp column to use for high water mark diffing strategy. When set, append syncs will use this column to identify new records instead of the default Fivetran diff engine (using primary keys). Example: `"updated_at"`.
 * `historical_sync_operation` - (Optional) Specifies how the first sync should handle historical records when using append operation. Only applicable for append syncs:
   * `"skip_current_records"` - Skip existing records on first sync, only sync new records going forward
   * `"backfill_all_records"` - Include all existing records on first sync (full backfill)
-* `mirror_strategy` - (Optional, Computed) Specifies the strategy for mirror syncs. Only applicable when `operation` is set to `"mirror"`. Determines how Fivetran keeps the destination in sync with the source data:
-  * `"sync_updates_and_deletes"` - Incrementally syncs changes by inserting new records, updating modified records, and deleting records that no longer exist in the source. This is the most common and efficient strategy for keeping destinations in sync (default).
+* `mirror_strategy` - (Optional) Specifies the strategy for mirror syncs. Only applicable when `operation` is set to `"mirror"`:
+  * `"sync_updates_and_deletes"` - Incrementally syncs changes by inserting new records, updating modified records, and deleting records that no longer exist in the source. This is the most common strategy.
   * `"sync_updates_and_nulls"` - Updates existing records and sets fields to null when the source contains null values, without performing deletes.
-  * `"upload_and_swap"` - Replaces the entire destination table with the current source snapshot. Useful for destinations that don't support incremental updates or when you need a complete refresh.
+  * `"upload_and_swap"` - Replaces the entire destination table with the current source snapshot.
 * `alert` - (Optional) Alert configurations for monitoring sync health. Define multiple `alert` blocks to configure multiple alerts. If no `alert` blocks are specified, the sync will be created with no alerts. Each alert block includes:
   * `type` - (Required) Type of alert. Valid values:
     * `"FailureAlertConfiguration"` - Alert when sync fails completely
@@ -1068,17 +915,15 @@ resource "census_sync" "preserve_example" {
     * For `StatusAlertConfiguration`:
       * `status_name` - Status to alert on: `"started"` or `"completed"`
   * `id` - (Computed) The alert configuration ID assigned by Fivetran
-* `run_mode` - (Optional) Run mode configuration block for controlling how and when the sync runs:
-  * `type` - (Required) Mode type:
-    * `"live"` - Continuous syncing for streaming sources (Kafka, Materialize)
-    * `"triggered"` - Event-based syncing with configured triggers
-  * `triggers` - (Optional) Trigger configurations (only for `triggered` mode). Multiple triggers can be configured simultaneously:
+* `run_mode` - (Optional) Run mode configuration block for controlling when the sync runs. If not specified, Fivetran uses a default schedule (manually triggered); specify `run_mode` explicitly to avoid drift.
+  * `type` - (Required) Mode type. Only `"triggered"` is accepted.
+  * `triggers` - (Optional) Trigger configurations. Multiple triggers can be configured simultaneously:
     * `schedule` - (Optional) Schedule-based trigger configuration block:
       * `frequency` - (Required) How often to run: `"never"`, `"continuous"`, `"quarter_hourly"`, `"hourly"`, `"daily"`, `"weekly"`, or `"expression"` (for cron)
       * `day` - (Optional) Day of week for weekly schedules: `"Sunday"`, `"Monday"`, `"Tuesday"`, `"Wednesday"`, `"Thursday"`, `"Friday"`, or `"Saturday"`
       * `hour` - (Optional) Hour to run (0-24) for daily/weekly schedules
       * `minute` - (Optional) Minute to run (0-59)
-      * `cron_expression` - (Optional) Cron expression when `frequency` is `"expression"`. Mutually exclusive with hour/day settings
+      * `cron_expression` - (Optional) Cron expression when `frequency` is `"expression"`
     * `dbt_cloud` - (Optional) dbt Cloud job trigger configuration block:
       * `project_id` - (Required) dbt Cloud project ID
       * `job_id` - (Required) dbt Cloud job ID
@@ -1087,27 +932,29 @@ resource "census_sync" "preserve_example" {
       * `job_name` - (Required) Fivetran job name
     * `sync_sequence` - (Optional) Sync dependency trigger configuration block (triggers after another sync completes):
       * `sync_id` - (Required) ID of the sync to trigger after
+* `sync_mode` - (Optional, Deprecated) Ignored. Use `operation` instead.
+
 ## Attribute Reference
 
 In addition to all arguments above, the following attributes are exported:
 
 * `id` - The ID of the sync.
-* `paused` - Whether the sync is currently paused.
 * `status` - The current status of the sync.
+* `created_at` - Timestamp when the sync was created.
+* `updated_at` - Timestamp when the sync was last updated.
+* `last_run_at` - (Deprecated) Timestamp when the sync was last executed. Unsupported and will be removed in a future version.
+* `next_run_at` - (Deprecated) Timestamp when the sync is scheduled to run next. Unsupported and will be removed in a future version.
+* `last_run_id` - (Deprecated) ID of the last sync run. Unsupported and will be removed in a future version.
 
 ## Import
 
-Syncs can be imported using the workspace ID and sync ID separated by a colon:
+Syncs can be imported using the sync ID:
 
 ```shell
-terraform import census_sync.user_sync "workspace_id:sync_id"
+terraform import census_sync.user_sync 67890
 ```
 
-For example:
-
-```shell
-terraform import census_sync.user_sync "12345:67890"
-```
+The `workspace_id:sync_id` format used by earlier provider versions is no longer accepted.
 
 ## Notes
 
@@ -1117,8 +964,10 @@ terraform import census_sync.user_sync "12345:67890"
   * `upsert` - Insert new records and update existing ones
   * `append` - Only insert new records, never update
   * `mirror` - Replace all destination records with source data
+  * `update` - Only update existing records, never insert
+  * `insert` - Only insert records that don't exist yet
 * Manual syncs (frequency="never") must be triggered externally.
 * Source types determine which fields are required in `source_attributes.object`.
   * For segment sources, use `type="segment"` with `id` (segment ID) and `dataset_id` (parent dataset ID)
   * For cohort sources, use `type="cohort"` with `id` (cohort ID) and `dataset_id` (parent dataset ID)
-* **Compound Key Mappings (Google Ads, etc.)**: Some destinations (like Google Ads Click Conversions) require compound keys for primary identifiers. Fivetran automatically generates these mappings and they should NOT be included in your Terraform configuration. The provider automatically filters out Fivetran-managed compound_key mappings to prevent drift. See the "Google Ads Sync with Compound Keys" example above.
+* **Compound Key Mappings (Google Ads, etc.)**: Some destinations (like Google Ads Click Conversions) use compound keys for primary identifiers. Fivetran generates these mappings automatically; don't include them in your Terraform configuration. The provider filters out Fivetran-managed `compound_key` mappings on read to prevent drift.

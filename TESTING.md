@@ -101,7 +101,7 @@ Create `.env.test` from `.env.test.example` and fill in:
 
 ```bash
 # Census
-CENSUS_BASE_URL=https://app.staging.getcensus.com/api/v1
+CENSUS_BASE_URL=https://app.staging.getcensus.com
 CENSUS_PERSONAL_ACCESS_TOKEN=your-token
 
 # Redshift
