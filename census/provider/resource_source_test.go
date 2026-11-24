@@ -816,8 +816,25 @@ func writeJSON(t *testing.T, w http.ResponseWriter, statusCode int, payload inte
 	}
 }
 
-func TestResourceSourceStateUpgradeV0_FillsMissingNotificationEmails(t *testing.T) {
+func TestResourceSourceStateUpgradeV0_BackfillsFromAPI(t *testing.T) {
 	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sources/207672" {
+			http.NotFound(w, r)
+			return
+		}
+		writeJSON(t, w, http.StatusOK, map[string]interface{}{
+			"status": "success",
+			"data": map[string]interface{}{
+				"id":                  207672,
+				"group_id":            "lactic_landmark",
+				"region":              "AWS-US-EAST-1",
+				"notification_emails": []string{"alerts@example.com"},
+			},
+		})
+	}))
+	defer server.Close()
 
 	rawState := map[string]interface{}{
 		"id":           "207672",
@@ -825,16 +842,54 @@ func TestResourceSourceStateUpgradeV0_FillsMissingNotificationEmails(t *testing.
 		"name":         "pre_migration_fixture_redshift",
 	}
 
-	got, err := resourceSourceStateUpgradeV0(context.Background(), rawState, nil)
+	got, err := resourceSourceStateUpgradeV0(context.Background(), rawState, newTestClients(t, server.URL))
 	if err != nil {
 		t.Fatalf("upgrade failed: %v", err)
+	}
+
+	if got["group_id"] != "lactic_landmark" || got["region"] != "AWS-US-EAST-1" {
+		t.Fatalf("expected group_id and region from the API, got %#v", got)
+	}
+	if emails := got["notification_emails"].([]interface{}); len(emails) != 1 || emails[0] != "alerts@example.com" {
+		t.Fatalf("expected notification_emails from the API, got %#v", emails)
+	}
+	if got["workspace_id"] != "6646" || got["name"] != "pre_migration_fixture_redshift" {
+		t.Fatalf("expected existing attributes to be preserved, got %#v", got)
+	}
+}
+
+func TestResourceSourceStateUpgradeV0_NotFoundFillsEmptyNotificationEmails(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.NotFoundHandler())
+	defer server.Close()
+
+	got, err := resourceSourceStateUpgradeV0(context.Background(), map[string]interface{}{
+		"id":   "207672",
+		"name": "pre_migration_fixture_redshift",
+	}, newTestClients(t, server.URL))
+	if err != nil {
+		t.Fatalf("a 404 should not fail the upgrade, got: %v", err)
 	}
 
 	if emails, ok := got["notification_emails"].([]interface{}); !ok || len(emails) != 0 {
 		t.Fatalf("expected notification_emails to be an empty list, got %#v", got["notification_emails"])
 	}
-	if got["workspace_id"] != "6646" || got["name"] != "pre_migration_fixture_redshift" {
-		t.Fatalf("expected existing attributes to be preserved, got %#v", got)
+	if _, ok := got["group_id"]; ok {
+		t.Fatalf("expected group_id to stay unset, got %#v", got["group_id"])
+	}
+}
+
+func TestResourceSourceStateUpgradeV0_PropagatesOtherErrors(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	if _, err := resourceSourceStateUpgradeV0(context.Background(), map[string]interface{}{"id": "207672"}, newTestClients(t, server.URL)); err == nil {
+		t.Fatal("expected a non-404 error to fail the upgrade")
 	}
 }
 

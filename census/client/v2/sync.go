@@ -137,16 +137,17 @@ type SyncSequenceTrigger struct {
 
 // CreateSyncRequest is the body for POST /syncs. ActivationID, Operation,
 // SourceAttributes, DestinationAttributes and Mappings are required by the
-// v2 API.
+// v2 API. AlertAttributes is always sent so the API doesn't add default
+// alerts.
 type CreateSyncRequest struct {
 	ActivationID          string                     `json:"activation_id"`
 	Operation             string                     `json:"operation"`
 	SourceAttributes      map[string]interface{}     `json:"source_attributes"`
 	DestinationAttributes *SyncDestinationAttributes `json:"destination_attributes"`
 	Mappings              []MappingAttributes        `json:"mappings"`
+	AlertAttributes       []AlertAttribute           `json:"alert_attributes"`
 
 	Label                   string                 `json:"label,omitempty"`
-	AlertAttributes         []AlertAttribute       `json:"alert_attributes,omitempty"`
 	AdvancedConfiguration   map[string]interface{} `json:"advanced_configuration,omitempty"`
 	Mode                    *SyncMode              `json:"mode,omitempty"`
 	Paused                  bool                   `json:"paused,omitempty"`
@@ -170,7 +171,7 @@ type UpdateSyncRequest struct {
 	SourceAttributes        map[string]interface{}     `json:"source_attributes,omitempty"`
 	DestinationAttributes   *SyncDestinationAttributes `json:"destination_attributes,omitempty"`
 	Mappings                []MappingAttributes        `json:"mappings,omitempty"`
-	AlertAttributes         []AlertAttribute           `json:"alert_attributes,omitempty"`
+	AlertAttributes         []AlertAttribute           `json:"alert_attributes"`
 	AdvancedConfiguration   map[string]interface{}     `json:"advanced_configuration,omitempty"`
 	Mode                    *SyncMode                  `json:"mode,omitempty"`
 	Paused                  bool                       `json:"paused"`
