@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -173,12 +174,12 @@ func resourceSourceV0() *schema.Resource {
 	return &schema.Resource{Schema: s}
 }
 
-// resourceSourceStateUpgradeV0 fills in notification_emails for state written
-// before it existed. It is Optional + Computed, and SDKv2 plans an absent
-// Computed list as "known after apply" even when nothing has changed, so
-// without this an upgraded source shows a spurious update until its first
-// refresh. An empty list is safe: the next refresh replaces it with whatever
-// the Activations API reports.
+// resourceSourceStateUpgradeV0 fills in group_id, region and
+// notification_emails, which v0 state lacks, from the source's current values.
+// Otherwise the first plan after upgrading reports group_id as changed outside
+// of Terraform. notification_emails defaults to an empty list when the source
+// can't be read, because SDKv2 plans an absent Computed list as "known after
+// apply" even when nothing has changed.
 func resourceSourceStateUpgradeV0(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 	if rawState == nil {
 		rawState = map[string]interface{}{}
@@ -186,6 +187,28 @@ func resourceSourceStateUpgradeV0(ctx context.Context, rawState map[string]inter
 	if rawState["notification_emails"] == nil {
 		rawState["notification_emails"] = []interface{}{}
 	}
+
+	idStr, _ := rawState["id"].(string)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return rawState, nil
+	}
+
+	source, err := v2.GetSource(ctx, meta.(*clients).V2, id)
+	if err != nil {
+		if v2.IsNotFoundError(err) {
+			return rawState, nil
+		}
+		return nil, fmt.Errorf("failed to read source %s during state upgrade: %w", idStr, err)
+	}
+
+	rawState["group_id"] = source.GroupID
+	rawState["region"] = source.Region
+	emails := make([]interface{}, len(source.NotificationEmails))
+	for i, email := range source.NotificationEmails {
+		emails[i] = email
+	}
+	rawState["notification_emails"] = emails
 	return rawState, nil
 }
 
