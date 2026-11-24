@@ -1,0 +1,23 @@
+census/provider/resource_source.go
+  s_2688bf90ca615e::t_2b0bda7db2e633 5
+  s_2688bf90ca615e::t_f271f886628742 177-182,190-211
+census/provider/resource_source_test.go
+  s_2688bf90ca615e::t_0e598334ed1095 819,822-838,845,850-854,861-894
+  s_2688bf90ca615e::t_13c3b832b94d0d 895
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "94fbc1c4058d452c78a88d732eb246c2cf93a8c1",
+  "prompts": {},
+  "sessions": {
+    "s_2688bf90ca615e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5a1781b9-4289-4749-ac67-04b98a44ddf2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
