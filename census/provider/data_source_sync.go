@@ -199,9 +199,6 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("created_at", sync.CreatedAt.Format(time.RFC3339))
 	d.Set("updated_at", sync.UpdatedAt.Format(time.RFC3339))
 
-	// last_run_at, next_run_at and last_run_id are deprecated: the API does not support them,
-	// so they are never set and stay empty.
-
 	// Set complex attributes
 	source_object, err := flattenSourceAttributesForDataSource(sync.SourceAttributes)
 	if err != nil {
@@ -216,10 +213,6 @@ func dataSourceSyncRead(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("source_object", source_object)
 	d.Set("destination_object", destination_object)
 
-	// field_mapping is deprecated: the API does not support it, so it is always an empty list.
-	if err := d.Set("field_mapping", []interface{}{}); err != nil {
-		return diag.Errorf("failed to set field_mapping: %v", err)
-	}
 	if sync.Mode != nil {
 		if err := d.Set("run_mode", FlattenRunMode(sync.Mode)); err != nil {
 			return diag.Errorf("failed to set run_mode: %v", err)

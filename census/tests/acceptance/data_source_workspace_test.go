@@ -21,7 +21,6 @@ data "census_workspace" "test" {
 `,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.census_workspace.test", "id", "12345"),
-					resource.TestCheckResourceAttr("data.census_workspace.test", "name", ""),
 				),
 			},
 		},

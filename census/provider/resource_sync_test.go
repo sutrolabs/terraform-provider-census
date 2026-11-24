@@ -2,12 +2,14 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sutrolabs/terraform-provider-census/census/client/v2"
 )
 
@@ -540,6 +542,29 @@ func TestExpandAlerts_Empty(t *testing.T) {
 	}
 	if len(result) != 0 {
 		t.Errorf("ExpandAlerts(empty) should return empty slice with 0 items, got %d items", len(result))
+	}
+}
+
+// A sync with no alert blocks must send "alert_attributes": [], because the
+// API adds default alerts to a new sync when the field is omitted.
+func TestBuildSyncRequest_NoAlertsSendsEmptyList(t *testing.T) {
+	d := schema.TestResourceDataRaw(t, ResourceSync().Schema, map[string]interface{}{
+		"activation_id": "example_activation_id",
+		"label":         "Test",
+		"operation":     "upsert",
+	})
+
+	body, err := json.Marshal(buildSyncRequest(context.Background(), d))
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	var got map[string]interface{}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	alerts, ok := got["alert_attributes"].([]interface{})
+	if !ok || len(alerts) != 0 {
+		t.Fatalf(`expected "alert_attributes": [], got %s`, body)
 	}
 }
 

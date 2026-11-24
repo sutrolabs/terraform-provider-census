@@ -216,6 +216,4 @@ Expected changes:
 * An in-place update to `credentials` on each imported `census_activation`. The API never returns credentials, so Terraform sends the configured ones on apply.
 * Removal of any `census_workspace` and `census_destination` still in state. No API calls are made.
 
-Above the plan, Terraform may also report that each `census_source` "has changed" outside of Terraform, adding `group_id`. This is not an actual configuration change, just Terraform picking up the new attribute.
-
 Anything else is a mistake in the migrated configuration. In particular, a `census_sync` or `census_dataset` marked for replacement means its `activation_id` or `group_id` doesn't match what it already uses.
