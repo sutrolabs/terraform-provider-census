@@ -1,0 +1,14 @@
+CHANGELOG.md
+  h_96efa7013a7935 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "363f61a6a4500b0c5872afec675ca9c3ebeb592c",
+  "prompts": {},
+  "humans": {
+    "h_96efa7013a7935": {
+      "author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
