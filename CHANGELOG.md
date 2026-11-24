@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-11-24
 
 ### Added
 - **`census_activation` resource and data source**, for use in place of `census_destination`. An activation pairs a source (`group_id`) with a destination; creating one also creates its destination connection. Changing `group_id` or `type` replaces it. Import an activation by ID, or by `<group_id>:<destination_id>` for a destination previously managed with `census_destination`; the data source supports the same two lookups.
