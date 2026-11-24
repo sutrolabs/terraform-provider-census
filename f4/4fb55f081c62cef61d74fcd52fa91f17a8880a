@@ -1,0 +1,19 @@
+docs/resources/sync.md
+  s_2688bf90ca615e::t_89fb84756e802c 895
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f44fb55f081c62cef61d74fcd52fa91f17a8880a",
+  "prompts": {},
+  "sessions": {
+    "s_2688bf90ca615e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5a1781b9-4289-4749-ac67-04b98a44ddf2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Ah Yong <james.ahyong@fivetran.com>"
+    }
+  }
+}
